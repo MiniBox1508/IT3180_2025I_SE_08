@@ -9,10 +9,16 @@ import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- Xóa initialNotificationData ---
-// const initialNotificationData = [...]; 
+// const initialNotificationData = [...];
 
 // --- Component hiển thị một mục thông báo (ĐÃ SỬA) ---
-const NotificationItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => { // Thêm onEditClick
+const NotificationItem = ({
+  item,
+  isDeleteMode,
+  onDeleteClick,
+  onEditClick,
+}) => {
+  // Thêm onEditClick
 
   const handleActionClick = () => {
     if (isDeleteMode) {
@@ -28,7 +34,7 @@ const NotificationItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) =>
     const trimmedContent = content.trim();
     if (trimmedContent.length > limit) {
       // Cắt chuỗi và đảm bảo không cắt đứt từ nếu có thể (lấy 12 ký tự đầu)
-      return trimmedContent.substring(0, limit) + '...';
+      return trimmedContent.substring(0, limit) + "...";
     }
     return trimmedContent;
   };
@@ -40,20 +46,19 @@ const NotificationItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) =>
 
       {/* Nội dung thông báo: Tăng lên 4 cột (ID, Người nhận, Nội dung, Ngày gửi) */}
       <div className="flex-1 grid grid-cols-4 gap-4 items-center pl-8 pr-4 text-gray-800">
-        
         {/* Cột 1: ID */}
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Thông báo ID</p>
           <p className="font-semibold">{item.id}</p>
         </div>
-        
+
         {/* Cột 2: Người nhận (apartment_id) */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Người nhận</p>
           {/* BE trả về apartment_id, dùng nó làm recipient */}
           <p className="font-medium">{item.apartment_id || item.recipient}</p>
         </div>
-        
+
         {/* Cột MỚI: Nội dung */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Nội dung</p>
@@ -61,35 +66,36 @@ const NotificationItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) =>
             {truncateContent(item.content)}
           </p>
         </div>
-        
+
         {/* Cột 4: Ngày gửi */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Ngày gửi</p>
           <p className="text-gray-600">
-             {/* Định dạng ngày tháng từ BE */}
-            {item.notification_date ? new Date(item.notification_date).toLocaleDateString('vi-VN') : '---'}
+            {/* Định dạng ngày tháng từ BE */}
+            {item.notification_date
+              ? new Date(item.notification_date).toLocaleDateString("vi-VN")
+              : "---"}
           </p>
         </div>
       </div>
 
-       {/* --- Nút hành động --- */}
-       {/* Tách nút ra ngoài grid */}
+      {/* --- Nút hành động --- */}
+      {/* Tách nút ra ngoài grid */}
       <div className="ml-auto flex-shrink-0 pr-2">
-         <button
-            onClick={handleActionClick} // Gọi hàm xử lý chung
-            className={`${
-              isDeleteMode
-                ? "text-red-600 hover:text-red-800"
-                : "text-blue-600 hover:text-blue-800"
-            } hover:underline text-sm font-medium`} // Đảm bảo text-sm
-          >
-            {isDeleteMode ? "Xóa thông báo" : "Chỉnh sửa"}
-          </button>
+        <button
+          onClick={handleActionClick} // Gọi hàm xử lý chung
+          className={`${
+            isDeleteMode
+              ? "text-red-600 hover:text-red-800"
+              : "text-blue-600 hover:text-blue-800"
+          } hover:underline text-sm font-medium`} // Đảm bảo text-sm
+        >
+          {isDeleteMode ? "Xóa thông báo" : "Chỉnh sửa"}
+        </button>
       </div>
     </div>
   );
 };
-
 
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]); // Khởi tạo rỗng
@@ -104,21 +110,24 @@ export const NotificationsPage = () => {
   // State cho EDIT MODAL
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
-  const [editFormData, setEditFormData] = useState({ recipient: '', content: '' }); 
+  const [editFormData, setEditFormData] = useState({
+    recipient: "",
+    content: "",
+  });
 
   // State cho modal thông báo kết quả
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); 
+  const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
   // State cho chế độ xóa & modal xác nhận
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState(null);
-  
+
   // <<< NEW: State cho Thanh Tìm kiếm >>>
-  const [searchTerm, setSearchTerm] = useState(""); 
-  
+  const [searchTerm, setSearchTerm] = useState("");
+
   // ====================================================================
   // --- 1. HÀM FETCH DỮ LIỆU TỪ API (GET /notifications) ---
   // ====================================================================
@@ -126,38 +135,37 @@ export const NotificationsPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-        const response = await fetch(`${API_BASE_URL}/notifications`); 
-        if (!response.ok) {
-            throw new Error('Không thể tải dữ liệu thông báo.');
-        }
-        const data = await response.json();
-        // BE trả về apartment_id, date dưới dạng ISO. FE hiển thị recipient, date định dạng VN.
-        // BE fields: id, content, apartment_id, notification_date
-        setNotifications(data);
+      const response = await fetch(`${API_BASE_URL}/notifications`);
+      if (!response.ok) {
+        throw new Error("Không thể tải dữ liệu thông báo.");
+      }
+      const data = await response.json();
+      // BE trả về apartment_id, date dưới dạng ISO. FE hiển thị recipient, date định dạng VN.
+      // BE fields: id, content, apartment_id, notification_date
+      setNotifications(data);
     } catch (err) {
-        console.error('Fetch Error:', err);
-        setError(err.message);
+      console.error("Fetch Error:", err);
+      setError(err.message);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchNotifications();
   }, []);
-  
+
   // <<< NEW: Logic Lọc dữ liệu (Chỉ theo ID) >>>
-  const filteredNotifications = notifications.filter(item => {
-      if (!searchTerm.trim()) {
-          return true;
-      }
-      const searchLower = searchTerm.trim().toLowerCase();
-      
-      // Chỉ lọc theo ID (id)
-      return String(item.id).toLowerCase().includes(searchLower);
+  const filteredNotifications = notifications.filter((item) => {
+    if (!searchTerm.trim()) {
+      return true;
+    }
+    const searchLower = searchTerm.trim().toLowerCase();
+
+    // Chỉ lọc theo ID (id)
+    return String(item.id).toLowerCase().includes(searchLower);
   });
   // ---------------------------------------------
-
 
   // ====================================================================
   // --- 2. HÀM THÊM MỚI (POST /notifications) ---
@@ -172,40 +180,41 @@ export const NotificationsPage = () => {
   const handleAddFormSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    
+
     // apartment_id (người nhận) và content là bắt buộc
     if (!addRecipient || !addContent) {
       setError("Vui lòng điền đủ Người nhận và Nội dung.");
       return;
     }
-    
+
     handleCloseAddModal(); // Đóng modal thêm
 
     try {
-        const response = await fetch(`${API_BASE_URL}/notifications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                apartment_id: addRecipient, // recipient là apartment_id trong BE
-                content: addContent 
-            }),
-        });
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apartment_id: addRecipient, // recipient là apartment_id trong BE
+          content: addContent,
+        }),
+      });
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (!response.ok) {
-            throw new Error(result.error || "Lỗi! Thêm thông báo mới không thành công");
-        }
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Lỗi! Thêm thông báo mới không thành công"
+        );
+      }
 
-        // Thành công: fetch lại danh sách
-        fetchNotifications();
-        setModalStatus("addSuccess");
-        setStatusMessage("Đã thêm thông báo mới!");
-
+      // Thành công: fetch lại danh sách
+      fetchNotifications();
+      setModalStatus("addSuccess");
+      setStatusMessage("Đã thêm thông báo mới!");
     } catch (err) {
-        console.error('API Error:', err);
-        setModalStatus("addFailure");
-        setStatusMessage(err.message);
+      console.error("API Error:", err);
+      setModalStatus("addFailure");
+      setStatusMessage(err.message);
     }
     setIsStatusModalOpen(true); // Mở modal trạng thái
   };
@@ -217,8 +226,8 @@ export const NotificationsPage = () => {
     setEditingNotification(notification);
     // recipient là apartment_id trong BE
     setEditFormData({
-        recipient: notification.apartment_id || notification.recipient || '', 
-        content: notification.content || ''
+      recipient: notification.apartment_id || notification.recipient || "",
+      content: notification.content || "",
     });
     setIsEditModalOpen(true);
   };
@@ -226,79 +235,89 @@ export const NotificationsPage = () => {
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditingNotification(null);
-    setEditFormData({ recipient: '', content: '' });
+    setEditFormData({ recipient: "", content: "" });
   };
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Trích đoạn trong handleEditSubmit của NotificationsPage.jsx
   const handleEditSubmit = async (e) => {
-      e.preventDefault();
-      if (!editingNotification) return;
+    e.preventDefault();
+    if (!editingNotification) return;
 
-      handleCloseEditModal(); // Đóng modal sửa
-      setError(null);
+    handleCloseEditModal(); // Đóng modal sửa
+    setError(null);
 
-      try {
-          const response = await fetch(`${API_BASE_URL}/notifications/${editingNotification.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  apartment_id: editFormData.recipient,
-                  content: editFormData.content
-              }),
-          });
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/${editingNotification.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apartment_id: editFormData.recipient,
+            content: editFormData.content,
+          }),
+        }
+      );
 
-          // <--- BƯỚC QUAN TRỌNG: XỬ LÝ LỖI TRƯỚC KHI response.json() --->
-          if (!response.ok && response.status !== 404) {
-              // Nếu là lỗi 404, có thể không có body hoặc body là HTML
-              // Nếu là lỗi 500, body có thể là JSON (lỗi BE) hoặc HTML (lỗi server)
-              
-              // Hãy cố gắng đọc body: nếu nó không phải JSON, response.json() sẽ thất bại và bị bắt bởi catch(err) bên dưới
-              const text = await response.text();
-              
-              if (response.headers.get('content-type')?.includes('application/json')) {
-                  const result = JSON.parse(text);
-                  throw new Error(result.error || `Lỗi ${response.status}: Vấn đề Server`);
-              } else {
-                  // Nếu nhận HTML/text, báo lỗi chung chung (tránh lỗi JSON parse)
-                  console.error('API returned non-JSON content:', text.substring(0, 50) + '...');
-                  throw new Error(`Lỗi ${response.status}: Server trả về nội dung không phải JSON.`);
-              }
-          }
-          
-          // Nếu response.ok, hãy đọc JSON (hoặc nếu là 200/204 thành công và không có body thì vẫn tiếp tục)
-          let result = {};
-          try {
-              // Cố gắng đọc JSON (vì Backend của bạn có trả về {message: ...})
-              result = await response.json(); 
-          } catch (e) {
-              // Bỏ qua lỗi JSON parse nếu response là 204 No Content (hợp lệ cho PUT)
-              if (response.status !== 204 && response.status !== 200) {
-                  throw new Error("Lỗi đọc phản hồi JSON.");
-              }
-          }
-          
-          if (result.error) {
-              throw new Error(result.error);
-          }
+      // <--- BƯỚC QUAN TRỌNG: XỬ LÝ LỖI TRƯỚC KHI response.json() --->
+      if (!response.ok && response.status !== 404) {
+        // Nếu là lỗi 404, có thể không có body hoặc body là HTML
+        // Nếu là lỗi 500, body có thể là JSON (lỗi BE) hoặc HTML (lỗi server)
 
-          // Thành công: fetch lại danh sách
-          fetchNotifications();
-          setModalStatus("editSuccess");
-          setStatusMessage("Chỉnh sửa thông báo thành công!");
+        // Hãy cố gắng đọc body: nếu nó không phải JSON, response.json() sẽ thất bại và bị bắt bởi catch(err) bên dưới
+        const text = await response.text();
 
-      } catch (err) {
-          console.error('API Error:', err);
-          setModalStatus("editFailure");
-          setStatusMessage(err.message || "Lỗi mạng hoặc server không phản hồi.");
+        if (
+          response.headers.get("content-type")?.includes("application/json")
+        ) {
+          const result = JSON.parse(text);
+          throw new Error(
+            result.error || `Lỗi ${response.status}: Vấn đề Server`
+          );
+        } else {
+          // Nếu nhận HTML/text, báo lỗi chung chung (tránh lỗi JSON parse)
+          console.error(
+            "API returned non-JSON content:",
+            text.substring(0, 50) + "..."
+          );
+          throw new Error(
+            `Lỗi ${response.status}: Server trả về nội dung không phải JSON.`
+          );
+        }
       }
-      setIsStatusModalOpen(true); // Mở modal trạng thái
-  };
 
+      // Nếu response.ok, hãy đọc JSON (hoặc nếu là 200/204 thành công và không có body thì vẫn tiếp tục)
+      let result = {};
+      try {
+        // Cố gắng đọc JSON (vì Backend của bạn có trả về {message: ...})
+        result = await response.json();
+      } catch (e) {
+        // Bỏ qua lỗi JSON parse nếu response là 204 No Content (hợp lệ cho PUT)
+        if (response.status !== 204 && response.status !== 200) {
+          throw new Error("Lỗi đọc phản hồi JSON.");
+        }
+      }
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Thành công: fetch lại danh sách
+      fetchNotifications();
+      setModalStatus("editSuccess");
+      setStatusMessage("Chỉnh sửa thông báo thành công!");
+    } catch (err) {
+      console.error("API Error:", err);
+      setModalStatus("editFailure");
+      setStatusMessage(err.message || "Lỗi mạng hoặc server không phản hồi.");
+    }
+    setIsStatusModalOpen(true); // Mở modal trạng thái
+  };
 
   // ====================================================================
   // --- 4. HÀM XỬ LÝ XÓA (DELETE /notifications/:id) ---
@@ -315,30 +334,32 @@ export const NotificationsPage = () => {
   const handleConfirmDelete = async () => {
     setShowConfirmModal(false);
     setError(null);
-    
+
     try {
-        const response = await fetch(`${API_BASE_URL}/notifications/${itemToDeleteId}`, {
-            method: 'DELETE',
-        });
-        
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Xóa thông báo không thành công!");
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/${itemToDeleteId}`,
+        {
+          method: "DELETE",
         }
+      );
 
-        // Thành công: fetch lại danh sách
-        fetchNotifications();
-        setModalStatus("deleteSuccess");
-        setStatusMessage("Đã xóa thông báo thành công!");
+      const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.error || "Xóa thông báo không thành công!");
+      }
+
+      // Thành công: fetch lại danh sách
+      fetchNotifications();
+      setModalStatus("deleteSuccess");
+      setStatusMessage("Đã xóa thông báo thành công!");
     } catch (err) {
-        console.error('API Error:', err);
-        setModalStatus("deleteFailure");
-        setStatusMessage(err.message);
+      console.error("API Error:", err);
+      setModalStatus("deleteFailure");
+      setStatusMessage(err.message);
     } finally {
-        setItemToDeleteId(null);
-        setIsStatusModalOpen(true);
+      setItemToDeleteId(null);
+      setIsStatusModalOpen(true);
     }
   };
 
@@ -366,9 +387,11 @@ export const NotificationsPage = () => {
   if (isLoading) {
     return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
   }
-  
+
   if (error) {
-    return <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>;
+    return (
+      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
+    );
   }
   // -----------------------------
 
@@ -376,26 +399,37 @@ export const NotificationsPage = () => {
     <div>
       {/* <<< NEW: Thanh Tìm kiếm Full Width >>> */}
       <div className="flex justify-start items-center mb-6">
-          <div className="relative w-full max-w-full">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-              </span>
-              <input
-                  type="search"
-                  placeholder="Tìm theo ID thông báo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" 
+        <div className="relative w-full max-w-full">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
-          </div>
+            </svg>
+          </span>
+          <input
+            type="search"
+            placeholder="Tìm theo ID thông báo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
       {/* ------------------------------------- */}
-      
+
       {/* Header và Nút */}
       <div className="flex justify-between items-center mb-6">
-       <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
+        <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
         <div className="flex space-x-4">
           {/* Chỉ hiển thị nút Thêm khi không ở chế độ xóa */}
           {!isDeleteMode && (
@@ -423,19 +457,23 @@ export const NotificationsPage = () => {
       {/* Danh sách thông báo */}
       <div className="space-y-4">
         {filteredNotifications.length === 0 ? ( // <<< UPDATED: Dùng filteredNotifications
-           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-              Không có thông báo nào phù hợp với tìm kiếm.
-           </div>
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">
+            Không có thông báo nào phù hợp với tìm kiếm.
+          </div>
         ) : (
-             filteredNotifications.map((item) => ( // <<< UPDATED: Dùng filteredNotifications
-                <NotificationItem
-                  key={item.id}
-                  item={item}
-                  isDeleteMode={isDeleteMode}
-                  onDeleteClick={handleDeleteItemClick}
-                  onEditClick={handleOpenEditModal} // <<< Truyền hàm mở modal sửa
-                />
-            ))
+          filteredNotifications.map(
+            (
+              item // <<< UPDATED: Dùng filteredNotifications
+            ) => (
+              <NotificationItem
+                key={item.id}
+                item={item}
+                isDeleteMode={isDeleteMode}
+                onDeleteClick={handleDeleteItemClick}
+                onEditClick={handleOpenEditModal} // <<< Truyền hàm mở modal sửa
+              />
+            )
+          )
         )}
       </div>
 
@@ -445,14 +483,17 @@ export const NotificationsPage = () => {
         onClose={handleCloseAddModal}
         title="Thêm thông báo mới"
       >
-         {/* Hiển thị lỗi nếu có */}
-         {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+        {/* Hiển thị lỗi nếu có */}
+        {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
         {/* ... (Form thêm giữ nguyên) ... */}
-         <form onSubmit={handleAddFormSubmit} className="space-y-4">
-           {/* Thông báo ID (Tự động tăng, không cần input này cho POST) */}
+        <form onSubmit={handleAddFormSubmit} className="space-y-4">
+          {/* Thông báo ID (Tự động tăng, không cần input này cho POST) */}
           {/* Người nhận */}
           <div>
-            <label htmlFor="add-recipient" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="add-recipient"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Người nhận (apartment_id)
             </label>
             <input
@@ -467,7 +508,10 @@ export const NotificationsPage = () => {
           </div>
           {/* Nội dung */}
           <div>
-            <label htmlFor="add-content" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="add-content"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Nội dung
             </label>
             <textarea
@@ -480,13 +524,13 @@ export const NotificationsPage = () => {
               required
             ></textarea>
           </div>
-           {/* Nút Add */}
+          {/* Nút Add */}
           <div className="mt-6 flex justify-end">
             <button
               type="submit"
               className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-md transition-colors duration-200"
             >
-              Add
+              Thêm
             </button>
           </div>
         </form>
@@ -509,15 +553,18 @@ export const NotificationsPage = () => {
                 {editingNotification.id}
               </div>
             </div>
-             {/* Người nhận */}
+            {/* Người nhận */}
             <div>
-              <label htmlFor="edit-recipient" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="edit-recipient"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Người nhận (apartment_id)
               </label>
               <input
                 type="text"
                 id="edit-recipient"
-                name="recipient" 
+                name="recipient"
                 value={editFormData.recipient}
                 onChange={handleEditFormChange}
                 placeholder="Ví dụ: P.713 hoặc All"
@@ -527,12 +574,15 @@ export const NotificationsPage = () => {
             </div>
             {/* Nội dung chỉnh sửa */}
             <div>
-              <label htmlFor="edit-content" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="edit-content"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Nội dung chỉnh sửa
               </label>
               <textarea
                 id="edit-content"
-                name="content" 
+                name="content"
                 rows="4"
                 value={editFormData.content}
                 onChange={handleEditFormChange}
@@ -541,19 +591,18 @@ export const NotificationsPage = () => {
                 required
               ></textarea>
             </div>
-             {/* Nút Confirm */}
+            {/* Nút Confirm */}
             <div className="mt-6 flex justify-end">
               <button
                 type="submit"
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-md transition-colors duration-200"
               >
-                Confirm
+                Xác nhận
               </button>
             </div>
           </form>
         )}
       </StatusModal>
-
 
       {/* Confirmation Modal (Xóa) - giữ nguyên */}
       <ConfirmationModal
@@ -565,10 +614,7 @@ export const NotificationsPage = () => {
       />
 
       {/* Status Modal (Thông báo kết quả Add/Edit/Delete) - giữ nguyên */}
-      <StatusModal
-        isOpen={isStatusModalOpen}
-        onClose={handleCloseStatusModal}
-      >
+      <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
     </div>
