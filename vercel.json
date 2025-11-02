@@ -6,6 +6,10 @@
       "dest": "BE/app.js"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "FE/dist/assets/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/FE/dist/index.html"
     }
