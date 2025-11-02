@@ -32,7 +32,7 @@ export const ConfirmationModal = ({
             onClick={onConfirm}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-md transition-colors duration-200"
           >
-            Confirm
+            Xác nhận
           </button>
         </div>
       </div>
