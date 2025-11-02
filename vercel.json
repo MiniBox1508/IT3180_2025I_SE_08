@@ -7,7 +7,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "FE/dist/index.html"
+      "dest": "/FE/dist/index.html"
     }
   ]
 }
