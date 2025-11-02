@@ -1,15 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "BE/app.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "FE/package.json",
-      "use": "@vercel/static-build"
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -17,7 +7,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "dest": "/FE/dist/index.html"
     }
   ]
 }
