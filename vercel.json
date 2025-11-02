@@ -9,7 +9,7 @@
       "src": "FE/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "outputDirectory": "dist"
+        "outputDirectory": "FE/dist"
       }
     }
   ],
@@ -19,16 +19,8 @@
       "dest": "BE/app.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/dist/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(ico|png|jpg|jpeg|svg|gif|js|css|map|txt))",
-      "dest": "/dist/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "dest": "/FE/dist/index.html"
     }
   ]
 }
