@@ -7,10 +7,7 @@
     },
     {
       "src": "FE/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "outputDirectory": "FE/dist"
-      }
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
