@@ -276,10 +276,6 @@ const PaymentItem = ({ item, onStatusClick }) => {
     ? new Date(item.payment_date).toLocaleDateString("vi-VN")
     : "---";
 
-  const handlePayInvoice = (invoiceId) => {
-    navigate(`/dashboard/payment/${invoiceId}/qr`);
-  };
-
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4">
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
@@ -318,17 +314,6 @@ const PaymentItem = ({ item, onStatusClick }) => {
           >
             {item.status_text}
           </p>
-          {!isPaid && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePayInvoice(item.id);
-              }}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-            >
-              Thanh toán hóa đơn
-            </button>
-          )}
         </div>
       </div>
     </div>
