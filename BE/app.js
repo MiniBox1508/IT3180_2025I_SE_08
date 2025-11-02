@@ -8,7 +8,7 @@ const cors = require("cors"); // <-- THÊM DÒNG NÀY
 app.use(express.json());
 
 const corsOptions = {
-  origin: "https://testing-deployment-fe.vercel.app", // <--- THAY BẰNG DOMAIN FE CỦA BẠN
+  origin: "https://it-3180-2025-1-se-08.vercel.app", // <--- THAY BẰNG DOMAIN FE CỦA BẠN
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"], // Các phương thức BE hỗ trợ
   credentials: true, // Cho phép gửi cookies (nếu có)
   optionsSuccessStatus: 200, // Status code cho pre-flight request
