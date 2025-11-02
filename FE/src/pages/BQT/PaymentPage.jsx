@@ -305,15 +305,13 @@ const PaymentItem = ({ item, onStatusClick }) => {
           <p className="text-xs text-gray-500 mb-1">Hình thức thanh toán</p>
           <p className="text-gray-600">{item.payment_form || "---"}</p>
         </div>
-        <div
-          className="text-right cursor-pointer"
-          onClick={() => onStatusClick(item)}
-        >
+        <div className="text-right">
           <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
           <p
-            className={`font-semibold mb-2 ${
+            className={`font-semibold mb-2 cursor-pointer ${
               isPaid ? "text-green-600" : "text-red-600"
             }`}
+            onClick={() => onStatusClick(item)}
           >
             {item.status_text}
           </p>
