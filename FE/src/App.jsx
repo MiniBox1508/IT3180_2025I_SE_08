@@ -26,6 +26,7 @@ import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNot
 import { ResidentViewPage } from "./pages/citizen/ResidentViewPage.jsx";
 // <<< NEW: Import ResidentPaymentPage >>>
 import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
+import NewWelcomeScreen from "./pages/citizen/NewWelcomeScreen.jsx";
 
 // --- TẠO CÁC TRANG PLACEHOLDER CHO DASHBOARD ---
 const ServicesPage = () => (
@@ -60,6 +61,7 @@ export default function App() {
             </div>
           }
         />
+        <Route path="/newwelcome" element={<NewWelcomeScreen />} />
 
         {/* === CÁC TRANG CẦN SIDEBAR (DASHBOARD) - BAN QUẢN TRỊ === */}
         <Route path="/dashboard" element={<SharedLayout />}>
@@ -69,7 +71,7 @@ export default function App() {
 
           <Route path="payment">
             {/* BQT dùng PaymentPage có nút Thêm */}
-            <Route index element={<PaymentPage />} /> 
+            <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
           </Route>
 
