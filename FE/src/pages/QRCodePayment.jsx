@@ -134,7 +134,6 @@ export const QRCodePayment = () => {
           <button
             onClick={handleGoBack}
             className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-md transition-colors duration-200"
-            disabled={showModal}
           >
             Quay lại
           </button>
