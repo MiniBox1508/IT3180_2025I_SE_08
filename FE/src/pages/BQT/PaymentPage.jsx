@@ -289,7 +289,8 @@ const PaymentItem = ({ item, onStatusClick }) => {
         <div>
           <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
           <p className="font-medium text-gray-700">
-            {item.apartment_number || "N/A"}
+            {/* Hiển thị apartment_id nếu có, nếu không thì N/A */}
+            {item.apartment_id || "N/A"}
           </p>
         </div>
         <div>
