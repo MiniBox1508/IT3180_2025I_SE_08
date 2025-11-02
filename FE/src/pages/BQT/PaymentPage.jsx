@@ -219,7 +219,7 @@ const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   // Remove overlay: just show modal as absolutely positioned, no background
   return (
     <div className="fixed left-0 right-0 top-0 bottom-0 flex justify-center items-center z-50 pointer-events-none">
-      <div className="bg-white p-6 rounded-lg w-full max-w-xl text-gray-900 pointer-events-auto shadow-xl">
+  <div className="bg-white p-6 rounded-lg w-full max-w-lg text-gray-900 pointer-events-auto shadow-xl">
         <h2 className="text-lg font-bold mb-6 text-center">
           Thay đổi trạng thái thanh toán {payment.id}
         </h2>
