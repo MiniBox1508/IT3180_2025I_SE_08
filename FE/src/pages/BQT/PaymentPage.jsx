@@ -484,7 +484,7 @@ export const PaymentPage = () => {
   const handleStatusUpdate = async (newStatus) => {
     if (!selectedPayment) return;
 
-    const newStatusAsNumber = newStatus ? 1 : 0; // Convert boolean to 0 or 1
+    const newStateValue = newStatus ? 1 : 0; // Convert boolean to 0 or 1
 
     try {
       const response = await fetch(
@@ -492,7 +492,7 @@ export const PaymentPage = () => {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatusAsNumber }),
+          body: JSON.stringify({ state: newStateValue }), // SỬA TẠI ĐÂY
         }
       );
 
