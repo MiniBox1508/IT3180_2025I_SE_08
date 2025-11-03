@@ -1,4 +1,9 @@
 // index.js
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const express = require("express");
 const mysql = require("mysql2");
 const app = express();
@@ -500,6 +505,54 @@ app.get("/payments/:id", (req, res) => {
     p.status_text = p.state === 1 ? "Đã thanh toán" : "Chưa thanh toán";
     res.json(p);
   });
+});
+
+// PATCH: cập nhật trạng thái thanh toán (state) cho payment
+
+app.patch("/payment/:id", (req, res) => {
+  const { id } = req.params;
+  const { state } = req.body;
+  if (typeof state !== "number" || (state !== 0 && state !== 1)) {
+    return res
+      .status(400)
+      .json({ error: "Giá trị state không hợp lệ (chỉ nhận 0 hoặc 1)" });
+  }
+  if (state === 1) {
+    // Nếu chuyển sang success, cập nhật cả state và payment_date bằng ngày hiện tại GMT+7
+    const vnDate = dayjs().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD");
+    const sql = `
+      UPDATE payments
+      SET state = 1, payment_date = ?
+      WHERE id = ?
+    `;
+    db.query(sql, [vnDate, id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy giao dịch để cập nhật" });
+      res.json({
+        message: "Cập nhật trạng thái và ngày thanh toán thành công",
+      });
+    });
+  } else {
+    // Nếu là 0, cập nhật state về 0 và xóa ngày thanh toán
+    const sql = `
+      UPDATE payments
+      SET state = 0, payment_date = NULL
+      WHERE id = ?
+    `;
+    db.query(sql, [id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy giao dịch để cập nhật" });
+      res.json({
+        message: "Cập nhật trạng thái về chưa thanh toán thành công",
+      });
+    });
+  }
 });
 
 // -------- PUT /notifications/:id — chỉnh sửa thông báo --------
