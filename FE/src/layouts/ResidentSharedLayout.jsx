@@ -54,7 +54,7 @@ export const ResidentSharedLayout = () => {
   const handleLogout = () => {
     // Xóa session/token (nếu có)
     // ...
-    navigate("/welcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
+    navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
   // === SỬA TẠI ĐÂY: Thanh active bên TRÁI ===

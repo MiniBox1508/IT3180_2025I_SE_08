@@ -4,7 +4,7 @@ import { StatusModal } from "../../layouts/StatusModal"; // Dùng để thông b
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // Nếu cần, hiện tại không dùng
 import { FiCheckCircle, FiXCircle } from "react-icons/fi"; // Icons cho modal feedback
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";

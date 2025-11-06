@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 // import { Link } from "react-router-dom";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";

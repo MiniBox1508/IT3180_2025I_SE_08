@@ -13,6 +13,7 @@ import {
 import { AuthLayout } from "./layouts/AuthLayout.jsx";
 import { SharedLayout } from "./layouts/SharedLayout.jsx";
 import { ResidentSharedLayout as RsLayout } from "./layouts/ResidentSharedLayout.jsx";
+import { AccountantSharedLayout as AsLayout } from "./layouts/AccountantSharedLayout.jsx";
 // Pages
 import { WelcomeScreen } from "./pages/WelcomeScreen.jsx";
 import { Box as LoginScreen } from "./pages/LoginScreen.jsx";
@@ -26,8 +27,10 @@ import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNot
 import { ResidentViewPage } from "./pages/citizen/ResidentViewPage.jsx";
 // <<< NEW: Import ResidentPaymentPage >>>
 import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
-import NewWelcomeScreen from "./pages/citizen/NewWelcomeScreen.jsx";
+import { NewWelcomeScreen } from "./pages/NewWelcomeScreen.jsx";
 
+import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
+import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
 // --- TẠO CÁC TRANG PLACEHOLDER CHO DASHBOARD ---
 const ServicesPage = () => (
   <h1 className="text-3xl font-bold text-white">Quản lý Dịch vụ</h1>
@@ -40,10 +43,10 @@ export default function App() {
     <Router>
       <Routes>
         {/* Route mặc định, chuyển hướng đến /welcome */}
-        <Route path="/" element={<Navigate to="/welcome" />} />
+        <Route path="/" element={<Navigate to="/newwelcome" />} />
 
         {/* === Các trang không cần Sidebar (Login, Welcome) === */}
-        <Route
+        {/* <Route
           path="/welcome"
           element={
             <div className="min-h-screen relative">
@@ -61,7 +64,16 @@ export default function App() {
             </div>
           }
         />
-        <Route path="/newwelcome" element={<NewWelcomeScreen />} />
+        <Route path="/newwelcome" element={<NewWelcomeScreen />} /> */}
+
+        <Route
+          path="/newwelcome"
+          element={
+            <div className="min-h-screen relative">
+              <NewWelcomeScreen />
+            </div>
+          }
+        />
 
         {/* === CÁC TRANG CẦN SIDEBAR (DASHBOARD) - BAN QUẢN TRỊ === */}
         <Route path="/dashboard" element={<SharedLayout />}>
@@ -89,6 +101,17 @@ export default function App() {
             <Route index element={<ResidentPaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
           </Route>
+          <Route path="notifications" element={<RnPage />} />
+        </Route>
+
+        {/* === Accountant-specific dashboard (layout riêng cho kế toán) === */}
+        <Route path="/accountant_dashboard" element={<AsLayout />}>
+          {/* Trang chủ cư dân */}
+          <Route index element={<AccountantProfilePage />} />
+          <Route path="accountant_payment">
+            <Route index element={<AccountPayment />} />
+          </Route>
+          <Route path="residents" element={<ResidentViewPage />} />
           <Route path="notifications" element={<RnPage />} />
         </Route>
       </Routes>
