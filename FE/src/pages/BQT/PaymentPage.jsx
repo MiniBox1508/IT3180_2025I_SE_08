@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { StatusModal } from "../../layouts/StatusModal"; // Dùng để thông báo kết quả
-import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // Nếu cần, hiện tại không dùng
-import { FiCheckCircle, FiXCircle } from "react-icons/fi"; // Icons cho modal feedback
+import { StatusModal } from "../../layouts/StatusModal";
+import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
+import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -11,6 +11,7 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // =========================================================================
 // === COMPONENT: PAYMENT FORM MODAL (ADD NEW) ===
+// (Giữ nguyên không đổi)
 // =========================================================================
 const PaymentFormModal = ({
   isOpen,
@@ -63,7 +64,7 @@ const PaymentFormModal = ({
 
     try {
       // Gọi API POST /payment
-      const response = await fetch(`${API_BASE_URL}/payment`, {
+      const response = await fetch(`${API_BASE_URL}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataToSend),
@@ -87,7 +88,7 @@ const PaymentFormModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
         <h2 className="text-lg font-bold mb-4">Tạo thanh toán mới</h2>
         {error && (
@@ -195,6 +196,7 @@ const PaymentFormModal = ({
 
 // =========================================================================
 // === COMPONENT: CHANGE STATUS MODAL ===
+// (Giữ nguyên không đổi)
 // =========================================================================
 const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   const [newStatus, setNewStatus] = useState(null);
@@ -269,8 +271,11 @@ const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   );
 };
 
-// --- Component hiển thị một mục thanh toán ---
-const PaymentItem = ({ item, onStatusClick }) => {
+// =========================================================================
+// === COMPONENT: PAYMENT ITEM (ĐÃ SỬA) ===
+// =========================================================================
+const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
+  // <<< THÊM: isDeleteMode, onDeleteClick
   const navigate = useNavigate();
   const isPaid = item.status_text === "Đã thanh toán";
 
@@ -279,7 +284,12 @@ const PaymentItem = ({ item, onStatusClick }) => {
     : "---";
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4">
+    // <<< SỬA: Thêm style đỏ khi ở chế độ Xóa
+    <div
+      className={`bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4 ${
+        isDeleteMode ? "ring-2 ring-red-500" : ""
+      }`}
+    >
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
       <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8">
         <div className="text-center">
@@ -289,7 +299,6 @@ const PaymentItem = ({ item, onStatusClick }) => {
         <div>
           <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
           <p className="font-medium text-gray-700">
-            {/* Hiển thị apartment_id nếu có, nếu không thì N/A */}
             {item.apartment_id || "N/A"}
           </p>
         </div>
@@ -307,13 +316,24 @@ const PaymentItem = ({ item, onStatusClick }) => {
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
+          {/* <<< SỬA: Thay đổi hành vi và nội dung của nút này */}
           <p
             className={`font-semibold mb-2 cursor-pointer ${
-              isPaid ? "text-green-600" : "text-red-600"
+              isDeleteMode
+                ? "text-red-600 hover:underline"
+                : isPaid
+                ? "text-green-600 hover:underline"
+                : "text-red-600 hover:underline"
             }`}
-            onClick={() => onStatusClick(item)}
+            onClick={() => {
+              if (isDeleteMode) {
+                onDeleteClick(item.id); // Gọi hàm xóa
+              } else {
+                onStatusClick(item); // Gọi hàm sửa status
+              }
+            }}
           >
-            {item.status_text}
+            {isDeleteMode ? "Xóa thanh toán" : item.status_text}
           </p>
         </div>
       </div>
@@ -321,27 +341,33 @@ const PaymentItem = ({ item, onStatusClick }) => {
   );
 };
 
-// --- Component Trang Thanh toán chính ---
+// =========================================================================
+// === COMPONENT: TRANG THANH TOÁN CHÍNH (ĐÃ SỬA) ===
+// =========================================================================
 export const PaymentPage = () => {
   const [payments, setPayments] = useState([]);
-  const [residents, setResidents] = useState([]); // <<< NEW: Để lấy resident_id cho form
+  const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- State cho Modal Thêm mới và Status Modal ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); // 'success', 'failure', 'update_success', 'update_failure'
+  const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [addModalError, setAddModalError] = useState(""); // Lỗi riêng cho form add
+  const [addModalError, setAddModalError] = useState("");
 
-  // --- State cho Change Status Modal ---
   const [isChangeStatusModalOpen, setIsChangeStatusModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  // Hàm Fetch dữ liệu Thanh toán
+  // <<< THÊM: State cho chế độ Xóa
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState(null);
+  // ---------------------------------
+
+  // Hàm Fetch dữ liệu Thanh toán (Giữ nguyên)
   const fetchPayments = async () => {
     setIsLoading(true);
     setError(null);
@@ -363,7 +389,7 @@ export const PaymentPage = () => {
     }
   };
 
-  // <<< NEW: Hàm Fetch dữ liệu Cư dân (dùng cho form Add) >>>
+  // Hàm Fetch dữ liệu Cư dân (Giữ nguyên)
   const fetchResidents = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/residents`);
@@ -371,19 +397,17 @@ export const PaymentPage = () => {
         throw new Error("Không thể tải danh sách cư dân.");
       }
       const data = await response.json();
-      // Lọc ra các cư dân active để hiển thị trong select
       setResidents(data.filter((r) => r.state === "active"));
     } catch (err) {
       console.error("Fetch Residents Error:", err);
-      // Không set error chính, chỉ console log
     }
   };
   // -----------------------------------------------------
 
-  // Gọi API khi component mount
+  // Gọi API khi component mount (Giữ nguyên)
   useEffect(() => {
     fetchPayments();
-    fetchResidents(); // <<< NEW: Gọi hàm fetch residents
+    fetchResidents();
   }, []);
 
   // Logic Lọc và Sắp xếp dữ liệu (Giữ nguyên)
@@ -410,7 +434,7 @@ export const PaymentPage = () => {
     });
   // ----------------------------
 
-  // --- HÀM XỬ LÝ MODAL TRẠNG THÁI ---
+  // --- HÀM XỬ LÝ MODAL TRẠNG THÁI (ĐÃ SỬA) ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
@@ -420,6 +444,8 @@ export const PaymentPage = () => {
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
 
+    // <<< SỬA: Dùng statusMessage thay vì text cứng
+    // Áp dụng cho cả Sửa Trạng thái và Xóa
     if (modalStatus === "update_success" || modalStatus === "update_failure") {
       const isSuccess = modalStatus === "update_success";
       const icon = isSuccess ? (
@@ -427,19 +453,19 @@ export const PaymentPage = () => {
       ) : (
         <FiXCircle className="text-red-500 text-6xl mb-4" />
       );
-      const message = isSuccess
-        ? "Thay đổi thành công!"
-        : "Thay đổi không thành công!";
       return (
         <div className="flex flex-col items-center">
           {icon}
           <p className="text-xl font-semibold text-center text-gray-800">
-            {message}
+            {/* Sử dụng statusMessage đã set */}
+            {statusMessage || (isSuccess ? "Thành công!" : "Thất bại!")}
           </p>
         </div>
       );
     }
+    // -----------------------------------------
 
+    // Giữ nguyên logic cho Thêm mới
     const isSuccess = modalStatus === "success";
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
@@ -452,7 +478,7 @@ export const PaymentPage = () => {
     );
   };
 
-  // --- HÀM GỌI KHI LƯU FORM ADD THÀNH CÔNG ---
+  // --- HÀM GỌI KHI LƯU FORM ADD (Giữ nguyên) ---
   const handleAddPaymentSuccess = () => {
     fetchPayments(); // Refresh danh sách
     setModalStatus("success");
@@ -462,13 +488,13 @@ export const PaymentPage = () => {
     setIsStatusModalOpen(true);
   };
 
-  // --- HÀM XỬ LÝ KHI ĐÓNG MODAL ADD (chỉ gọi khi ấn Hủy) ---
+  // --- HÀM XỬ LÝ KHI ĐÓNG MODAL ADD (Giữ nguyên) ---
   const handleCloseAddModal = () => {
     setIsAddModalOpen(false);
     setAddModalError(""); // Clear lỗi form
   };
 
-  // --- HANDLERS FOR CHANGE STATUS MODAL ---
+  // --- HANDLERS FOR CHANGE STATUS MODAL (Giữ nguyên) ---
   const handleOpenChangeStatusModal = (payment) => {
     setSelectedPayment(payment);
     setIsChangeStatusModalOpen(true);
@@ -486,11 +512,11 @@ export const PaymentPage = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payment/${selectedPayment.id}`,
+        `${API_BASE_URL}/payments/${selectedPayment.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state: newStateValue }), // SỬA TẠI ĐÂY
+          body: JSON.stringify({ state: newStateValue }),
         }
       );
 
@@ -501,17 +527,66 @@ export const PaymentPage = () => {
 
       handleCloseChangeStatusModal();
       setModalStatus("update_success");
+      setStatusMessage("Thay đổi trạng thái thành công!"); // <<< THÊM: Set Message
       setIsStatusModalOpen(true);
       fetchPayments(); // Refresh list to show updated status
     } catch (err) {
       console.error("Update Status Error:", err);
       handleCloseChangeStatusModal();
       setModalStatus("update_failure");
+      setStatusMessage(err.message); // <<< THÊM: Set Message
       setIsStatusModalOpen(true);
     }
   };
 
-  // Xử lý Loading State
+  // <<< THÊM: CÁC HÀM XỬ LÝ XÓA
+  const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
+
+  const handleDeleteClick = (id) => {
+    setItemToDeleteId(id);
+    setShowConfirmModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowConfirmModal(false);
+    setItemToDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowConfirmModal(false);
+    if (!itemToDeleteId) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/payments/${itemToDeleteId}`,
+        {
+          method: "DELETE", // Gọi API DELETE
+        }
+      );
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Lỗi khi xóa thanh toán.");
+      }
+
+      // Thành công
+      fetchPayments(); // Refresh list
+      setModalStatus("update_success"); // Dùng style icon FiCheckCircle
+      setStatusMessage("Đã xóa thanh toán thành công!"); // Set message
+      setIsStatusModalOpen(true);
+    } catch (err) {
+      console.error("Delete Error:", err);
+      setModalStatus("update_failure"); // Dùng style icon FiXCircle
+      setStatusMessage(err.message); // Set message
+      setIsStatusModalOpen(true);
+    } finally {
+      setItemToDeleteId(null);
+      setIsDeleteMode(false); // Tắt chế độ xóa sau khi thực hiện
+    }
+  };
+  // ---------------------------------
+
+  // Xử lý Loading State (Giữ nguyên)
   if (isLoading) {
     return (
       <div className="text-white text-lg p-4">
@@ -520,14 +595,14 @@ export const PaymentPage = () => {
     );
   }
 
-  // Xử lý Error State
+  // Xử lý Error State (Giữ nguyên)
   if (error) {
     return (
       <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
     );
   }
 
-  // Hiển thị nội dung
+  // Hiển thị nội dung (ĐÃ SỬA)
   const renderContent = () => {
     if (filteredPayments.length === 0) {
       return (
@@ -544,6 +619,8 @@ export const PaymentPage = () => {
             key={item.id}
             item={item}
             onStatusClick={handleOpenChangeStatusModal}
+            isDeleteMode={isDeleteMode} // <<< THÊM
+            onDeleteClick={handleDeleteClick} // <<< THÊM
           />
         ))}
       </div>
@@ -552,9 +629,8 @@ export const PaymentPage = () => {
 
   return (
     <div className="text-white">
-      {/* Thanh Tìm kiếm Full Width */}
+      {/* Thanh Tìm kiếm Full Width (Giữ nguyên) */}
       <div className="flex justify-start items-center mb-6">
-        {/* ... (Giữ nguyên thanh tìm kiếm) ... */}
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg
@@ -582,30 +658,48 @@ export const PaymentPage = () => {
         </div>
       </div>
 
-      {/* Header và Nút Thêm Thanh Toán */}
+      {/* <<< SỬA: Header và Nút Thêm/Xóa Thanh Toán */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Danh sách Thanh toán</h1>
-        <button
-          onClick={() => setIsAddModalOpen(true)} // <<< Mở Modal Thêm mới
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm"
-        >
-          + Tạo Thanh Toán
-        </button>
+        <div className="flex space-x-4">
+          {/* Nút Xóa / Hoàn tất */}
+          <button
+            onClick={toggleDeleteMode} // Bật/tắt chế độ xóa
+            className={`${
+              isDeleteMode
+                ? "bg-gray-500 hover:bg-gray-600" // Style khi đang xóa
+                : "bg-red-500 hover:bg-red-700" // Style mặc định
+            } text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm`}
+          >
+            {isDeleteMode ? "Hoàn tất" : "Xóa Thanh Toán"}
+          </button>
+
+          {/* Chỉ hiển thị nút Thêm khi KHÔNG ở chế độ xóa */}
+          {!isDeleteMode && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm"
+            >
+              + Tạo Thanh Toán
+            </button>
+          )}
+        </div>
       </div>
+      {/* ------------------------------------------- */}
 
       {renderContent()}
 
-      {/* Modal Thêm Thanh Toán */}
+      {/* Modal Thêm Thanh Toán (Giữ nguyên) */}
       <PaymentFormModal
         isOpen={isAddModalOpen}
         onClose={handleCloseAddModal}
-        onSave={handleAddPaymentSuccess} // Callback khi tạo thành công
-        residentOptions={residents} // Truyền danh sách cư dân
+        onSave={handleAddPaymentSuccess}
+        residentOptions={residents}
         error={addModalError}
         setError={setAddModalError}
       />
 
-      {/* Change Status Modal */}
+      {/* Change Status Modal (Giữ nguyên) */}
       <ChangeStatusModal
         isOpen={isChangeStatusModalOpen}
         onClose={handleCloseChangeStatusModal}
@@ -613,7 +707,16 @@ export const PaymentPage = () => {
         onConfirm={handleStatusUpdate}
       />
 
-      {/* Status Modal (Thông báo kết quả) */}
+      {/* <<< THÊM: Confirmation Modal (Xóa) */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận Xóa Thanh Toán"
+        message="Bạn có chắc chắn muốn xóa vĩnh viễn thanh toán này không?"
+      />
+
+      {/* Status Modal (Thông báo kết quả) (Giữ nguyên) */}
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>

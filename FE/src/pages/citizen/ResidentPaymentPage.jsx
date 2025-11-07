@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // Dân cư chỉ cần StatusModal để xem kết quả thanh toán từ trang QR (nếu cần)
 // và ConfirmationModal không dùng ở đây.

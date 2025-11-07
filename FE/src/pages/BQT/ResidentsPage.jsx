@@ -3,7 +3,7 @@ import { StatusModal } from "../../layouts/StatusModal"; // <<< NEW: Import Stat
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< NEW: Import ConfirmationModal
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // Giả định bạn có component Modal để sử dụng lại cho việc Thêm/Sửa
 // Nếu chưa có, bạn có thể tự thay thế bằng một div cố định.
