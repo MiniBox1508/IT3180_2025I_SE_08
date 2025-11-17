@@ -7,7 +7,7 @@ dayjs.extend(timezone);
 const express = require("express");
 const mysql = require("mysql2");
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 const cors = require("cors"); // <-- THÊM DÒNG NÀY
 
 app.use(express.json());
@@ -35,17 +35,15 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// app.use(cors(corsOptions));
-app.use(cors());
-
+app.use(cors(corsOptions));
 
 // --- MySQL connection (sử dụng POOL) ---
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'hungnohb123',
-  database: process.env.DB_NAME || 'building_management',
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -62,28 +60,28 @@ app.get("/", (req, res) => {
 
 // -------- US-001: Residents CRUD --------
 
-// GET all residents
+// GET all users
 app.get("/residents", (req, res) => {
-  const sql = `SELECT * FROM residents ORDER BY id`;
+  const sql = `SELECT * FROM user ORDER BY id`;
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
 });
 
-// GET single resident
+// GET single user
 app.get("/residents/:id", (req, res) => {
   const { id } = req.params;
-  const sql = `SELECT * FROM residents WHERE id = ?`;
+  const sql = `SELECT * FROM user WHERE id = ?`;
   db.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     if (results.length === 0)
-      return res.status(404).json({ error: "Resident not found" });
+      return res.status(404).json({ error: "User not found" });
     res.json(results[0]);
   });
 });
 
-// POST create resident
+// POST create user
 app.post("/residents", (req, res) => {
   const {
     first_name,
@@ -95,18 +93,19 @@ app.post("/residents", (req, res) => {
     role,
     residency_status,
     email,
+    password,
   } = req.body || {};
-  if (!first_name || !last_name || !phone || !apartment_id) {
+  if (!first_name || !last_name || !phone || !apartment_id || !password) {
     return res.status(400).json({
       error:
-        "Thiếu trường bắt buộc: first_name, last_name, phone, apartment_id",
+        "Thiếu trường bắt buộc: first_name, last_name, phone, apartment_id, password",
     });
   }
 
   const full_name = `${first_name.trim()} ${last_name.trim()}`;
-  const sql = `INSERT INTO residents 
-    (full_name, first_name, last_name, phone, apartment_id, cccd, birth_date, role, residency_status, email)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO user 
+    (full_name, first_name, last_name, phone, apartment_id, cccd, birth_date, role, residency_status, email, password)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(
     sql,
@@ -121,17 +120,18 @@ app.post("/residents", (req, res) => {
       role || null,
       residency_status || null,
       email || null,
+      password,
     ],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       res
         .status(201)
-        .json({ message: "Thêm cư dân thành công", id: result.insertId });
+        .json({ message: "Thêm người dùng thành công", id: result.insertId });
     }
   );
 });
 
-// PUT update resident
+// PUT update user
 app.put("/residents/:id", (req, res) => {
   const { id } = req.params;
   const {
@@ -145,6 +145,7 @@ app.put("/residents/:id", (req, res) => {
     role,
     residency_status,
     email,
+    password,
   } = req.body || {};
   if (!id) return res.status(400).json({ error: "Thiếu id" });
 
@@ -154,7 +155,7 @@ app.put("/residents/:id", (req, res) => {
       : undefined;
 
   const sql = `
-    UPDATE residents
+    UPDATE user
     SET first_name = COALESCE(?, first_name),
         last_name = COALESCE(?, last_name),
         full_name = COALESCE(?, full_name),
@@ -165,7 +166,8 @@ app.put("/residents/:id", (req, res) => {
         birth_date = COALESCE(?, birth_date),
         role = COALESCE(?, role),
         residency_status = COALESCE(?, residency_status),
-        email = COALESCE(?, email)
+        email = COALESCE(?, email),
+        password = COALESCE(?, password)
     WHERE id = ?
   `;
   db.query(
@@ -182,24 +184,25 @@ app.put("/residents/:id", (req, res) => {
       role,
       residency_status,
       email,
+      password,
       id,
     ],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0)
-        return res.status(404).json({ error: "Không tìm thấy cư dân" });
+        return res.status(404).json({ error: "Không tìm thấy người dùng" });
       res.json({ message: "Cập nhật thành công" });
     }
   );
 });
 
-// DELETE resident
+// DELETE user
 app.delete("/residents/:id", (req, res) => {
   const { id } = req.params;
-  db.query("DELETE FROM residents WHERE id = ?", [id], (err, result) => {
+  db.query("DELETE FROM user WHERE id = ?", [id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     if (result.affectedRows === 0)
-      return res.status(404).json({ error: "Không tìm thấy cư dân" });
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
     res.json({ message: "Xóa thành công" });
   });
 });
@@ -215,7 +218,7 @@ app.get("/fees", (req, res) => {
 });
 
 // POST create payment (generate transaction_ref)
-app.post("/payments", (req, res) => {
+app.post("/payment", (req, res) => {
   const { resident_id, amount, feetype, payment_form } = req.body || {};
   if (!resident_id || !amount) {
     return res.status(400).json({ error: "Thiếu resident_id hoặc amount" });
@@ -249,7 +252,7 @@ app.post("/payments", (req, res) => {
 });
 
 // POST payment callback (webhook mock)
-app.post("/payments/callback", (req, res) => {
+app.post("/payment/callback", (req, res) => {
   console.log("callback body:", req.body);
 
   const transaction_ref = String(req.body?.transaction_ref || "").trim();
@@ -360,7 +363,7 @@ app.get("/notifications", (req, res) => {
   const sql = `
     SELECT n.*, r.full_name AS owner_name
     FROM notifications n
-    LEFT JOIN residents r
+    LEFT JOIN user r
       ON n.apartment_id = r.apartment_id
       AND r.residency_status = 'chủ hộ'
     ORDER BY n.notification_date DESC
@@ -409,50 +412,46 @@ app.delete("/notifications/:id", (req, res) => {
   });
 });
 
-// DELETE resident (soft delete) - chỉ đặt state = 'inactive'
+// DELETE user (soft delete) - chỉ đặt state = 'inactive'
 app.delete("/residents/:id", (req, res) => {
   const { id } = req.params;
   if (!id) return res.status(400).json({ error: "Thiếu id" });
 
   // 1) Kiểm tra resident có tồn tại không
-  db.query(
-    "SELECT id, state FROM residents WHERE id = ?",
-    [id],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!rows || rows.length === 0) {
-        return res.status(404).json({ error: "Không tìm thấy cư dân" });
-      }
+  db.query("SELECT id, state FROM user WHERE id = ?", [id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy cư dân" });
+    }
 
-      // Nếu đã inactive rồi thì trả về thông báo tương ứng
-      const currentState = rows[0].state;
-      if (currentState && String(currentState).toLowerCase() === "inactive") {
-        return res.json({
-          message: "Resident đã ở trạng thái inactive (đã xóa mềm trước đó)",
-        });
-      }
-
-      // 2) Thực hiện soft delete: set state = 'inactive'
-      const sql = `UPDATE residents SET state = 'inactive' WHERE id = ?`;
-      db.query(sql, [id], (err2, result) => {
-        if (err2) return res.status(500).json({ error: err2.message });
-        if (result.affectedRows === 0)
-          return res.status(404).json({ error: "Không tìm thấy cư dân" });
-        return res.json({
-          message: "Resident soft-deleted (state set to inactive)",
-        });
+    // Nếu đã inactive rồi thì trả về thông báo tương ứng
+    const currentState = rows[0].state;
+    if (currentState && String(currentState).toLowerCase() === "inactive") {
+      return res.json({
+        message: "Resident đã ở trạng thái inactive (đã xóa mềm trước đó)",
       });
     }
-  );
+
+    // 2) Thực hiện soft delete: set state = 'inactive'
+    const sql = `UPDATE user SET state = 'inactive' WHERE id = ?`;
+    db.query(sql, [id], (err2, result) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      if (result.affectedRows === 0)
+        return res.status(404).json({ error: "Không tìm thấy cư dân" });
+      return res.json({
+        message: "Resident soft-deleted (state set to inactive)",
+      });
+    });
+  });
 });
 // -------- Payments listing & transaction endpoints --------
 
-// GET all payments (with resident name)
+// GET all payments (with user name)
 app.get("/payments", (req, res) => {
   const sql = `
     SELECT p.*, r.full_name AS resident_name, r.apartment_id
     FROM payments p
-    LEFT JOIN residents r ON p.resident_id = r.id
+    LEFT JOIN user r ON p.resident_id = r.id
     ORDER BY p.created_at DESC
   `;
   db.query(sql, (err, results) => {
@@ -473,7 +472,7 @@ app.get("/payments/by-resident/:resident_id", (req, res) => {
   const sql = `
     SELECT p.*, r.full_name AS resident_name, r.apartment_id
     FROM payments p
-    LEFT JOIN residents r ON p.resident_id = r.id
+    LEFT JOIN user r ON p.resident_id = r.id
     WHERE p.resident_id = ?
     ORDER BY p.created_at DESC
   `;
@@ -494,7 +493,7 @@ app.get("/payments/:id", (req, res) => {
   const sql = `
     SELECT p.*, r.full_name AS resident_name, r.apartment_id
     FROM payments p
-    LEFT JOIN residents r ON p.resident_id = r.id
+    LEFT JOIN user r ON p.resident_id = r.id
     WHERE p.id = ?
     LIMIT 1
   `;
@@ -509,68 +508,52 @@ app.get("/payments/:id", (req, res) => {
   });
 });
 
-// PATCH: cập nhật trạng thái HOẶC chi tiết thanh toán
-app.patch("/payments/:id", (req, res) => {
+// PATCH: cập nhật trạng thái thanh toán (state) cho payment
+
+app.patch("/payment/:id", (req, res) => {
   const { id } = req.params;
-  const { 
-    state,        // Dùng cho việc đổi trạng thái (0 hoặc 1)
-    feetype,      // Dùng cho AccountPayment
-    amount,       // Dùng cho AccountPayment
-    payment_date  // Dùng cho AccountPayment
-  } = req.body;
-
-  const updateFields = [];
-  const updateParams = [];
-
-  // Use case 1: Cập nhật STATE (từ 0 -> 1 hoặc 1 -> 0)
-  if (state !== undefined && (state === 0 || state === 1)) {
-    updateFields.push("state = ?");
-    updateParams.push(state);
-    
-    if (state === 1) {
-      // Nếu chuyển sang 1 (Đã thanh toán), tự động set ngày
-      const vnDate = dayjs().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD");
-      // Chỉ set ngày nếu nó đang là NULL
-      updateFields.push("payment_date = COALESCE(payment_date, ?)");
-      updateParams.push(vnDate);
-    } else {
-      // Nếu chuyển về 0 (Chưa thanh toán), xóa ngày
-      updateFields.push("payment_date = NULL");
-    }
-  } 
-  
-  // Use case 2: Cập nhật chi tiết (từ AccountPayment.jsx)
-  // (Chúng ta có thể kiểm tra 'feetype' để biết đây là use case 2)
-  if (feetype !== undefined) {
-     updateFields.push("feetype = ?");
-     updateParams.push(feetype);
+  const { state } = req.body;
+  if (typeof state !== "number" || (state !== 0 && state !== 1)) {
+    return res
+      .status(400)
+      .json({ error: "Giá trị state không hợp lệ (chỉ nhận 0 hoặc 1)" });
   }
-  if (amount !== undefined) {
-     updateFields.push("amount = ?");
-     updateParams.push(amount);
+  if (state === 1) {
+    // Nếu chuyển sang success, cập nhật cả state và payment_date bằng ngày hiện tại GMT+7
+    const vnDate = dayjs().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD");
+    const sql = `
+      UPDATE payments
+      SET state = 1, payment_date = ?
+      WHERE id = ?
+    `;
+    db.query(sql, [vnDate, id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy giao dịch để cập nhật" });
+      res.json({
+        message: "Cập nhật trạng thái và ngày thanh toán thành công",
+      });
+    });
+  } else {
+    // Nếu là 0, cập nhật state về 0 và xóa ngày thanh toán
+    const sql = `
+      UPDATE payments
+      SET state = 0, payment_date = NULL
+      WHERE id = ?
+    `;
+    db.query(sql, [id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy giao dịch để cập nhật" });
+      res.json({
+        message: "Cập nhật trạng thái về chưa thanh toán thành công",
+      });
+    });
   }
-  if (payment_date !== undefined) {
-     // Cho phép FE ghi đè payment_date (kể cả khi là null)
-     updateFields.push("payment_date = ?");
-     updateParams.push(payment_date || null);
-  }
-  // apartment_id KHÔNG được cập nhật ở đây vì nó không thuộc bảng payments.
-
-  if (updateFields.length === 0) {
-    return res.status(400).json({ error: "Không có trường hợp lệ nào để cập nhật." });
-  }
-
-  // Thêm ID vào cuối mảng params
-  updateParams.push(id);
-
-  const sql = `UPDATE payments SET ${updateFields.join(", ")} WHERE id = ?`;
-
-  db.query(sql, updateParams, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0)
-      return res.status(404).json({ error: "Không tìm thấy giao dịch" });
-    res.json({ message: "Cập nhật giao dịch thành công" });
-  });
 });
 
 // -------- PUT /notifications/:id — chỉnh sửa thông báo --------
@@ -693,9 +676,9 @@ app.post("/login", (req, res) => {
     return res.status(400).json({ error: "Thiếu username hoặc password" });
   }
 
-  // Giả sử bạn dùng 'email' làm username và có trường 'password' trong bảng residents
+  // Dùng 'email' làm username và có trường 'password' trong bảng user
   // CẢNH BÁO: KHÔNG BAO GIỜ LƯU PASSWORD DẠNG CHỮ THƯỜNG TRONG DATABASE
-  const sql = `SELECT * FROM residents WHERE email = ? AND password = ? LIMIT 1`;
+  const sql = `SELECT * FROM user WHERE email = ? AND password = ? LIMIT 1`;
 
   db.query(sql, [username, password], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });

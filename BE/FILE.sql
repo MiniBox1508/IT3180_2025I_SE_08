@@ -1,12 +1,19 @@
 USE building_management;
--- DÙNG CHO US 001: cư dân
-CREATE TABLE residents (
-  id serial PRIMARY KEY ,
+-- DÙNG CHO US 001: user (thay cho residents)
+CREATE TABLE user (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(100),
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   phone VARCHAR(20) UNIQUE NOT NULL,
   apartment_id VARCHAR(20) NOT NULL,
   state ENUM('active', 'inactive') DEFAULT 'active',
+  cccd VARCHAR(20) UNIQUE,
+  birth_date DATE,
+  role VARCHAR(30),
+  residency_status VARCHAR(30),
+  email VARCHAR(30),
+  password VARCHAR(100) NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 -- DÙNG CHO US 008 VÀ 009: thanh toán và tra cứu
@@ -14,56 +21,40 @@ CREATE TABLE payments (
   id INT PRIMARY KEY AUTO_INCREMENT,
   resident_id BIGINT UNSIGNED NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
-  state ENUM('pending','success','failed') DEFAULT 'pending',
+  state TINYINT NOT NULL DEFAULT 0,
   transaction_ref VARCHAR(50) UNIQUE NOT NULL,
+  feetype VARCHAR(30),
+  payment_date DATE,
+  payment_form VARCHAR(50),
+  payer_account VARCHAR(50),
+  payer_name VARCHAR(150),
+  provider_tx_id VARCHAR(100),
+  verification_method VARCHAR(50),
+  verified_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (resident_id) REFERENCES residents(id)
+  CONSTRAINT payments_ibfk_1 FOREIGN KEY (resident_id) REFERENCES user(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 );
 
 
-Alter table residents
-Add column full_name varchar(20) after id,
-add column cccd varchar(20) unique,
-add column birth_date DATE,
-add column role varchar(30),
-add column residency_status varchar(30);
-
+describe payments;
+describe user;
 -- tăt chế độ an toàn
 set sql_safe_updates = 0;
-update residents
+update user
 set full_name = concat(first_name,'',last_name);
 -- bật chế độ an toàn
 set sql_safe_updates = 1;
-
-alter table residents
-add column email varchar(30);
-select * from payments;
-alter table payments
-add column feetype varchar(30),
-add column payment_date DATE,
-add column payment_form varchar(50),
-MODIFY COLUMN state ENUM('Đã thanh toán', 'Chưa thanh toán') DEFAULT 'Chưa thanh toán';
-ALTER TABLE payments
-ADD COLUMN payer_account VARCHAR(50) NULL AFTER transaction_ref,
-ADD COLUMN payer_name VARCHAR(150) NULL AFTER payer_account,
-ADD COLUMN provider_tx_id VARCHAR(100) NULL AFTER payer_name,
-ADD COLUMN verification_method VARCHAR(50) NULL AFTER provider_tx_id,
-ADD COLUMN verified_at DATETIME NULL AFTER updated_at;
-
-alter table payments
-MODIFY COLUMN state TINYINT NOT NULL DEFAULT 0;
-
-describe payments;
-describe residents;
-INSERT INTO residents (
+INSERT INTO user (
   full_name, first_name, last_name, phone, apartment_id, 
-  state, cccd, birth_date, role, residency_status, email
+  state, cccd, birth_date, role, residency_status, email, password
 ) VALUES (
   'Đỗ Văn B', 'Văn', 'B', '0938099203', 'Tầng 7 - Phòng 713',
-  'Active', '077204000123', '1999-10-30', 'Cư dân', 'người thuê', 'dovanb@gmail.com'
+  'Active', '077204000123', '1999-10-30', 'Cư dân', 'người thuê', 'dovanb@gmail.com', 'password'
 ); 
-sELECT id, full_name FROM residents ORDER BY id DESC LIMIT 1;
+sELECT id, full_name FROM user ORDER BY id DESC LIMIT 1;
 select * from payments;
 INSERT INTO payments (
   resident_id, amount, state, transaction_ref,
@@ -94,7 +85,7 @@ SELECT
   p.payer_name,
   p.payment_date
 FROM payments p
-JOIN residents r ON p.resident_id = r.id;
+JOIN user r ON p.resident_id = r.id;
 
 UPDATE payments
 SET state = 1,
@@ -128,32 +119,25 @@ create table notifications(
 -- 5. Thông báo chung
 (NOW(), NULL, 'E5-505', 'Ban quản lý tòa nhà: Vui lòng đeo thẻ cư dân khi ra vào tòa nhà để đảm bảo an ninh.');
 select * FROM notifications;
-select * from residents;
+select * from user;
 select * from payments;
 SET sql_safe_updates = 0;
 delete from payments;
-delete from residents;
+delete from user;
 delete from notifications;
 
 SET sql_safe_updates = 1;
 SET FOREIGN_KEY_CHECKS = 0;
 -- reset auto_increment
 TRUNCATE TABLE payments;
-TRUNCATE TABLE residents;
+TRUNCATE TABLE user;
 truncate notifications;
 -- must be carefull
-ALTER TABLE payments
-DROP FOREIGN KEY payments_ibfk_1;
-
-ALTER TABLE payments
-ADD CONSTRAINT payments_ibfk_1
-FOREIGN KEY (resident_id) REFERENCES residents(id)
-ON DELETE CASCADE
-ON UPDATE CASCADE;
+-- ...existing code...
 -- trong transaction
 CREATE OR REPLACE VIEW transactions AS
 SELECT id, resident_id, amount, state, transaction_ref, feetype, payment_date, payment_form, provider_tx_id, payer_account, payer_name, created_at, verified_at
 FROM payments;
-ALTER TABLE residents AUTO_INCREMENT = 1;
+ALTER TABLE user AUTO_INCREMENT = 1;
 
 SET FOREIGN_KEY_CHECKS = 1;
