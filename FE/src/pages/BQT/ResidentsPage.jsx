@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet";
 import { StatusModal } from "../../layouts/StatusModal"; // <<< NEW: Import StatusModal
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< NEW: Import ConfirmationModal
 import acceptIcon from "../../images/accept_icon.png";
@@ -8,6 +7,7 @@ const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 // Giả định bạn có component Modal để sử dụng lại cho việc Thêm/Sửa
 // Nếu chưa có, bạn có thể tự thay thế bằng một div cố định.
+import { Helmet } from "react-helmet"; // Keep this line
 const ResidentFormModal = ({
   isOpen,
   onClose,
