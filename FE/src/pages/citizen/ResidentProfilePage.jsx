@@ -52,17 +52,17 @@ const EditableField = ({ label, value, isEditing, onChange, name }) => (
 );
 
 // --- Dữ liệu mẫu ban đầu (giữ nguyên, nhưng sẽ ghi đè bằng user thực tế nếu có) ---
-const initialUserData = {
-  name: "Cư Thị Dân",
-  residentId: "0002",
-  role: "Cư dân",
-  apartment: "Tầng 7 - Phòng 713",
-  cccd: "077204000123",
-  dob: "30/10/1999",
-  email: "dovanb@gmail.com",
-  phone: "0938 099 203",
-  status: "người thuê",
-};
+// const initialUserData = {
+//   name: "Cư Thị Dân",
+//   residentId: "0002",
+//   role: "Cư dân",
+//   apartment: "Tầng 7 - Phòng 713",
+//   cccd: "077204000123",
+//   dob: "30/10/1999",
+//   email: "dovanb@gmail.com",
+//   phone: "0938 099 203",
+//   status: "người thuê",
+// };
 
 // --- Main Profile Page Component ---
 export const ResidentProfilePage = () => {
