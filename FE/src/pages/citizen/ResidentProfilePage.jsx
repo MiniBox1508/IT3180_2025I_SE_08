@@ -70,24 +70,29 @@ export const ResidentProfilePage = () => {
   const [formData, setFormData] = useState(initialUserData);
   const [originalData, setOriginalData] = useState(initialUserData);
 
-  // Khi mount, lấy user thực tế từ localStorage nếu có
+  // Luôn lấy lại user mới nhất từ localStorage khi trang mount hoặc localStorage thay đổi
   React.useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("user"));
-    if (userData) {
-      const mapped = {
-        name: userData.full_name,
-        residentId: userData.id,
-        role: userData.role,
-        apartment: userData.apartment_id,
-        cccd: userData.cccd,
-        dob: userData.birth_date,
-        email: userData.email,
-        phone: userData.phone,
-        status: userData.residency_status,
-      };
-      setFormData(mapped);
-      setOriginalData(mapped);
+    function syncUserFromStorage() {
+      const userData = JSON.parse(localStorage.getItem("user"));
+      if (userData) {
+        const mapped = {
+          name: userData.full_name,
+          residentId: userData.id,
+          role: userData.role,
+          apartment: userData.apartment_id,
+          cccd: userData.cccd,
+          dob: userData.birth_date,
+          email: userData.email,
+          phone: userData.phone,
+          status: userData.residency_status,
+        };
+        setFormData(mapped);
+        setOriginalData(mapped);
+      }
     }
+    syncUserFromStorage();
+    window.addEventListener("storage", syncUserFromStorage);
+    return () => window.removeEventListener("storage", syncUserFromStorage);
   }, []);
 
   // --- 2. THÊM STATE CHO STATUS MODAL ---
