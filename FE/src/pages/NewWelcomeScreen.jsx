@@ -4,49 +4,51 @@ import { useNavigate } from "react-router-dom";
 import bgImage from "../images/new_welcome_background.jpg";
 
 export const NewWelcomeScreen = () => {
-    const navigate = useNavigate();
-    const API_BASE_URL = "https://off-be-deploy.vercel.app";
+  const navigate = useNavigate();
+  const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
-    const [selectedRole, setSelectedRole] = useState("Cư dân");
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+  const [selectedRole, setSelectedRole] = useState("Cư dân");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-    const handleRoleClick = (role) => {
-      setSelectedRole(role);
-    };
+  const handleRoleClick = (role) => {
+    setSelectedRole(role);
+  };
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setError("");
-      try {
-        const res = await fetch(`${API_BASE_URL}/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            password,
-            role: selectedRole,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
-        // Đăng nhập thành công, chuyển hướng theo role
-        if (selectedRole === "Cư dân") navigate("/resident_dashboard");
-        else if (selectedRole === "Ban quản trị") navigate("/dashboard");
-        else if (selectedRole === "Kế toán") navigate("/accountant_dashboard");
-        else if (selectedRole === "Công an") navigate("/police_dashboard");
-      } catch (err) {
-        setError(err.message);
-      }
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          password,
+          role: selectedRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
+      // Lưu user vào localStorage
+      localStorage.setItem("user", JSON.stringify(data.user));
+      // Đăng nhập thành công, chuyển hướng theo role
+      if (selectedRole === "Cư dân") navigate("/resident_dashboard");
+      else if (selectedRole === "Ban quản trị") navigate("/dashboard");
+      else if (selectedRole === "Kế toán") navigate("/accountant_dashboard");
+      else if (selectedRole === "Công an") navigate("/police_dashboard");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-    const roles = [
-      { name: "Cư dân", icon: <FaHome size={24} /> },
-      { name: "Ban quản trị", icon: <FaUserShield size={24} /> },
-      { name: "Kế toán", icon: <FaCalculator size={24} /> },
-      { name: "Công an", icon: <FaUserLock size={24} /> },
-    ];
+  const roles = [
+    { name: "Cư dân", icon: <FaHome size={24} /> },
+    { name: "Ban quản trị", icon: <FaUserShield size={24} /> },
+    { name: "Kế toán", icon: <FaCalculator size={24} /> },
+    { name: "Công an", icon: <FaUserLock size={24} /> },
+  ];
 
   return (
     <div
@@ -101,7 +103,7 @@ export const NewWelcomeScreen = () => {
               type="text"
               id="username"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -116,7 +118,7 @@ export const NewWelcomeScreen = () => {
               type="password"
               id="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -131,4 +133,3 @@ export const NewWelcomeScreen = () => {
     </div>
   );
 };
-
