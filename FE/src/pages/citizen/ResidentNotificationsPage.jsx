@@ -83,8 +83,8 @@ export const ResidentNotificationsPage = () => {
         const user = JSON.parse(localStorage.getItem("user"));
         const residentApartmentId = user?.apartment_id;
         const filteredByResident = data.filter(item => 
-          String(item.apartment_id).toLowerCase() === 'all' || 
-          String(item.apartment_id) === residentApartmentId
+          String(item.apartment_id).trim().toLowerCase() === 'all' || 
+          String(item.apartment_id).trim().toLowerCase() === String(residentApartmentId).trim().toLowerCase()
         );
         setNotifications(filteredByResident);
     } catch (err) {
