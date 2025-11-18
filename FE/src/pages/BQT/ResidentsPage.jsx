@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://off-be-deploy.vercel.app';
 // Nếu chưa có, bạn có thể tự thay thế bằng một div cố định.
 const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = false }) => { // <<< UPDATED: Add isViewing
     const isEditing = !!residentData && !isViewing; 
-    
+    // Thêm trường password vào formData, chỉ dùng khi tạo mới hoặc chỉnh sửa (nếu nhập)
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -21,6 +21,7 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
         cccd: '',
         birth_date: '',
         state: 'active', // Mặc định là active khi tạo mới
+        password: '', // Thêm trường password
         ...(residentData || {})
     });
     const [error, setError] = useState('');
@@ -32,10 +33,11 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
                 ...residentData,
                 // Định dạng ngày tháng cho input type="date"
                 birth_date: residentData.birth_date ? new Date(residentData.birth_date).toISOString().split('T')[0] : '',
+                password: '', // Khi chỉnh sửa, không tự động điền password
             });
         } else {
             // Reset form khi tạo mới
-            setFormData({ first_name: '', last_name: '', phone: '', apartment_id: '', email: '', role: 'Cư dân', residency_status: 'người thuê', cccd: '', birth_date: '', state: 'active' });
+            setFormData({ first_name: '', last_name: '', phone: '', apartment_id: '', email: '', role: 'Cư dân', residency_status: 'người thuê', cccd: '', birth_date: '', state: 'active', password: '' });
         }
         setError(''); // Reset lỗi khi mở modal
     }, [residentData, isOpen, isViewing]); // <<< UPDATED: Add isViewing dependency
@@ -49,7 +51,7 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isViewing) return; // <<< NEW: Prevent submit when viewing
+        if (isViewing) return;
         setError('');
 
         // Kiểm tra trường bắt buộc (theo BE/app.js)
@@ -61,21 +63,26 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
         const url = isEditing ? `${API_BASE_URL}/residents/${formData.id}` : `${API_BASE_URL}/residents`;
         const method = isEditing ? 'PUT' : 'POST';
 
+        // Khi chỉnh sửa, chỉ gửi password nếu người dùng nhập (không gửi nếu để trống)
+        let submitData = { ...formData };
+        if (isEditing && !formData.password) {
+            // Nếu không nhập password khi chỉnh sửa, loại bỏ khỏi payload
+            delete submitData.password;
+        }
+
         try {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(submitData),
             });
 
             const result = await response.json();
 
             if (!response.ok) {
-                // Lỗi từ server (ví dụ: duplicate phone, validation error)
                 throw new Error(result.error || `Lỗi ${isEditing ? 'cập nhật' : 'thêm mới'} cư dân.`);
             }
 
-            // Gọi hàm onSave trong component cha để cập nhật danh sách
             onSave(result);
             onClose();
 
@@ -141,9 +148,17 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
                         disabled={isViewing || !isEditing} // <<< UPDATED
                     />
 
-                    {/* Thêm trường nhập mật khẩu khi tạo mới cư dân */}
-                    {!isEditing && !isViewing && (
-                        <InputGroup label="Mật khẩu" name="password" type="password" value={formData.password || ""} onChange={handleChange} required readOnly={false} />
+                    {/* Thêm trường nhập mật khẩu khi tạo mới hoặc chỉnh sửa cư dân */}
+                    {!isViewing && (
+                        <InputGroup 
+                            label="Mật khẩu" 
+                            name="password" 
+                            type="password" 
+                            value={formData.password || ""} 
+                            onChange={handleChange} 
+                            required={!isEditing} // Bắt buộc khi tạo mới, không bắt buộc khi chỉnh sửa
+                            readOnly={false} 
+                        />
                     )}
 
                     <div className="col-span-2 flex justify-end space-x-4 mt-6">
