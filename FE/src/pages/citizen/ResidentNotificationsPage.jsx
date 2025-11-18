@@ -79,12 +79,12 @@ export const ResidentNotificationsPage = () => {
         }
         const data = await response.json();
         
-        // --- Mock Filter: Giả sử Resident chỉ thấy thông báo của căn hộ mình (Tầng 7 - Phòng 713) hoặc 'All' ---
-        // Trong ứng dụng thực tế, ID căn hộ sẽ được lấy từ session của người dùng
-        const residentApartmentId = 'Tầng 7 - Phòng 713'; 
+        // Lấy apartment_id từ user đang đăng nhập
+        const user = JSON.parse(localStorage.getItem("user"));
+        const residentApartmentId = user?.apartment_id;
         const filteredByResident = data.filter(item => 
-            String(item.apartment_id).toLowerCase() === 'all' || 
-            String(item.apartment_id) === residentApartmentId
+          String(item.apartment_id).toLowerCase() === 'all' || 
+          String(item.apartment_id) === residentApartmentId
         );
         setNotifications(filteredByResident);
     } catch (err) {
