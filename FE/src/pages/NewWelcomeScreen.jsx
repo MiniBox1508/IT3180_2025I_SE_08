@@ -5,32 +5,48 @@ import bgImage from "../images/new_welcome_background.jpg";
 
 export const NewWelcomeScreen = () => {
     const navigate = useNavigate();
+    const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
-  const [selectedRole, setSelectedRole] = useState("Cư dân");
+    const [selectedRole, setSelectedRole] = useState("Cư dân");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
-  const handleRoleClick = (role) => {
-    setSelectedRole(role);
-  };
+    const handleRoleClick = (role) => {
+      setSelectedRole(role);
+    };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log("Logging in as:", selectedRole);
-    if (selectedRole === "Cư dân") {
-      navigate("/resident_dashboard");
-    } else if (selectedRole === "Ban quản trị") {
-      navigate("/dashboard");
-    } else if (selectedRole === "Kế toán") {
-      navigate("/accountant_dashboard");
-    }
-  };
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError("");
+      try {
+        const res = await fetch(`${API_BASE_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            role: selectedRole,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
+        // Đăng nhập thành công, chuyển hướng theo role
+        if (selectedRole === "Cư dân") navigate("/resident_dashboard");
+        else if (selectedRole === "Ban quản trị") navigate("/dashboard");
+        else if (selectedRole === "Kế toán") navigate("/accountant_dashboard");
+        else if (selectedRole === "Công an") navigate("/police_dashboard");
+      } catch (err) {
+        setError(err.message);
+      }
+    };
 
-  const roles = [
-    { name: "Cư dân", icon: <FaHome size={24} /> },
-    { name: "Ban quản trị", icon: <FaUserShield size={24} /> },
-    { name: "Kế toán", icon: <FaCalculator size={24} /> },
-    { name: "Công an", icon: <FaUserLock size={24} /> },
-  ];
+    const roles = [
+      { name: "Cư dân", icon: <FaHome size={24} /> },
+      { name: "Ban quản trị", icon: <FaUserShield size={24} /> },
+      { name: "Kế toán", icon: <FaCalculator size={24} /> },
+      { name: "Công an", icon: <FaUserLock size={24} /> },
+    ];
 
   return (
     <div
@@ -71,16 +87,21 @@ export const NewWelcomeScreen = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div className="text-red-500 mb-2 text-center">{error}</div>
+          )}
           <div className="mb-4">
             <label
               htmlFor="username"
               className="block text-sm font-medium text-gray-700"
             >
-              Tên tài khoản
+              Tên tài khoản (Email hoặc Số điện thoại)
             </label>
             <input
               type="text"
               id="username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -94,6 +115,8 @@ export const NewWelcomeScreen = () => {
             <input
               type="password"
               id="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>

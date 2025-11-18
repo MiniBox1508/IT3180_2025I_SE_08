@@ -670,24 +670,23 @@ app.listen(port, () => {
 
 // -------- API ĐĂNG NHẬP --------
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, role } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "Thiếu username hoặc password" });
+  if (!username || !password || !role) {
+    return res.status(400).json({ error: "Thiếu username, password hoặc role" });
   }
 
-  // Dùng 'email' làm username và có trường 'password' trong bảng user
-  // CẢNH BÁO: KHÔNG BAO GIỜ LƯU PASSWORD DẠNG CHỮ THƯỜNG TRONG DATABASE
-  const sql = `SELECT * FROM user WHERE email = ? AND password = ? LIMIT 1`;
+  // Cho phép đăng nhập bằng email hoặc phone, và đúng role
+  const sql = `SELECT * FROM user WHERE (email = ? OR phone = ?) AND password = ? AND role = ? LIMIT 1`;
 
-  db.query(sql, [username, password], (err, results) => {
+  db.query(sql, [username, username, password, role], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (results.length === 0) {
       // Đăng nhập thất bại
       return res
         .status(401)
-        .json({ error: "Username hoặc password không đúng" });
+        .json({ error: "Sai tài khoản, mật khẩu hoặc vai trò" });
     }
 
     // Đăng nhập thành công
