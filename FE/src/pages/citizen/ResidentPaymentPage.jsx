@@ -100,7 +100,9 @@ export const ResidentPaymentPage = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       const residentId = user?.id;
       if (!residentId) throw new Error("Không tìm thấy thông tin người dùng.");
-      const response = await fetch(`${API_BASE_URL}/payments/by-resident/${residentId}`);
+      const response = await fetch(
+        `${API_BASE_URL}/payments/by-resident/${residentId}`
+      );
       if (!response.ok) {
         const errorData = await response
           .json()
@@ -186,44 +188,45 @@ export const ResidentPaymentPage = () => {
         <title>{`${userName} | Dân cư`}</title>
       </Helmet>
       <div className="text-white">
-      {/* Thanh Tìm kiếm Full Width */}
-      <div className="flex justify-start items-center mb-6">
-        <div className="relative w-full max-w-full">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </span>
-          <input
-            type="search"
-            placeholder="Tìm theo ID thanh toán..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
-          />
+        {/* Thanh Tìm kiếm Full Width */}
+        <div className="flex justify-start items-center mb-6">
+          <div className="relative w-full max-w-full">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Tìm theo ID thanh toán..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+            />
+          </div>
         </div>
+
+        {/* Header: KHÔNG CÓ NÚT TẠO THANH TOÁN */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white">Lịch sử Thanh toán</h1>
+        </div>
+
+        {renderContent()}
+
+        {/* KHÔNG CÓ MODAL TẠO THANH TOÁN */}
+        {/* KHÔNG CÓ STATUS MODAL */}
       </div>
-
-      {/* Header: KHÔNG CÓ NÚT TẠO THANH TOÁN */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Lịch sử Thanh toán</h1>
-      </div>
-
-      {renderContent()}
-
-      {/* KHÔNG CÓ MODAL TẠO THANH TOÁN */}
-      {/* KHÔNG CÓ STATUS MODAL */}
-    </div>
+    </>
   );
 };

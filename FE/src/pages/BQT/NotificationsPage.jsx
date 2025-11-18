@@ -618,5 +618,6 @@ export const NotificationsPage = () => {
         {renderStatusModalContent()}
       </StatusModal>
     </div>
+    </>
   );
 };

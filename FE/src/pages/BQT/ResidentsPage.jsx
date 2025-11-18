@@ -689,5 +689,6 @@ export const ResidentsPage = () => {
         {renderStatusModalContent()}
       </StatusModal>
     </div>
+    </>
   );
 };

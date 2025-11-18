@@ -384,5 +384,6 @@ export const ResidentViewPage = () => { // <<< ĐỔI TÊN COMPONENT
             {/* ----------------------------- */}
 
         </div>
+        </>
     );
 };
