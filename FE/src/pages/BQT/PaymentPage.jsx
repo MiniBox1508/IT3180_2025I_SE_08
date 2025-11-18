@@ -1,103 +1,104 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet";
-import { useNavigate } from "react-router-dom";
-import { StatusModal } from "../../layouts/StatusModal";
-import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
-import { FiCheckCircle, FiXCircle } from "react-icons/fi";
-
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
-
-import acceptIcon from "../../images/accept_icon.png";
-import notAcceptIcon from "../../images/not_accept_icon.png";
-
-// =========================================================================
-// === COMPONENT: PAYMENT FORM MODAL (ADD NEW) ===
-// (Giữ nguyên không đổi)
-// =========================================================================
-const PaymentFormModal = ({
-  isOpen,
-  onClose,
-  onSave,
-  residentOptions,
-  error,
-  setError,
-}) => {
-  const [formData, setFormData] = useState({
-    resident_id: residentOptions[0]?.id || "", // Mặc định chọn resident đầu tiên
-    amount: "",
-    feetype: "",
-    payment_form: "Chuyển khoản QR", // Mặc định là Chuyển khoản QR
-  });
-
-  useEffect(() => {
-    if (isOpen && residentOptions.length > 0 && !formData.resident_id) {
-      // Đặt resident_id mặc định khi mở modal lần đầu nếu chưa có
-      setFormData((prev) => ({ ...prev, resident_id: residentOptions[0].id }));
-    }
-  }, [isOpen, residentOptions, formData.resident_id]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    const dataToSend = {
-      resident_id: parseInt(formData.resident_id),
-      amount: parseFloat(formData.amount),
-      feetype: formData.feetype,
-      payment_form: formData.payment_form,
-    };
-
-    // Kiểm tra trường bắt buộc
-    if (
-      !dataToSend.resident_id ||
-      isNaN(dataToSend.amount) ||
-      dataToSend.amount <= 0 ||
-      !dataToSend.feetype
-    ) {
-      setError("Vui lòng điền đủ ID Cư dân, Số tiền hợp lệ (> 0) và Loại phí.");
-      return;
-    }
-
-    try {
-      // Gọi API POST /payment (đúng endpoint backend)
-      const response = await fetch(`${API_BASE_URL}/payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Lỗi khi tạo giao dịch thanh toán.");
-      }
-
-      // Mặc định là Chưa thanh toán (state = 0) ở BE, nên chỉ cần onSave để refresh danh sách
-      onSave();
-      onClose();
-    } catch (err) {
-      console.error("API Error:", err);
-      setError(err.message);
-    }
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
-        <h2 className="text-lg font-bold mb-4">Tạo thanh toán mới</h2>
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
-            {error}
+    <>
+      <Helmet>
+        <title>{`${userName} | Ban quản trị`}</title>
+      </Helmet>
+      <div className="text-white">
+        {/* Thanh Tìm kiếm Full Width (Giữ nguyên) */}
+        <div className="flex justify-start items-center mb-6">
+          <div className="relative w-full max-w-full">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Tìm theo ID thanh toán..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+            />
           </div>
-        )}
+        </div>
 
+        {/* <<< SỬA: Header và Nút Thêm/Xóa Thanh Toán */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white">Danh sách Thanh toán</h1>
+          <div className="flex space-x-4">
+            {/* Nút Xóa / Hoàn tất */}
+            <button
+              onClick={toggleDeleteMode} // Bật/tắt chế độ xóa
+              className={`$${
+                isDeleteMode
+                  ? "bg-gray-500 hover:bg-gray-600" // Style khi đang xóa
+                  : "bg-red-500 hover:bg-red-700" // Style mặc định
+              } text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm`}
+            >
+              {isDeleteMode ? "Hoàn tất" : "Xóa Thanh Toán"}
+            </button>
+
+            {/* Chỉ hiển thị nút Thêm khi KHÔNG ở chế độ xóa */}
+            {!isDeleteMode && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm"
+              >
+                + Tạo Thanh Toán
+              </button>
+            )}
+          </div>
+        </div>
+        {/* ------------------------------------------- */}
+
+        {renderContent()}
+
+        {/* Modal Thêm Thanh Toán (Giữ nguyên) */}
+        <PaymentFormModal
+          isOpen={isAddModalOpen}
+          onClose={handleCloseAddModal}
+          onSave={handleAddPaymentSuccess}
+          residentOptions={residents}
+          error={addModalError}
+          setError={setAddModalError}
+        />
+
+        {/* Change Status Modal (Giữ nguyên) */}
+        <ChangeStatusModal
+          isOpen={isChangeStatusModalOpen}
+          onClose={handleCloseChangeStatusModal}
+          payment={selectedPayment}
+          onConfirm={handleStatusUpdate}
+        />
+
+        {/* <<< THÊM: Confirmation Modal (Xóa) */}
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          onClose={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+          title="Xác nhận Xóa Thanh Toán"
+          message="Bạn có chắc chắn muốn xóa vĩnh viễn thanh toán này không?"
+        />
+
+        {/* Status Modal (Thông báo kết quả) (Giữ nguyên) */}
+        <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
+          {renderStatusModalContent()}
+        </StatusModal>
+      </div>
+    </>
+  );
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 1. Resident ID (Select) */}
           <div>
