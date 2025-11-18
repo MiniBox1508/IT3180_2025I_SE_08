@@ -512,7 +512,7 @@ export const PaymentPage = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payments/${selectedPayment.id}`,
+        `${API_BASE_URL}/payment/${selectedPayment.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -527,14 +527,14 @@ export const PaymentPage = () => {
 
       handleCloseChangeStatusModal();
       setModalStatus("update_success");
-      setStatusMessage("Thay đổi trạng thái thành công!"); // <<< THÊM: Set Message
+      setStatusMessage("Thay đổi trạng thái thành công!");
       setIsStatusModalOpen(true);
-      fetchPayments(); // Refresh list to show updated status
+      fetchPayments();
     } catch (err) {
       console.error("Update Status Error:", err);
       handleCloseChangeStatusModal();
       setModalStatus("update_failure");
-      setStatusMessage(err.message); // <<< THÊM: Set Message
+      setStatusMessage(err.message);
       setIsStatusModalOpen(true);
     }
   };
