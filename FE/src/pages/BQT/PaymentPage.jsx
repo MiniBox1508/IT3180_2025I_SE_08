@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
@@ -345,6 +346,8 @@ const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
 // === COMPONENT: TRANG THANH TOÁN CHÍNH (ĐÃ SỬA) ===
 // =========================================================================
 export const PaymentPage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Ban quản trị";
   const [payments, setPayments] = useState([]);
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -628,7 +631,11 @@ export const PaymentPage = () => {
   };
 
   return (
-    <div className="text-white">
+    <>
+      <Helmet>
+        <title>{`${userName} | Ban quản trị`}</title>
+      </Helmet>
+      <div className="text-white">
       {/* Thanh Tìm kiếm Full Width (Giữ nguyên) */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">

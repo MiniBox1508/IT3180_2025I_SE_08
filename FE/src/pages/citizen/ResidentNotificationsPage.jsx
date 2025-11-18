@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 const API_BASE_URL = 'https://off-be-deploy.vercel.app';
@@ -49,6 +50,8 @@ function ResidentNotificationItem({
 }
 
 export const ResidentNotificationsPage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Cư dân";
   // --- STATES KẾT NỐI DB ---
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,7 +167,11 @@ export const ResidentNotificationsPage = () => {
 
 
   return (
-    <div>
+    <>
+      <Helmet>
+        <title>{`${userName} | Dân cư`}</title>
+      </Helmet>
+      <div>
       {/* <<< Thanh Tìm kiếm Full Width >>> */}
       <div className="flex justify-start items-center mb-6">
           <div className="relative w-full max-w-full">

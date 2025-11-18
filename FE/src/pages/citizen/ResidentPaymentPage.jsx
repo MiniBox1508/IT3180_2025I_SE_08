@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
 const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
@@ -80,6 +81,8 @@ const PaymentItem = ({ item }) => {
 // =========================================================================
 // ĐỔI TÊN THÀNH ResidentPaymentPage để phân biệt với PaymentPage của BQT
 export const ResidentPaymentPage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Cư dân";
   const [payments, setPayments] = useState([]);
   // KHÔNG CẦN RESIDENTS
   const [isLoading, setIsLoading] = useState(true);
@@ -178,7 +181,11 @@ export const ResidentPaymentPage = () => {
   };
 
   return (
-    <div className="text-white">
+    <>
+      <Helmet>
+        <title>{`${userName} | Dân cư`}</title>
+      </Helmet>
+      <div className="text-white">
       {/* Thanh Tìm kiếm Full Width */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">

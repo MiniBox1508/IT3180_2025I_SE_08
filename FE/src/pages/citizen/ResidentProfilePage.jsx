@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet";
 // --- 1. IMPORT MODAL VÀ ICONS ---
 import { StatusModal } from "../../layouts/StatusModal"; // Đảm bảo đường dẫn đúng
 import EditButtonImage from "../../images/edit_button.svg";
@@ -66,6 +68,10 @@ const initialUserData = {
 
 // --- Main Profile Page Component ---
 export const ResidentProfilePage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Cư dân";
+  // Đặt page title động bằng react-helmet
+  const pageTitle = "Thông tin cá nhân | Blue Moon";
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialUserData);
   const [originalData, setOriginalData] = useState(initialUserData);
@@ -182,136 +188,141 @@ export const ResidentProfilePage = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
-      {/* ... (phần header và avatar giữ nguyên) ... */}
-      {/* Card Header: Title + Edit Button */}
-      <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-          Thông tin cá nhân
-        </h1>
-        {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
-      </div>
-
-      {/* Profile Header: Avatar + Name */}
-      <div className="flex items-center space-x-4 mb-8">
-        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 flex-shrink-0">
-          <UserIcon />
-        </div>
-        <div>
-          {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
-          <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
-          <p className="text-sm text-gray-600">
-            ID Cư dân: {formData.residentId}
-          </p>
-        </div>
-      </div>
-
-      <form className="space-y-8" onSubmit={handleSubmit}>
-        {/* ... (các section thông tin giữ nguyên) ... */}
-        {/* Section 1: Thông tin cá nhân */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+    <>
+      <Helmet>
+        <title>{`${userName} | Dân cư`}</title>
+      </Helmet>
+      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
+        {/* ... (phần header và avatar giữ nguyên) ... */}
+        {/* Card Header: Title + Edit Button */}
+        <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Thông tin cá nhân
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
-            <EditableField
-              label="Vai trò"
-              name="role"
-              value={formData.role}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Số căn hộ"
-              name="apartment"
-              value={formData.apartment}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Số CCCD"
-              name="cccd"
-              value={formData.cccd}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Ngày sinh"
-              name="dob"
-              value={formData.dob}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
+          </h1>
+          {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
+        </div>
+
+        {/* Profile Header: Avatar + Name */}
+        <div className="flex items-center space-x-4 mb-8">
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 flex-shrink-0">
+            <UserIcon />
+          </div>
+          <div>
+            {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
+            <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
+            <p className="text-sm text-gray-600">
+              ID Cư dân: {formData.residentId}
+            </p>
           </div>
         </div>
 
-        {/* Section 2: Thông tin liên hệ */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Thông tin liên hệ
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <EditableField
-              label="Email"
-              name="email"
-              value={formData.email}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Điện thoại"
-              name="phone"
-              value={formData.phone}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
+        <form className="space-y-8" onSubmit={handleSubmit}>
+          {/* ... (các section thông tin giữ nguyên) ... */}
+          {/* Section 1: Thông tin cá nhân */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Thông tin cá nhân
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
+              <EditableField
+                label="Vai trò"
+                name="role"
+                value={formData.role}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Số căn hộ"
+                name="apartment"
+                value={formData.apartment}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Số CCCD"
+                name="cccd"
+                value={formData.cccd}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Ngày sinh"
+                name="dob"
+                value={formData.dob}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Section 3: Tình trạng cư trú */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Tình trạng cư trú
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <EditableField
-              label="Tình trạng cư trú"
-              name="status"
-              value={formData.status}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
+          {/* Section 2: Thông tin liên hệ */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Thông tin liên hệ
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              <EditableField
+                label="Email"
+                name="email"
+                value={formData.email}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Điện thoại"
+                name="phone"
+                value={formData.phone}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+            </div>
           </div>
-        </div>
-        {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
-        {isEditing && (
-          <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
-            <button
-              type="button"
-              onClick={cancelEditClick}
-              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-8 rounded-lg transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-8 rounded-lg transition-colors"
-            >
-              Confirm
-            </button>
-          </div>
-        )}
-      </form>
 
-      {/* --- 4. THÊM STATUS MODAL --- */}
-      <StatusModal
-        isOpen={isStatusModalOpen}
-        onClose={handleCloseStatusModal}
-        // Bỏ title đi để nút X tự căn giữa phải
-      >
-        {renderStatusModalContent()}
-      </StatusModal>
-    </div>
+          {/* Section 3: Tình trạng cư trú */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Tình trạng cư trú
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              <EditableField
+                label="Tình trạng cư trú"
+                name="status"
+                value={formData.status}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+          {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
+          {isEditing && (
+            <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
+              <button
+                type="button"
+                onClick={cancelEditClick}
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-8 rounded-lg transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-8 rounded-lg transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          )}
+        </form>
+
+        {/* --- 4. THÊM STATUS MODAL --- */}
+        <StatusModal
+          isOpen={isStatusModalOpen}
+          onClose={handleCloseStatusModal}
+          // Bỏ title đi để nút X tự căn giữa phải
+        >
+          {renderStatusModalContent()}
+        </StatusModal>
+      </div>
+    </>
   );
 };

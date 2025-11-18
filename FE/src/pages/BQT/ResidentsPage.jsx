@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet";
 import { StatusModal } from "../../layouts/StatusModal"; // <<< NEW: Import StatusModal
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< NEW: Import ConfirmationModal
 import acceptIcon from "../../images/accept_icon.png";
@@ -334,6 +335,8 @@ const SelectGroup = (
 export const ResidentsPage = () => {
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Ban quản trị";
   const [error, setError] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -359,6 +362,9 @@ export const ResidentsPage = () => {
       const response = await fetch(`${API_BASE_URL}/residents`);
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
+      <Helmet>
+        <title>{`${userName} | Ban quản trị`}</title>
+      </Helmet>
       }
       const data = await response.json();
       setResidents(data);

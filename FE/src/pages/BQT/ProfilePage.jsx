@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { StatusModal } from "../../layouts/StatusModal"; // Đảm bảo đường dẫn đúng
 import EditButtonImage from "../../images/edit_button.svg";
 import acceptIcon from "../../images/accept_icon.png"; // Icon thành công
+import { Helmet } from "react-helmet";
 import notAcceptIcon from "../../images/not_accept_icon.png"; // Icon thất bại
 
 // --- Icons ---
@@ -69,6 +70,8 @@ const initialUserData = {
 export const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialUserData);
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userName = user?.full_name || "Ban quản trị";
   const [originalData, setOriginalData] = useState(initialUserData); // <<< Thêm state này
 
   // --- 2. THÊM STATE CHO STATUS MODAL ---
@@ -147,7 +150,11 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
+    <>
+      <Helmet>
+        <title>{`${userName} | Ban quản trị`}</title>
+      </Helmet>
+      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
       {/* ... (phần header và avatar giữ nguyên) ... */}
        {/* Card Header: Title + Edit Button */}
        <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
