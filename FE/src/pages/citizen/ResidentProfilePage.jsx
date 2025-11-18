@@ -70,6 +70,17 @@ export const ResidentProfilePage = () => {
   const [formData, setFormData] = useState(initialUserData);
   const [originalData, setOriginalData] = useState(initialUserData);
 
+  // Hàm định dạng ngày sinh từ ISO sang dd-MM-yyyy
+  function formatDate(dateString) {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
   // Luôn lấy lại user mới nhất từ localStorage khi trang mount hoặc localStorage thay đổi
   React.useEffect(() => {
     function syncUserFromStorage() {
@@ -81,7 +92,7 @@ export const ResidentProfilePage = () => {
           role: userData.role,
           apartment: userData.apartment_id,
           cccd: userData.cccd,
-          dob: userData.birth_date,
+          dob: formatDate(userData.birth_date),
           email: userData.email,
           phone: userData.phone,
           status: userData.residency_status,
