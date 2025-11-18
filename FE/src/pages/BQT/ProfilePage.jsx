@@ -294,5 +294,6 @@ export const ProfilePage = () => {
         {renderStatusModalContent()}
       </StatusModal>
     </div>
+    </>
   );
 };
