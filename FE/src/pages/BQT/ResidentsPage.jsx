@@ -121,7 +121,7 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
                         options={['chủ hộ', 'người thuê', 'khách tạm trú']}
                         disabled={isViewing} // <<< UPDATED
                     />
-                    
+
                     {/* Hàng 5: Vai trò / Trạng thái (Chỉ hiện khi Sửa) */}
                     <SelectGroup 
                         label="Vai trò" 
@@ -140,6 +140,11 @@ const ResidentFormModal = ({ isOpen, onClose, residentData, onSave, isViewing = 
                         options={['active', 'inactive']}
                         disabled={isViewing || !isEditing} // <<< UPDATED
                     />
+
+                    {/* Thêm trường nhập mật khẩu khi tạo mới cư dân */}
+                    {!isEditing && !isViewing && (
+                        <InputGroup label="Mật khẩu" name="password" type="password" value={formData.password || ""} onChange={handleChange} required readOnly={false} />
+                    )}
 
                     <div className="col-span-2 flex justify-end space-x-4 mt-6">
                         {/* Nút Đóng/Hủy */}
