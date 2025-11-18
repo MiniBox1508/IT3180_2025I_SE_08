@@ -51,7 +51,7 @@ const EditableField = ({ label, value, isEditing, onChange, name }) => (
   </div>
 );
 
-// --- Dữ liệu mẫu ban đầu (giữ nguyên) ---
+// --- Dữ liệu mẫu ban đầu (giữ nguyên, nhưng sẽ ghi đè bằng user thực tế nếu có) ---
 const initialUserData = {
   name: "Cư Thị Dân",
   residentId: "0002",
@@ -68,7 +68,27 @@ const initialUserData = {
 export const ResidentProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialUserData);
-  const [originalData, setOriginalData] = useState(initialUserData); // <<< Thêm state này
+  const [originalData, setOriginalData] = useState(initialUserData);
+
+  // Khi mount, lấy user thực tế từ localStorage nếu có
+  React.useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (userData) {
+      const mapped = {
+        name: userData.full_name,
+        residentId: userData.id,
+        role: userData.role,
+        apartment: userData.apartment_id,
+        cccd: userData.cccd,
+        dob: userData.birth_date,
+        email: userData.email,
+        phone: userData.phone,
+        status: userData.residency_status,
+      };
+      setFormData(mapped);
+      setOriginalData(mapped);
+    }
+  }, []);
 
   // --- 2. THÊM STATE CHO STATUS MODAL ---
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
