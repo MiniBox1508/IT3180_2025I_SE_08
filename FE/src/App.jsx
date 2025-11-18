@@ -17,7 +17,7 @@ import { AccountantSharedLayout as AsLayout } from "./layouts/AccountantSharedLa
 // Pages
 import { WelcomeScreen } from "./pages/WelcomeScreen.jsx";
 import { Box as LoginScreen } from "./pages/LoginScreen.jsx";
-import { PaymentPage } from "./pages/BQT/PaymentPage.jsx";
+import PaymentPage from "./pages/BQT/PaymentPage.jsx";
 import { QRCodePayment } from "./pages/QRCodePayment.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
