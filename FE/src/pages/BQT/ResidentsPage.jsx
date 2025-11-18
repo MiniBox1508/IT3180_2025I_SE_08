@@ -362,9 +362,9 @@ export const ResidentsPage = () => {
       const response = await fetch(`${API_BASE_URL}/residents`);
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
-      <Helmet>
-        <title>{`${userName} | Ban quản trị`}</title>
-      </Helmet>
+        <Helmet>
+          <title>{`${userName} | Ban quản trị`}</title>
+        </Helmet>;
       }
       const data = await response.json();
       setResidents(data);
@@ -689,6 +689,5 @@ export const ResidentsPage = () => {
         {renderStatusModalContent()}
       </StatusModal>
     </div>
-    </>
   );
 };
