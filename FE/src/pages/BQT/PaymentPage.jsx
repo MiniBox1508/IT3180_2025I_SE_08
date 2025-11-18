@@ -4,7 +4,7 @@ import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
 import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
-const API_BASE_URL = 'https://off-be-deploy.vercel.app';
+const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
@@ -63,8 +63,8 @@ const PaymentFormModal = ({
     }
 
     try {
-      // Gọi API POST /payment
-      const response = await fetch(`${API_BASE_URL}/payments`, {
+      // Gọi API POST /payment (đúng endpoint backend)
+      const response = await fetch(`${API_BASE_URL}/payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataToSend),
@@ -221,7 +221,7 @@ const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   // Remove overlay: just show modal as absolutely positioned, no background
   return (
     <div className="fixed left-0 right-0 top-0 bottom-0 flex justify-center items-center z-50 pointer-events-none">
-  <div className="bg-white p-6 rounded-lg w-full max-w-lg text-gray-900 pointer-events-auto shadow-xl">
+      <div className="bg-white p-6 rounded-lg w-full max-w-lg text-gray-900 pointer-events-auto shadow-xl">
         <h2 className="text-lg font-bold mb-6 text-center">
           Thay đổi trạng thái thanh toán {payment.id}
         </h2>
