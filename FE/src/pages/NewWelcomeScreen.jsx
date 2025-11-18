@@ -16,6 +16,14 @@ export const NewWelcomeScreen = () => {
     setSelectedRole(role);
   };
 
+  // Ánh xạ role FE sang role DB
+  const roleMap = {
+    "Cư dân": "Cư dân",
+    "Ban quản trị": "Quản lý",
+    "Kế toán": "Kế toán",
+    "Công an": "Công an",
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -26,7 +34,7 @@ export const NewWelcomeScreen = () => {
         body: JSON.stringify({
           username,
           password,
-          role: selectedRole,
+          role: roleMap[selectedRole],
         }),
       });
       const data = await res.json();
