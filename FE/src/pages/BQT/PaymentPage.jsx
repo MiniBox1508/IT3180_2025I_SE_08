@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+const API_BASE_URL = "https://off-be-deploy.vercel.app";
+
 // ... existing imports
 
 const PaymentPage = () => {
