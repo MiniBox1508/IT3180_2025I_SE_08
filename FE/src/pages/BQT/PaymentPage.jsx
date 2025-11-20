@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-
+import PaymentItem from "./PaymentItem";
 const API_BASE_URL = "https://off-be-deploy.vercel.app";
-
-// ... existing imports
 
 const PaymentPage = () => {
   const user = JSON.parse(localStorage.getItem("user"));
