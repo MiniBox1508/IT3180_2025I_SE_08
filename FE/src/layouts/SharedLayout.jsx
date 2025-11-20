@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom"; 
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
 // --- Imports ---
 import logo from "../images/company-s-logo.png";
@@ -16,7 +16,7 @@ const navItems = [
   { name: "Trang chủ", to: "/dashboard", icon: iconTrangChu },
   { name: "Dân cư", to: "/dashboard/residents", icon: iconDanCu },
   { name: "Dịch vụ", to: "/dashboard/services", icon: iconDichVu },
-  { name: "Thanh toán", to: "/dashboard/payment", icon: iconThanhToan },
+  { name: "Thanh toán", to: "/dashboard/payments", icon: iconThanhToan },
   { name: "Thông báo", to: "/dashboard/notifications", icon: iconThongBao },
 ];
 
@@ -40,7 +40,7 @@ const SearchIcon = () => (
 
 export const SharedLayout = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   // Hàm xử lý Logout
   const handleLogout = () => {
@@ -66,14 +66,16 @@ export const SharedLayout = () => {
   // === KẾT THÚC SỬA ===
 
   return (
-    <div className="flex h-screen bg-blue-700"> {/* Đổi nền chính thành màu xanh */}
-
+    <div className="flex h-screen bg-blue-700">
+      {" "}
+      {/* Đổi nền chính thành màu xanh */}
       {/* === SIDEBAR === */}
       {/* Thêm rounded-tr-2xl và rounded-br-2xl */}
-      <aside className="w-72 flex flex-col bg-white rounded-tr-2xl rounded-br-2xl flex-shrink-0 relative z-10 shadow-lg"> 
-
+      <aside className="w-72 flex flex-col bg-white rounded-tr-2xl rounded-br-2xl flex-shrink-0 relative z-10 shadow-lg">
         {/* Logo */}
-        <div className="h-20 flex items-center justify-center px-6"> {/* Căn giữa logo */}
+        <div className="h-20 flex items-center justify-center px-6">
+          {" "}
+          {/* Căn giữa logo */}
           <img src={logo} alt="Logo" className="h-10 w-auto" />
         </div>
 
@@ -93,16 +95,20 @@ export const SharedLayout = () => {
         </nav>
 
         {/* Logout Section */}
-        <div className="p-4 mt-auto border-t border-gray-100"> {/* Màu border nhạt hơn */}
-          <div className="w-full h-36 rounded-lg mb-4 flex items-center justify-center overflow-hidden bg-blue-50"> {/* Thêm nền nhẹ */}
+        <div className="p-4 mt-auto border-t border-gray-100">
+          {" "}
+          {/* Màu border nhạt hơn */}
+          <div className="w-full h-36 rounded-lg mb-4 flex items-center justify-center overflow-hidden bg-blue-50">
+            {" "}
+            {/* Thêm nền nhẹ */}
             <img
               src={support}
               alt="illustration"
               className="h-full w-auto object-contain p-2" /* Điều chỉnh object-fit và padding */
             />
           </div>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
             <img src={iconLogout} alt="" className="w-6 h-6" />
@@ -110,13 +116,13 @@ export const SharedLayout = () => {
           </button>
         </div>
       </aside>
-
       {/* === KHUNG NỘI DUNG CHÍNH (ĐÃ XÓA THANH SEARCH) === */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        
         {/* Thanh tìm kiếm đã bị xóa khỏi đây. Chỉ còn lại p-8 pt-4 flex-1 */}
-        
-        <div className="p-8 pt-4 flex-1"> {/* Giữ nguyên padding cho nội dung trang con */}
+
+        <div className="p-8 pt-4 flex-1">
+          {" "}
+          {/* Giữ nguyên padding cho nội dung trang con */}
           <Outlet />
         </div>
       </main>
