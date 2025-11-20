@@ -29,11 +29,14 @@ const PaymentFormModal = ({
       return;
     }
     try {
-      const response = await fetch("https://off-be-deploy.vercel.app/payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "https://off-be-deploy.vercel.app/payments",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || "Lỗi khi tạo thanh toán.");
@@ -325,7 +328,7 @@ const PaymentPage = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payment/${selectedPayment.id}`,
+        `${API_BASE_URL}/payments/${selectedPayment.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
