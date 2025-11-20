@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-//import PaymentItem from "./PaymentItem";
+import PaymentItem from "./PaymentItem";
 const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 const PaymentPage = () => {
