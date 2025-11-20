@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet";
 
 // ... existing imports
 
@@ -290,9 +289,6 @@ const PaymentPage = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{`${userName} | Ban quản trị`}</title>
-      </Helmet>
       {/* Thanh Tìm kiếm Full Width (Giữ nguyên) */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">

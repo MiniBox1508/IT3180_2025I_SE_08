@@ -7,7 +7,7 @@ const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 // Giả định bạn có component Modal để sử dụng lại cho việc Thêm/Sửa
 // Nếu chưa có, bạn có thể tự thay thế bằng một div cố định.
-import { Helmet } from "react-helmet"; // Keep this line
+// ...existing code...
 const ResidentFormModal = ({
   isOpen,
   onClose,
@@ -362,9 +362,6 @@ export const ResidentsPage = () => {
       const response = await fetch(`${API_BASE_URL}/residents`);
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
-        <Helmet>
-          <title>{`${userName} | Ban quản trị`}</title>
-        </Helmet>;
       }
       const data = await response.json();
       setResidents(data);
