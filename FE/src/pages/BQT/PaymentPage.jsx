@@ -1,8 +1,350 @@
 import React, { useState, useEffect } from "react";
-// ... existing imports
+import { useNavigate } from "react-router-dom";
+import { StatusModal } from "../../layouts/StatusModal";
+import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
+import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
+const API_BASE_URL = "https://off-be-deploy.vercel.app";
+
+import acceptIcon from "../../images/accept_icon.png";
+import notAcceptIcon from "../../images/not_accept_icon.png";
+
+// =========================================================================
+// === COMPONENT: PAYMENT FORM MODAL (ADD NEW) ===
+// (Giữ nguyên không đổi)
+// =========================================================================
+const PaymentFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  residentOptions,
+  error,
+  setError,
+}) => {
+  const [formData, setFormData] = useState({
+    resident_id: residentOptions[0]?.id || "", // Mặc định chọn resident đầu tiên
+    amount: "",
+    feetype: "",
+    payment_form: "Chuyển khoản QR", // Mặc định là Chuyển khoản QR
+  });
+
+  useEffect(() => {
+    if (isOpen && residentOptions.length > 0 && !formData.resident_id) {
+      // Đặt resident_id mặc định khi mở modal lần đầu nếu chưa có
+      setFormData((prev) => ({ ...prev, resident_id: residentOptions[0].id }));
+    }
+  }, [isOpen, residentOptions, formData.resident_id]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const dataToSend = {
+      resident_id: parseInt(formData.resident_id),
+      amount: parseFloat(formData.amount),
+      feetype: formData.feetype,
+      payment_form: formData.payment_form,
+    };
+
+    // Kiểm tra trường bắt buộc
+    if (
+      !dataToSend.resident_id ||
+      isNaN(dataToSend.amount) ||
+      dataToSend.amount <= 0 ||
+      !dataToSend.feetype
+    ) {
+      setError("Vui lòng điền đủ ID Cư dân, Số tiền hợp lệ (> 0) và Loại phí.");
+      return;
+    }
+
+    try {
+      // Gọi API POST /payment
+      const response = await fetch(`${API_BASE_URL}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataToSend),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Lỗi khi tạo giao dịch thanh toán.");
+      }
+
+      // Mặc định là Chưa thanh toán (state = 0) ở BE, nên chỉ cần onSave để refresh danh sách
+      onSave();
+      onClose();
+    } catch (err) {
+      console.error("API Error:", err);
+      setError(err.message);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
+        <h2 className="text-lg font-bold mb-4">Tạo thanh toán mới</h2>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 1. Resident ID (Select) */}
+          <div>
+            <label className="mb-1 text-sm font-medium text-gray-700 block">
+              Cư dân (ID)
+            </label>
+            <select
+              name="resident_id"
+              value={formData.resident_id}
+              onChange={handleChange}
+              className="p-2 border border-gray-300 rounded text-sm w-full bg-white text-gray-900 focus:border-blue-500"
+              required
+            >
+              {residentOptions.map((res) => (
+                <option
+                  key={res.id}
+                  value={res.id}
+                >{`${res.full_name} (ID: ${res.id})`}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Amount */}
+          <div>
+            <label className="mb-1 text-sm font-medium text-gray-700 block">
+              Số tiền (VND)
+            </label>
+            <input
+              type="number"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              placeholder="Ví dụ: 350000"
+              className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
+              required
+              min="1"
+            />
+          </div>
+
+          {/* 3. Fee Type */}
+          <div>
+            <label className="mb-1 text-sm font-medium text-gray-700 block">
+              Loại phí
+            </label>
+            <input
+              type="text"
+              name="feetype"
+              value={formData.feetype}
+              onChange={handleChange}
+              placeholder="Ví dụ: Phí quản lý tháng 12"
+              className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* 4. Payment Form (chỉ để hiển thị cho API) */}
+          <div>
+            <label className="mb-1 text-sm font-medium text-gray-700 block">
+              Hình thức TT dự kiến (Mặc định)
+            </label>
+            <select
+              name="payment_form"
+              value={formData.payment_form}
+              onChange={handleChange}
+              className="p-2 border border-gray-300 rounded text-sm w-full bg-gray-100 text-gray-600 cursor-default"
+              disabled
+            >
+              <option value="Chuyển khoản QR">Chuyển khoản QR</option>
+              <option value="Tiền mặt">Tiền mặt</option>
+              <option value="Chưa xác định">Chưa xác định</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Giao dịch mới luôn có trạng thái: **Chưa thanh toán**.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors"
+            >
+              Tạo Giao Dịch
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// =========================================================================
+// === COMPONENT: CHANGE STATUS MODAL ===
+// (Giữ nguyên không đổi)
+// =========================================================================
+const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
+  const [newStatus, setNewStatus] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset status when modal opens
+      setNewStatus(null);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !payment) return null;
+
+  const currentStatusIsPaid = payment.status_text === "Đã thanh toán";
+
+  const handleConfirm = () => {
+    if (newStatus !== null) {
+      onConfirm(newStatus);
+    }
+  };
+
+  // Remove overlay: just show modal as absolutely positioned, no background
+  return (
+    <div className="fixed left-0 right-0 top-0 bottom-0 flex justify-center items-center z-50 pointer-events-none">
+      <div className="bg-white p-6 rounded-lg w-full max-w-lg text-gray-900 pointer-events-auto shadow-xl">
+        <h2 className="text-lg font-bold mb-6 text-center">
+          Thay đổi trạng thái thanh toán {payment.id}
+        </h2>
+
+        {/* Buttons on one row, spaced apart */}
+        <div className="flex flex-row justify-center gap-8 mb-6">
+          <button
+            onClick={() => setNewStatus(true)}
+            className={`py-2 px-8 rounded-md font-semibold transition-colors ${
+              newStatus === true
+                ? "bg-green-600 text-white ring-2 ring-green-400"
+                : "bg-green-100 text-green-800 hover:bg-green-200"
+            }`}
+          >
+            Đã thanh toán
+          </button>
+          <button
+            onClick={() => setNewStatus(false)}
+            className={`py-2 px-8 rounded-md font-semibold transition-colors ${
+              newStatus === false
+                ? "bg-red-600 text-white ring-2 ring-red-400"
+                : "bg-red-100 text-red-800 hover:bg-red-200"
+            }`}
+          >
+            Chưa thanh toán
+          </button>
+        </div>
+
+        <div className="flex justify-end space-x-4 pt-4 border-t">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={newStatus === null || newStatus === currentStatusIsPaid}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =========================================================================
+// === COMPONENT: PAYMENT ITEM (ĐÃ SỬA) ===
+// =========================================================================
+const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
+  // <<< THÊM: isDeleteMode, onDeleteClick
+  const navigate = useNavigate();
+  const isPaid = item.status_text === "Đã thanh toán";
+
+  const formattedPaymentDate = item.payment_date
+    ? new Date(item.payment_date).toLocaleDateString("vi-VN")
+    : "---";
+
+  return (
+    // <<< SỬA: Thêm style đỏ khi ở chế độ Xóa
+    <div
+      className={`bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4 ${
+        isDeleteMode ? "ring-2 ring-red-500" : ""
+      }`}
+    >
+      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
+      <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8">
+        <div className="text-center">
+          <p className="text-xs text-gray-500 mb-1">Thanh toán ID</p>
+          <p className="font-semibold text-gray-800">{item.id}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
+          <p className="font-medium text-gray-700">
+            {item.apartment_id || "N/A"}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Loại phí</p>
+          <p className="font-medium text-gray-700">{item.feetype}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
+          <p className="text-gray-600">{formattedPaymentDate}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Hình thức thanh toán</p>
+          <p className="text-gray-600">{item.payment_form || "---"}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
+          {/* <<< SỬA: Thay đổi hành vi và nội dung của nút này */}
+          <p
+            className={`font-semibold mb-2 cursor-pointer ${
+              isDeleteMode
+                ? "text-red-600 hover:underline"
+                : isPaid
+                ? "text-green-600 hover:underline"
+                : "text-red-600 hover:underline"
+            }`}
+            onClick={() => {
+              if (isDeleteMode) {
+                onDeleteClick(item.id); // Gọi hàm xóa
+              } else {
+                onStatusClick(item); // Gọi hàm sửa status
+              }
+            }}
+          >
+            {isDeleteMode ? "Xóa thanh toán" : item.status_text}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =========================================================================
+// === COMPONENT: TRANG THANH TOÁN CHÍNH (ĐÃ SỬA) ===
+// =========================================================================
 const PaymentPage = () => {
-  const API_BASE_URL = "https://off-be-deploy.vercel.app";
   const user = JSON.parse(localStorage.getItem("user"));
   const userName = user?.full_name || "Ban quản trị";
   const [payments, setPayments] = useState([]);
