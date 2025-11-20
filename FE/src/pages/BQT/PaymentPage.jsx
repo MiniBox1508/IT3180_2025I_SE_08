@@ -1,5 +1,127 @@
 import React, { useState, useEffect } from "react";
 //import PaymentItem from "./PaymentItem";
+// Định nghĩa PaymentFormModal khớp với bảng payments
+const PaymentFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  residentOptions,
+  error,
+  setError,
+}) => {
+  const [formData, setFormData] = useState({
+    resident_id: "",
+    amount: "",
+    feetype: "",
+    payment_form: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!formData.resident_id || !formData.amount) {
+      setError("Vui lòng nhập đầy đủ cư dân và số tiền.");
+      return;
+    }
+    try {
+      const response = await fetch("https://off-be-deploy.vercel.app/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Lỗi khi tạo thanh toán.");
+      }
+      onSave();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Tạo Thanh Toán Mới</h2>
+        {error && <div className="text-red-500 mb-2">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-1 font-medium">Cư dân</label>
+            <select
+              name="resident_id"
+              value={formData.resident_id}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              required
+            >
+              <option value="">-- Chọn cư dân --</option>
+              {residentOptions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.full_name} ({r.apartment_id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Số tiền</label>
+            <input
+              type="number"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Loại phí</label>
+            <input
+              type="text"
+              name="feetype"
+              value={formData.feetype}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">
+              Hình thức thanh toán
+            </label>
+            <input
+              type="text"
+              name="payment_form"
+              value={formData.payment_form}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              type="button"
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+              onClick={onClose}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              Tạo mới
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 // Định nghĩa PaymentItem nếu chưa có
 const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
   return (
