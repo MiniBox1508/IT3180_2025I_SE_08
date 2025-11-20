@@ -69,10 +69,21 @@ const initialUserData = {
 // --- Main Profile Page Component ---
 export const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(initialUserData);
   const user = JSON.parse(localStorage.getItem("user"));
-  const userName = user?.full_name || "Ban quản trị";
-  const [originalData, setOriginalData] = useState(initialUserData); // <<< Thêm state này
+  // Nếu không có user, dùng dữ liệu mẫu
+  const initialData = user ? {
+    name: user.full_name || "",
+    residentId: user.id || "",
+    role: user.role || "",
+    apartment: user.apartment_id || "",
+    cccd: user.cccd || "",
+    dob: user.birth_date || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    status: user.residency_status || ""
+  } : initialUserData;
+  const [formData, setFormData] = useState(initialData);
+  const [originalData, setOriginalData] = useState(initialData);
 
   // --- 2. THÊM STATE CHO STATUS MODAL ---
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
