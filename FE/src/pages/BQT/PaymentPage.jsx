@@ -1,5 +1,36 @@
 import React, { useState, useEffect } from "react";
 import PaymentItem from "./PaymentItem";
+// Định nghĩa PaymentItem nếu chưa có
+const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
+      <div>
+        <div className="font-bold text-lg text-gray-800">
+          Mã hóa đơn: {item.id}
+        </div>
+        <div className="text-gray-600">Số tiền: {item.amount} VNĐ</div>
+        <div className="text-gray-600">Trạng thái: {item.status_text}</div>
+        <div className="text-gray-600">Ngày tạo: {item.created_at}</div>
+      </div>
+      <div className="flex space-x-2">
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          onClick={() => onStatusClick(item)}
+        >
+          Đổi trạng thái
+        </button>
+        {isDeleteMode && (
+          <button
+            className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded"
+            onClick={() => onDeleteClick(item.id)}
+          >
+            Xóa
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 const PaymentPage = () => {
