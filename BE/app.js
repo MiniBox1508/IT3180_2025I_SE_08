@@ -513,8 +513,12 @@ app.get("/payments/:id", (req, res) => {
 
 app.patch("/payments/:id", (req, res) => {
   const { id } = req.params;
-  const { state } = req.body;
-  if (typeof state !== "number" || (state !== 0 && state !== 1)) {
+  let state = req.body.state;
+  // Chấp nhận cả số và chuỗi "0"/"1"
+  if (typeof state === "string") {
+    state = Number(state);
+  }
+  if (![0, 1].includes(state)) {
     return res
       .status(400)
       .json({ error: "Giá trị state không hợp lệ (chỉ nhận 0 hoặc 1)" });
@@ -664,10 +668,10 @@ app.delete("/payments/:id", (req, res) => {
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 // Start server
-app.listen(port, () => {
-  // console.log(`🚀 Server chạy tại http://localhost:${port}`);
-  console.log(port);
-});
+// app.listen(port, () => {
+//   // console.log(`🚀 Server chạy tại http://localhost:${port}`);
+//   console.log(port);
+// });
 
 // -------- API ĐĂNG NHẬP --------
 app.post("/login", (req, res) => {

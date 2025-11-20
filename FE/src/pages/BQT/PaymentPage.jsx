@@ -510,7 +510,7 @@ const PaymentPage = () => {
   const handleStatusUpdate = async (newStatus) => {
     if (!selectedPayment) return;
 
-    const newStateValue = newStatus ? true : false; // Convert boolean to 0 or 1
+    const newStateValue = newStatus ? 1 : 0; // Convert boolean to 0 or 1
 
     try {
       const response = await fetch(
