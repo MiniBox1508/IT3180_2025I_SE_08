@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-
 // ... existing imports
 
 const PaymentPage = () => {
+  const API_BASE_URL = "https://off-be-deploy.vercel.app";
   const user = JSON.parse(localStorage.getItem("user"));
   const userName = user?.full_name || "Ban quản trị";
   const [payments, setPayments] = useState([]);
@@ -172,7 +172,7 @@ const PaymentPage = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payment/${selectedPayment.id}`,
+        `${API_BASE_URL}/payments/${selectedPayment.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
