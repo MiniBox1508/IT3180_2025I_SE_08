@@ -4,7 +4,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-20">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-sm mx-4 p-6 flex flex-col items-center">
         {/* Red warning icon */}
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
