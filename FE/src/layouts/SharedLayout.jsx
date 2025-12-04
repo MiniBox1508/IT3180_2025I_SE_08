@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-
+import LogoutModal from "../layouts/LogoutModal";
 // --- Imports ---
 import logo from "../images/company-s-logo.png";
 import iconTrangChu from "../images/inactive.svg";
@@ -114,6 +114,12 @@ export const SharedLayout = () => {
             <img src={iconLogout} alt="" className="w-6 h-6" />
             <span>Đăng xuất</span>
           </button>
+          {/* Logout Modal */}
+          <LogoutModal
+            isOpen={showLogoutModal}
+            onClose={() => setShowLogoutModal(false)}
+            onConfirm={handleLogoutConfirm}
+          />
         </div>
       </aside>
       {/* === KHUNG NỘI DUNG CHÍNH (ĐÃ XÓA THANH SEARCH) === */}
