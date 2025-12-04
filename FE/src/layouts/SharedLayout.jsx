@@ -112,7 +112,7 @@ export const SharedLayout = () => {
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
             <img src={iconLogout} alt="" className="w-6 h-6" />
-            <span>Logout</span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
