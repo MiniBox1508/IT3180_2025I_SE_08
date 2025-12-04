@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom"; 
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
 // --- Imports ---
 import logo from "../images/company-s-logo.png";
@@ -14,7 +14,11 @@ import iconCongNo from "../images/coins.png";
 // --- Nav Items ---
 const navItems = [
   { name: "Trang chủ", to: "/accountant_dashboard", icon: iconTrangChu },
-  { name: "Hóa đơn", to: "/accountant_dashboard/accountant_payment", icon: iconThanhToan },
+  {
+    name: "Hóa đơn",
+    to: "/accountant_dashboard/accountant_payment",
+    icon: iconThanhToan,
+  },
   { name: "Công nợ", to: "/resident_dashboard", icon: iconCongNo },
   {
     name: "Thông báo",
@@ -43,7 +47,7 @@ const SearchIcon = () => (
 
 export const AccountantSharedLayout = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   // Hàm xử lý Logout
   const handleLogout = () => {
@@ -111,21 +115,20 @@ export const AccountantSharedLayout = () => {
               className="h-full w-auto object-contain p-2" /* Điều chỉnh object-fit và padding */
             />
           </div>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
             <img src={iconLogout} alt="" className="w-6 h-6" />
-            <span>Logout</span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
       {/* === KHUNG NỘI DUNG CHÍNH (ĐÃ XÓA THANH SEARCH) === */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        
         {/* Thanh tìm kiếm đã bị xóa khỏi đây. Chỉ còn lại p-8 pt-4 flex-1 */}
-        
-        <div className="p-8 pt-4 flex-1"> 
+
+        <div className="p-8 pt-4 flex-1">
           <Outlet />
         </div>
       </main>
