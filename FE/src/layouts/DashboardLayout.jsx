@@ -146,7 +146,7 @@ export const DashboardLayout = () => {
           type="button"
           aria-label="Logout"
         >
-          Logout
+          Đăng xuất
         </button>
 
         <div
