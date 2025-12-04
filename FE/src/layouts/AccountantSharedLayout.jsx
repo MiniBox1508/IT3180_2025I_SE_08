@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import LogoutModal from "../components/LogoutModal";
+import LogoutModal from "../layouts/LogoutModal";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
 // --- Imports ---
