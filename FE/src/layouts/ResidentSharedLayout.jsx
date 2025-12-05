@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-
+import LogoutModal from "../layouts/LogoutModal";
 // --- Imports ---
 import logo from "../images/company-s-logo.png";
 import iconTrangChu from "../images/inactive.svg";
@@ -51,9 +51,14 @@ export const ResidentSharedLayout = () => {
   const navigate = useNavigate();
 
   // Hàm xử lý Logout
-  const handleLogout = () => {
+  // Modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Hàm xác nhận đăng xuất
+  const handleLogoutConfirm = () => {
     // Xóa session/token (nếu có)
     // ...
+    setShowLogoutModal(false);
     navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
@@ -117,12 +122,18 @@ export const ResidentSharedLayout = () => {
             />
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
             <img src={iconLogout} alt="" className="w-6 h-6" />
             <span>Đăng xuất</span>
           </button>
+          {/* Logout Modal */}
+          <LogoutModal
+            isOpen={showLogoutModal}
+            onClose={() => setShowLogoutModal(false)}
+            onConfirm={handleLogoutConfirm}
+          />
         </div>
       </aside>
       {/* === KHUNG NỘI DUNG CHÍNH (ĐÃ XÓA THANH SEARCH) === */}
