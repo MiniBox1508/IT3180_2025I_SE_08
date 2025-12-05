@@ -160,7 +160,7 @@ export const DashboardLayout = () => {
           />
 
           {/* NÚT ĐĂNG XUẤT với debugging */}
-          <div className="absolute w-[76.00%] top-[93.98%] left-[12.00%] z-[9999]">
+          <div className="absolute w-[76.00%] top-[93.98%] left-[12.00%] z-[9999] pointer-events-none">
             <button
               type="button"
               onClick={handleLogoutClick}
