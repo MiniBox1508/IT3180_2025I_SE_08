@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import activesection from "../images/activesection.png";
 import activesection1 from "../images/activesection.svg";
 import companySLogo from "../images/company-s-logo.png";
@@ -84,41 +84,41 @@ export const DashboardLayout = () => {
               Dân cư
             </Link>
 
-            <Link
-              href="#services"
+            <NavLink
+              to="/dashboard"
+              className="absolute w-[39.13%] top-[calc(50.00%_-_119px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
+            >
+              Trang chủ
+            </NavLink>
+
+            <NavLink
+              to="/dashboard/residents"
+              className="absolute w-[28.26%] top-[calc(50.00%_-_65px)] left-[26.09%] [font-family:'Nunito_Sans-Bold',Helvetica] font-bold text-[#3f8cff] text-base tracking-[0] leading-[normal] no-underline"
+              aria-current="page"
+            >
+              Dân cư
+            </NavLink>
+
+            <NavLink
+              to="/dashboard/services"
               className="absolute w-[29.89%] top-[calc(50.00%_-_11px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Dịch vụ
-            </Link>
+            </NavLink>
 
-            <Link
-              href="#notifications"
+            <NavLink
+              to="/dashboard/notifications"
               className="absolute w-[42.93%] top-[calc(50.00%_+_97px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Thông báo
-            </Link>
+            </NavLink>
 
-            <div
-              className="absolute w-[13.04%] h-[6.90%] top-[77.59%] left-[4.35%] flex"
-              aria-hidden="true"
-            >
-              <div className="flex-1 w-6 relative">
-                <img
-                  className="absolute w-[87.50%] h-[79.17%] top-[8.33%] left-[8.33%]"
-                  alt=""
-                  src={shape}
-                  role="presentation"
-                />
-              </div>
-            </div>
-
-            <Link
-              href="#payment"
+            <NavLink
+              to="/dashboard/payment"
               className="absolute w-[45.11%] top-[calc(50.00%_+_43px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Thanh toán
-            </Link>
-
+            </NavLink>
             <img
               className="absolute w-[2.17%] h-[12.64%] top-[27.87%] left-[96.20%]"
               alt=""
