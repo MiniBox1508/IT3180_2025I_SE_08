@@ -22,13 +22,33 @@ export const DashboardLayout = () => {
   // Modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Hàm xử lý khi click nút đăng xuất
+  const handleLogoutClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("=== LOGOUT BUTTON CLICKED ===");
+    console.log("Current showLogoutModal:", showLogoutModal);
+    setShowLogoutModal(true);
+    console.log("After set, showLogoutModal should be true");
+  };
+
+  // Hàm đóng modal
+  const handleCloseModal = () => {
+    console.log("=== CLOSE MODAL ===");
+    setShowLogoutModal(false);
+  };
+
   // Hàm xác nhận đăng xuất
   const handleLogoutConfirm = () => {
+    console.log("=== LOGOUT CONFIRMED ===");
     // Xóa session/token (nếu có)
     // ...
     setShowLogoutModal(false);
     navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
+
+  // Log state mỗi khi component render
+  console.log("DashboardLayout render - showLogoutModal:", showLogoutModal);
 
   const navigationItems = [
     { id: 1, label: "Trang chủ", isActive: false, icon: main_icon },
@@ -139,19 +159,15 @@ export const DashboardLayout = () => {
             src={companySLogo}
           />
 
-          {/* NÚT ĐĂNG XUẤT - Giống như trong SharedLayout.jsx */}
-          <div className="absolute w-[76.00%] top-[93.98%] left-[12.00%] z-50">
+          {/* NÚT ĐĂNG XUẤT với debugging */}
+          <div className="absolute w-[76.00%] top-[93.98%] left-[12.00%] z-[9999]">
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowLogoutModal(true);
-              }}
-              className="flex items-center gap-3 group cursor-pointer border-none bg-transparent p-0"
+              onClick={handleLogoutClick}
+              className="flex items-center gap-3 group cursor-pointer border-none bg-transparent p-0 hover:opacity-70"
             >
               {/* Icon */}
-              <div className="w-6 h-6 relative">
+              <div className="w-6 h-6 relative pointer-events-none">
                 <img
                   className="w-full h-full object-contain"
                   alt="Logout"
@@ -159,7 +175,7 @@ export const DashboardLayout = () => {
                 />
               </div>
               {/* Text Đăng xuất */}
-              <span className="[font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors">
+              <span className="[font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors pointer-events-none">
                 Đăng xuất
               </span>
             </button>
@@ -191,10 +207,12 @@ export const DashboardLayout = () => {
           />
         </main>
       </div>
-      {/* Modal xác nhận đăng xuất, đặt ngoài cùng để không ảnh hưởng layout */}
+
+      {/* Modal xác nhận đăng xuất với debugging */}
+      {console.log("Rendering LogoutModal, isOpen:", showLogoutModal)}
       <LogoutModal
         isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
+        onClose={handleCloseModal}
         onConfirm={handleLogoutConfirm}
       />
     </>
