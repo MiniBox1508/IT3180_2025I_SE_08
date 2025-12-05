@@ -41,7 +41,7 @@ export const DashboardLayout = () => {
 
   return (
     <>
-      <div className="bg-[#2148c0] overflow-hidden w-full min-w-[1780px] min-h-[1130px] flex gap-5">
+      <div className="bg-[#2148c0] overflow-auto w-full min-w-[1780px] min-h-[1130px] flex gap-5">
         <aside
           className="w-[200px] h-[1130px] relative -ml-3.5"
           role="navigation"
