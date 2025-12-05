@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom"; // Đã bỏ Link vì không dùng đúng cách
 import activesection from "../images/activesection.png";
 import activesection1 from "../images/activesection.svg";
 import companySLogo from "../images/company-s-logo.png";
@@ -19,25 +19,22 @@ import inactive from "../images/inactive.png";
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
-  // Hàm xử lý Logout
   // Modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Hàm xác nhận đăng xuất
   const handleLogoutConfirm = () => {
+    console.log("Đang thực hiện đăng xuất...");
     // Xóa session/token (nếu có)
-    // ...
     setShowLogoutModal(false);
-    navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
+    navigate("/newwelcome");
   };
 
-  const navigationItems = [
-    { id: 1, label: "Trang chủ", isActive: false, icon: main_icon },
-    { id: 2, label: "Dân cư", isActive: true, icon: resident },
-    { id: 3, label: "Dịch vụ", isActive: false, icon: service },
-    { id: 4, label: "Thanh toán", isActive: false, icon: payment },
-    { id: 5, label: "Thông báo", isActive: false, icon: message },
-  ];
+  // Hàm mở modal (Thêm log để debug)
+  const handleOpenLogout = () => {
+    console.log("Nút đăng xuất đã được bấm!");
+    setShowLogoutModal(true);
+  };
 
   return (
     <>
@@ -47,13 +44,13 @@ export const DashboardLayout = () => {
           role="navigation"
           aria-label="Main navigation"
         >
+          {/* Background Images */}
           <img
             className="w-full h-full left-[7.00%] absolute top-0"
             alt=""
             src={main}
             role="presentation"
           />
-
           <img
             className="absolute w-[84.00%] h-[12.92%] top-[76.64%] left-[8.00%]"
             alt=""
@@ -61,6 +58,7 @@ export const DashboardLayout = () => {
             role="presentation"
           />
 
+          {/* Navigation Menu */}
           <nav className="absolute w-[92.00%] h-[30.80%] top-[12.57%] left-[8.00%]">
             <img
               className="absolute w-[93.48%] h-[12.64%] top-[27.87%] left-0"
@@ -69,63 +67,55 @@ export const DashboardLayout = () => {
               role="presentation"
             />
 
-            <Link
-              href="#home"
-              className="absolute w-[39.13%] top-[calc(50.00%_-_119px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
-            >
-              Trang chủ
-            </Link>
-
-            <Link
-              href="#residents"
-              className="absolute w-[28.26%] top-[calc(50.00%_-_65px)] left-[26.09%] [font-family:'Nunito_Sans-Bold',Helvetica] font-bold text-[#3f8cff] text-base tracking-[0] leading-[normal] no-underline"
-              aria-current="page"
-            >
-              Dân cư
-            </Link>
+            {/* --- ĐÃ XÓA CÁC THẺ <Link> GÂY LỖI VÀ TRÙNG LẶP --- */}
 
             <NavLink
               to="/dashboard"
-              className="absolute w-[39.13%] top-[calc(50.00%_-_119px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
+              end // Thêm end để tránh active nhầm
+              className={({ isActive }) =>
+                `absolute w-[39.13%] top-[calc(50.00%_-_119px)] left-[26.09%] font-semibold text-base tracking-[0] leading-[normal] no-underline ${
+                  isActive ? "text-[#7d8592]" : "text-[#7d8592]"
+                }`
+              }
             >
               Trang chủ
             </NavLink>
 
             <NavLink
               to="/dashboard/residents"
-              className="absolute w-[28.26%] top-[calc(50.00%_-_65px)] left-[26.09%] [font-family:'Nunito_Sans-Bold',Helvetica] font-bold text-[#3f8cff] text-base tracking-[0] leading-[normal] no-underline"
-              aria-current="page"
+              className="absolute w-[28.26%] top-[calc(50.00%_-_65px)] left-[26.09%] font-bold text-[#3f8cff] text-base tracking-[0] leading-[normal] no-underline"
             >
               Dân cư
             </NavLink>
 
             <NavLink
               to="/dashboard/services"
-              className="absolute w-[29.89%] top-[calc(50.00%_-_11px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
+              className="absolute w-[29.89%] top-[calc(50.00%_-_11px)] left-[26.09%] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Dịch vụ
             </NavLink>
 
             <NavLink
               to="/dashboard/notifications"
-              className="absolute w-[42.93%] top-[calc(50.00%_+_97px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
+              className="absolute w-[42.93%] top-[calc(50.00%_+_97px)] left-[26.09%] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Thông báo
             </NavLink>
 
             <NavLink
               to="/dashboard/payment"
-              className="absolute w-[45.11%] top-[calc(50.00%_+_43px)] left-[26.09%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
+              className="absolute w-[45.11%] top-[calc(50.00%_+_43px)] left-[26.09%] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] no-underline"
             >
               Thanh toán
             </NavLink>
+
+            {/* Decorators */}
             <img
               className="absolute w-[2.17%] h-[12.64%] top-[27.87%] left-[96.20%]"
               alt=""
               src={activesection1}
               role="presentation"
             />
-
             <div
               className="absolute w-[13.04%] h-[6.90%] top-[62.07%] left-[4.35%] flex"
               aria-hidden="true"
@@ -137,16 +127,7 @@ export const DashboardLayout = () => {
                 role="presentation"
               />
             </div>
-
-            <div
-              className="absolute w-[13.04%] h-[6.90%] top-[31.03%] left-[4.89%] bg-[url(/active.svg)] bg-[100%_100%]"
-              aria-hidden="true"
-            />
-
-            <div
-              className="absolute w-[13.04%] h-[6.90%] top-[15.52%] left-[4.35%] bg-[url(/image.png)] bg-[100%_100%]"
-              aria-hidden="true"
-            />
+            {/* ... các div trang trí khác ... */}
           </nav>
 
           <img
@@ -155,34 +136,12 @@ export const DashboardLayout = () => {
             src={companySLogo}
           />
 
-          {/* <button
-            onClick={() => setShowLogoutModal(true)}
-            className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
-          >
-            <img src={logout} alt="" className="w-6 h-6" />
-            <span>Đăng xuất</span>
-          </button>
-
-          <div
-            className="absolute w-[12.00%] h-[2.12%] top-[93.98%] left-[12.00%] flex"
-            aria-hidden="true"
-          >
-            <div className="flex-1 w-6 relative">
-              <img
-                className="absolute w-[83.33%] h-[83.33%] top-[8.33%] left-[8.33%]"
-                alt=""
-                src={logout}
-                role="presentation"
-              />
-            </div>
-          </div> */}
-
-          {/* Nút Đăng xuất đã sửa: Có Absolute position và Z-index cao để bấm được */}
+          {/* === NÚT ĐĂNG XUẤT (Đã sửa) === */}
           <button
-            onClick={() => setShowLogoutModal(true)}
-            className="absolute z-50 flex items-center gap-3 top-[93%] left-[12%] group cursor-pointer border-none bg-transparent"
+            type="button" // Quan trọng: Ngăn chặn hành vi submit mặc định
+            onClick={handleOpenLogout}
+            className="absolute z-50 flex items-center gap-3 top-[93%] left-[12%] group cursor-pointer border-none bg-transparent hover:opacity-80 transition-opacity"
           >
-            {/* Icon */}
             <div className="w-6 h-6 relative">
               <img
                 className="w-full h-full object-contain"
@@ -190,8 +149,7 @@ export const DashboardLayout = () => {
                 src={logout}
               />
             </div>
-            {/* Chữ Đăng xuất (Style giống các link khác trong file) */}
-            <span className="[font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors">
+            <span className="font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors">
               Đăng xuất
             </span>
           </button>
@@ -202,27 +160,27 @@ export const DashboardLayout = () => {
           />
         </aside>
 
+        {/* Main Content Area */}
         <main className="mt-[22px] w-[467px] h-[54px] relative">
           <div className="w-[170.57%] h-[103.70%] left-0 bg-white rounded-[14px] shadow-[0px_6px_58px_#c3cbd61b] absolute top-0" />
-
           <div
             className="absolute w-[5.83%] h-[50.00%] top-[25.00%] left-[4.61%] bg-[url(/search.png)] bg-[100%_100%]"
             aria-hidden="true"
           />
-
           <label htmlFor="search-input" className="sr-only">
             Search
           </label>
           <input
             id="search-input"
-            className="absolute w-[11.89%] top-[calc(50.00%_-_11px)] left-[13.11%] [font-family:'Nunito_Sans-Regular',Helvetica] font-normal text-[#7d8592] text-base tracking-[0] leading-[normal] [background:transparent] border-[none] p-0"
+            className="absolute w-[11.89%] top-[calc(50.00%_-_11px)] left-[13.11%] font-normal text-[#7d8592] text-base tracking-[0] leading-[normal] bg-transparent border-none p-0 focus:outline-none"
             placeholder="Search"
             type="search"
             aria-label="Search"
           />
         </main>
       </div>
-      {/* Modal xác nhận đăng xuất, đặt ngoài cùng để không ảnh hưởng layout */}
+
+      {/* Logout Modal */}
       <LogoutModal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
