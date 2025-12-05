@@ -19,7 +19,6 @@ import inactive from "../images/inactive.png";
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
-  // Hàm xử lý Logout
   // Modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -140,22 +139,31 @@ export const DashboardLayout = () => {
             src={companySLogo}
           />
 
-          {/* NÚT ĐĂNG XUẤT - ĐÃ SỬA: Thêm onClick để mở modal */}
-          <button
-            type="button"
-            onClick={() => setShowLogoutModal(true)}
-            className="absolute w-[12.00%] h-[2.12%] top-[93.98%] left-[12.00%] flex cursor-pointer bg-transparent border-none p-0 z-50"
-            aria-label="Đăng xuất"
-          >
-            <div className="flex-1 w-6 relative">
-              <img
-                className="absolute w-[83.33%] h-[83.33%] top-[8.33%] left-[8.33%]"
-                alt=""
-                src={logout}
-                role="presentation"
-              />
-            </div>
-          </button>
+          {/* NÚT ĐĂNG XUẤT - Giống như trong SharedLayout.jsx */}
+          <div className="absolute w-[76.00%] top-[93.98%] left-[12.00%] z-50">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowLogoutModal(true);
+              }}
+              className="flex items-center gap-3 group cursor-pointer border-none bg-transparent p-0"
+            >
+              {/* Icon */}
+              <div className="w-6 h-6 relative">
+                <img
+                  className="w-full h-full object-contain"
+                  alt="Logout"
+                  src={logout}
+                />
+              </div>
+              {/* Text Đăng xuất */}
+              <span className="[font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors">
+                Đăng xuất
+              </span>
+            </button>
+          </div>
 
           <div
             className="absolute w-[12.00%] h-[2.12%] top-[26.90%] left-[12.00%] bg-[url(/inactive-2.png)] bg-[100%_100%]"
