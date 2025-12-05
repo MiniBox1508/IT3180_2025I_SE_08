@@ -6,7 +6,7 @@ import companySLogo from "../images/company-s-logo.png";
 import logout from "../images/logout.svg";
 import main from "../images/main.png";
 import support from "../images/support.png";
-
+import LogoutModal from "../layouts/LogoutModal";
 import service from "../images/dash_user_icon.svg";
 import main_icon from "../images/main_dashboard_icon.svg";
 import resident from "../images/dash_resident_icon.svg";
@@ -18,6 +18,18 @@ import shape from "../images/shape.svg";
 import inactive from "../images/inactive.png";
 
 export const DashboardLayout = () => {
+  // Hàm xử lý Logout
+  // Modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Hàm xác nhận đăng xuất
+  const handleLogoutConfirm = () => {
+    // Xóa session/token (nếu có)
+    // ...
+    setShowLogoutModal(false);
+    navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
+  };
+
   const navigationItems = [
     { id: 1, label: "Trang chủ", isActive: false, icon: main_icon },
     { id: 2, label: "Dân cư", isActive: true, icon: resident },
@@ -142,12 +154,20 @@ export const DashboardLayout = () => {
         />
 
         <button
+          onClick={() => setShowLogoutModal(true)}
           className="absolute w-[26.00%] top-[calc(50.00%_+_498px)] left-[32.00%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] cursor-pointer text-left"
           type="button"
           aria-label="Logout"
         >
           Đăng xuất
         </button>
+
+        {/* Logout Modal */}
+        <LogoutModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleLogoutConfirm}
+        />
 
         <div
           className="absolute w-[12.00%] h-[2.12%] top-[93.98%] left-[12.00%] flex"
