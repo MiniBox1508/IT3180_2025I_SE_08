@@ -155,7 +155,7 @@ export const DashboardLayout = () => {
             src={companySLogo}
           />
 
-          <button
+          {/* <button
             onClick={() => setShowLogoutModal(true)}
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
@@ -175,7 +175,26 @@ export const DashboardLayout = () => {
                 role="presentation"
               />
             </div>
-          </div>
+          </div> */}
+
+          {/* Nút Đăng xuất đã sửa: Có Absolute position và Z-index cao để bấm được */}
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="absolute z-50 flex items-center gap-3 top-[93%] left-[12%] group cursor-pointer border-none bg-transparent"
+          >
+            {/* Icon */}
+            <div className="w-6 h-6 relative">
+              <img
+                className="w-full h-full object-contain"
+                alt="Logout"
+                src={logout}
+              />
+            </div>
+            {/* Chữ Đăng xuất (Style giống các link khác trong file) */}
+            <span className="[font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base group-hover:text-red-500 transition-colors">
+              Đăng xuất
+            </span>
+          </button>
 
           <div
             className="absolute w-[12.00%] h-[2.12%] top-[26.90%] left-[12.00%] bg-[url(/inactive-2.png)] bg-[100%_100%]"
