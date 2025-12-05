@@ -43,9 +43,14 @@ export const SharedLayout = () => {
   const navigate = useNavigate();
 
   // Hàm xử lý Logout
-  const handleLogout = () => {
+  // Modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Hàm xác nhận đăng xuất
+  const handleLogoutConfirm = () => {
     // Xóa session/token (nếu có)
     // ...
+    setShowLogoutModal(false);
     navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
