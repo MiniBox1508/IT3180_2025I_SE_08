@@ -157,11 +157,10 @@ export const DashboardLayout = () => {
 
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="absolute w-[26.00%] top-[calc(50.00%_+_498px)] left-[32.00%] [font-family:'Nunito_Sans-SemiBold',Helvetica] font-semibold text-[#7d8592] text-base tracking-[0] leading-[normal] cursor-pointer text-left"
-            type="button"
-            aria-label="Logout"
+            className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
           >
-            Đăng xuất
+            <img src={logout} alt="" className="w-6 h-6" />
+            <span>Đăng xuất</span>
           </button>
 
           <div
