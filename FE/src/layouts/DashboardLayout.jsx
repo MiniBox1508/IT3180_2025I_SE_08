@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import activesection from "../images/activesection.png";
 import activesection1 from "../images/activesection.svg";
 import companySLogo from "../images/company-s-logo.png";
@@ -18,6 +18,7 @@ import shape from "../images/shape.svg";
 import inactive from "../images/inactive.png";
 
 export const DashboardLayout = () => {
+  const navigate = useNavigate();
   // Hàm xử lý Logout
   // Modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
