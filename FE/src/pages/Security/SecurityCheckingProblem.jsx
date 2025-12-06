@@ -165,18 +165,24 @@ export const SecurityProblem = () => {
 
   // Xử lý hàng loạt (Ví dụ: Đánh dấu đã xử lý)
   const handleBatchProcess = () => {
-    if (selectedIds.length === 0) return;
     
     // Giả lập xử lý API
     const updatedIncidents = incidents.map(item => {
-      if (selectedIds.includes(item.id)) {
+      const isSelected = selectedIds.includes(item.id);
+      if (isSelected) {
         return { 
           ...item, 
           status: "Đã xử lý", 
           date_processed: dayjs().format("DD/MM/YYYY") 
         };
+      }else {
+        // TRƯỜNG HỢP KHÔNG ĐƯỢC CHỌN (Bỏ tích) -> Cập nhật thành "Chưa xử lý"
+        return { 
+          ...item, 
+          status: "Chưa xử lý", // Reset trạng thái
+          date_processed: ""     // Xóa ngày xử lý
+        };
       }
-      return item;
     });
 
     setIncidents(updatedIncidents);
