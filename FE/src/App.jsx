@@ -1,37 +1,43 @@
-// Cần sử dụng content_fetch_id chính xác cho App.jsx
-// file_content_fetcher.fetch(source_references=['uploaded:dang9805/wasd/wasd-BE3/src/App.jsx'])
-
 import React from "react";
 import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
+  BrowserRouter as Router, // Component cha, bao bọc toàn bộ ứng dụng để dùng routing, tên được viết gọn thành 'Router'
+  Routes, //Component bao nhóm các Route, giúp chọn ra Route phù hợp với URL hiện tại
+  Route, //Component định nghĩa 1 routing: một URL tương ứng với một component cụ thể
+  Navigate, //Component dùng để chuyển hướng người dùng từ URL này sang URL khác
 } from "react-router-dom";
 
-// Layouts
-import { AuthLayout } from "./layouts/AuthLayout.jsx";
+// -----------------------------------------------
+
+// import Layouts
+import { NewWelcomeScreen } from "./pages/NewWelcomeScreen.jsx"; // import Welcome Screen
 import { SharedLayout } from "./layouts/SharedLayout.jsx";
 import { ResidentSharedLayout as RsLayout } from "./layouts/ResidentSharedLayout.jsx";
 import { AccountantSharedLayout as AsLayout } from "./layouts/AccountantSharedLayout.jsx";
-// Pages
-import { WelcomeScreen } from "./pages/WelcomeScreen.jsx";
-import { Box as LoginScreen } from "./pages/LoginScreen.jsx";
+import { QRCodePayment } from "./pages/QRCodePayment.jsx"; //QR Layout
+import { SecuritySharedLayout as SLayout } from "./layouts/SecuritySharedLayout.jsx";
+
+// import BQT pages
 import PaymentPage from "./pages/BQT/PaymentPage.jsx";
-import { QRCodePayment } from "./pages/QRCodePayment.jsx";
-import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
+import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
+
+// import Resident pages
 import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
 import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNotificationsPage.jsx";
 import { ResidentViewPage } from "./pages/citizen/ResidentViewPage.jsx";
-// <<< NEW: Import ResidentPaymentPage >>>
 import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
-import { NewWelcomeScreen } from "./pages/NewWelcomeScreen.jsx";
 
+// import Accountant pages
 import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
 import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
-// --- TẠO CÁC TRANG PLACEHOLDER CHO DASHBOARD ---
+
+// import Security pages
+import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
+
+// -----------------------------------------------
+
+// TẠO CÁC TRANG PLACEHOLDER CHO DASHBOARD (BẢN XEM TRƯỚC CHO DỊCH VỤ CỦA CÁC ROLE)
 const ServicesPage = () => (
   <h1 className="text-3xl font-bold text-white">Quản lý Dịch vụ</h1>
 );
@@ -45,27 +51,9 @@ export default function App() {
         {/* Route mặc định, chuyển hướng đến /welcome */}
         <Route path="/" element={<Navigate to="/newwelcome" />} />
 
-        {/* === Các trang không cần Sidebar (Login, Welcome) === */}
-        {/* <Route
-          path="/welcome"
-          element={
-            <div className="min-h-screen relative">
-              <AuthLayout />
-              <WelcomeScreen />
-            </div>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <div className="min-h-screen relative">
-              <AuthLayout />
-              <LoginScreen />
-            </div>
-          }
-        />
-        <Route path="/newwelcome" element={<NewWelcomeScreen />} /> */}
+        {/*---------------------------------------------*/}
 
+        {/* ĐĂNG NHẬP/QUÊN MẬT KHẨU */}
         <Route
           path="/newwelcome"
           element={
@@ -75,44 +63,51 @@ export default function App() {
           }
         />
 
-        {/* === CÁC TRANG CẦN SIDEBAR (DASHBOARD) - BAN QUẢN TRỊ === */}
+        {/* ------------------------------------------ */}
+
+        {/* BAN QUẢN TRỊ */}
         <Route path="/dashboard" element={<SharedLayout />}>
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
-
           <Route path="payment">
-            {/* BQT dùng PaymentPage có nút Thêm */}
             <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
           </Route>
-
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
 
-        {/* === Resident-specific dashboard (layout riêng cho cư dân) === */}
+        {/* ------------------------------------------ */}
+
+        {/* CƯ DÂN */}
         <Route path="/resident_dashboard" element={<RsLayout />}>
-          {/* Trang chủ cư dân */}
           <Route index element={<ResidentProfilePage />} />
           <Route path="residents" element={<ResidentViewPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="payment">
-            {/* <<< Cư dân dùng ResidentPaymentPage KHÔNG có nút Thêm >>> */}
             <Route index element={<ResidentPaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
           </Route>
           <Route path="notifications" element={<RnPage />} />
         </Route>
 
-        {/* === Accountant-specific dashboard (layout riêng cho kế toán) === */}
+        {/* ------------------------------------------ */}
+
+        {/* KẾ TOÁN */}
         <Route path="/accountant_dashboard" element={<AsLayout />}>
-          {/* Trang chủ cư dân */}
           <Route index element={<AccountantProfilePage />} />
           <Route path="accountant_payment">
             <Route index element={<AccountPayment />} />
           </Route>
           <Route path="residents" element={<ResidentViewPage />} />
           <Route path="notifications" element={<RnPage />} />
+        </Route>
+
+        {/* ------------------------------------------ */}
+
+        {/* BẢO VỆ */}
+        <Route path="/security_dashboard" element={<SLayout />}>
+          <Route index element={<SProPage />} />
         </Route>
       </Routes>
     </Router>
