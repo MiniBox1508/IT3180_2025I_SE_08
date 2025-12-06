@@ -45,7 +45,7 @@ export const NewWelcomeScreen = () => {
       if (selectedRole === "Cư dân") navigate("/resident_dashboard");
       else if (selectedRole === "Ban quản trị") navigate("/dashboard");
       else if (selectedRole === "Kế toán") navigate("/accountant_dashboard");
-      else if (selectedRole === "Công an") navigate("/police_dashboard");
+      else if (selectedRole === "Công an") navigate("/security_dashboard");
     } catch (err) {
       setError(err.message);
     }
