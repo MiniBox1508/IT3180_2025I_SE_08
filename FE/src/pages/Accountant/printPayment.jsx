@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image"; // <--- DÙNG THƯ VIỆN MỚI
 import dayjs from "dayjs";
 
 // Helper format tiền tệ
@@ -15,31 +15,37 @@ export const PrintPayments = () => {
   const [invoiceData, setInvoiceData] = useState(null);
 
   useEffect(() => {
-    // Lấy dữ liệu được gửi từ trang AccountCheckDebt
     if (location.state && location.state.data) {
       setInvoiceData(location.state.data);
     } else {
-      // Nếu không có dữ liệu (truy cập trực tiếp), quay lại trang trước
       navigate(-1);
     }
   }, [location, navigate]);
 
-  const handlePrint = () => {
+  // --- HÀM IN MỚI SỬ DỤNG HTML-TO-IMAGE ---
+  const handlePrint = async () => {
     const input = document.getElementById("invoice-content");
 
     if (!input) return;
 
-    // Hiệu ứng UX: Ẩn nút khi đang xử lý (tùy chọn)
-    html2canvas(input, { scale: 2, useCORS: true }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4"); // Khổ A4
+    try {
+      // Dùng toPng thay vì html2canvas
+      // pixelRatio: 2 giúp ảnh nét hơn khi in
+      const dataUrl = await toPng(input, { cacheBust: true, pixelRatio: 2 });
       
+      const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Lấy kích thước thật của ảnh để tính tỷ lệ
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Hoa_don_${invoiceData?.id || "DV"}.pdf`);
-    });
+    } catch (err) {
+      console.error("Lỗi khi in hóa đơn:", err);
+      alert("Không thể tạo file PDF. Vui lòng thử lại.");
+    }
   };
 
   if (!invoiceData) return null;
@@ -48,9 +54,11 @@ export const PrintPayments = () => {
     <div className="w-full min-h-screen bg-blue-700 flex flex-col items-center justify-center p-8">
       
       {/* --- PHẦN NỘI DUNG HÓA ĐƠN (MÀU TRẮNG) --- */}
+      {/* Thêm style backgroundColor trực tiếp để đảm bảo an toàn tối đa */}
       <div 
         id="invoice-content" 
         className="bg-white rounded-3xl p-8 w-full max-w-4xl shadow-2xl mb-8 text-gray-800"
+        style={{ backgroundColor: '#ffffff' }} 
       >
         {/* Header Hóa Đơn */}
         <div className="flex justify-between mb-8">
@@ -103,7 +111,6 @@ export const PrintPayments = () => {
                         <td className="py-4 px-4 text-right">{formatCurrency(invoiceData.amount)}</td>
                         <td className="py-4 px-4 text-right">{formatCurrency(invoiceData.amount)}</td>
                     </tr>
-                    {/* Dòng trống tạo khoảng cách giống ảnh */}
                     <tr><td colSpan="6" className="py-4"></td></tr>
                     <tr><td colSpan="6" className="py-4"></td></tr>
                 </tbody>
