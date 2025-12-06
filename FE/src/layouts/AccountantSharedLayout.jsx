@@ -23,7 +23,7 @@ const navItems = [
   { name: "Công nợ", to: "/resident_dashboard", icon: iconCongNo },
   {
     name: "Thông báo",
-    to: "/resident_dashboard/notifications",
+    to: "/accountant_dashboard/notifications",
     icon: iconThongBao,
   },
 ];
