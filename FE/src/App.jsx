@@ -31,6 +31,7 @@ import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
 // import Accountant pages
 import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
 import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
+import { AccountantNotification } from "./pages/Accountant/AccountNotification.jsx";
 
 // import Security pages
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
@@ -102,7 +103,7 @@ export default function App() {
             <Route index element={<AccountPayment />} />
           </Route>
           <Route path="residents" element={<ResidentViewPage />} />
-          <Route path="notifications" element={<RnPage />} />
+          <Route path="notifications" element={<AccountantNotification />} />
         </Route>
 
         {/* ------------------------------------------ */}
