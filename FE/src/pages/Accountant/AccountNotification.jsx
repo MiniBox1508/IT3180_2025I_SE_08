@@ -45,7 +45,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl animate-fade-in-up">
         <button onClick={onClose} className="absolute top-6 right-6 hover:bg-gray-100 rounded-full p-1 transition-colors">
           <CloseIcon />
