@@ -124,7 +124,7 @@ export const SecurityProfilePage = () => {
           unit: data.apartment_id || "", 
           badgeNumber: data.cccd || "",
           // Convert ISO date (YYYY-MM-DD) sang DD/MM/YYYY để hiển thị
-          dob: data.birth_date ? dayjs(data.birth_date).format("DD/MM/YYYY") : "",
+          dob: data.birth_date ? dayjs(data.birth_date).format("YYYY-MM-DD") : "",  
           email: data.email || "",
           phone: data.phone || "",
         };
