@@ -31,6 +31,7 @@ import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
 // import Accountant pages
 import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
 import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
+import { AccountCheckDebt } from "./pages/Accountant/AccountCheckDebt.jsx";
 import { AccountantNotification } from "./pages/Accountant/AccountNotification.jsx";
 
 // import Security pages
@@ -102,7 +103,7 @@ export default function App() {
           <Route path="accountant_payment">
             <Route index element={<AccountPayment />} />
           </Route>
-          <Route path="residents" element={<ResidentViewPage />} />
+          <Route path="check_debt" element={<AccountCheckDebt />} />
           <Route path="notifications" element={<AccountantNotification />} />
         </Route>
 

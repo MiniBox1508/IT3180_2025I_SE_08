@@ -20,7 +20,7 @@ const navItems = [
     to: "/accountant_dashboard/accountant_payment",
     icon: iconThanhToan,
   },
-  { name: "Công nợ", to: "/resident_dashboard", icon: iconCongNo },
+  { name: "Công nợ", to: "/check_debt", icon: iconCongNo },
   {
     name: "Thông báo",
     to: "/accountant_dashboard/notifications",
