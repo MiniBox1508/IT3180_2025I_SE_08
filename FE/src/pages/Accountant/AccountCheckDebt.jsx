@@ -21,7 +21,7 @@ const formatCurrency = (amount) => {
 export const AccountCheckDebt = () => {
   const navigate = useNavigate(); // Hook chuyển trang
   
-  // State
+  // State Data
   const [debts, setDebts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,6 +64,7 @@ export const AccountCheckDebt = () => {
           };
         });
 
+        // Sắp xếp: Chưa thanh toán lên đầu
         processedData.sort((a, b) => a.state - b.state || new Date(b.created_at) - new Date(a.created_at));
         setDebts(processedData);
       } catch (error) {
@@ -79,11 +80,11 @@ export const AccountCheckDebt = () => {
   // --- HANDLERS ---
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
-    setSelectedId(null);
+    setSelectedId(null); // Reset lựa chọn khi chuyển chế độ
   };
 
   const handleSelect = (item) => {
-    // Chỉ cho phép chọn nếu đã thanh toán
+    // Chỉ cho phép chọn nếu đã thanh toán (can_print = true)
     if (!item.can_print) return;
 
     if (selectedId === item.id) {
@@ -99,9 +100,8 @@ export const AccountCheckDebt = () => {
     // Tìm object dữ liệu đầy đủ dựa trên ID đã chọn
     const selectedInvoice = debts.find(d => d.id === selectedId);
     
-    // Chuyển sang trang printPayments và truyền dữ liệu
+    // Chuyển sang trang print_invoice và truyền dữ liệu qua state
     navigate('/accountant_dashboard/print_invoice', { state: { data: selectedInvoice } });
-    // Lưu ý: Bạn cần định nghĩa route này trong App.js hoặc router config của bạn
   };
 
   // --- FILTER ---
@@ -132,12 +132,13 @@ export const AccountCheckDebt = () => {
         </div>
       </div>
 
-      {/* 2. TITLE & BUTTONS */}
-      <div className="flex justify-between items-center mb-6">
+      {/* 2. TITLE & BUTTONS (PHẦN QUAN TRỌNG) */}
+      <div className="flex justify-between items-center mb-6 relative z-10">
         <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
         
-        {/* Nút Chức năng giống SecurityProblem */}
+        {/* Logic hiển thị nút */}
         {!isSelectionMode ? (
+           // Nút hiển thị mặc định: "Xuất hóa đơn"
            <button
              onClick={toggleSelectionMode}
              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
@@ -145,6 +146,7 @@ export const AccountCheckDebt = () => {
              Xuất hóa đơn
            </button>
         ) : (
+           // Nút hiển thị khi đang chọn: "In hóa đơn" và "Hủy"
            <div className="flex space-x-3">
              <button
                onClick={handleExportClick}
@@ -176,7 +178,7 @@ export const AccountCheckDebt = () => {
             <div 
                 key={item.id} 
                 className={`bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px] transition-all ${
-                    // Highlight nếu được chọn
+                    // Hiệu ứng highlight nếu được chọn
                     selectedId === item.id ? "ring-2 ring-blue-400 bg-blue-50" : ""
                 }`}
             >
@@ -236,11 +238,11 @@ export const AccountCheckDebt = () => {
                   </p>
                 </div>
 
-                {/* Trạng thái & Checkbox */}
+                {/* Trạng thái & Checkbox (Logic thay đổi khi ở chế độ chọn) */}
                 <div className="col-span-2 flex flex-col items-end justify-center">
-                   {/* Nếu đang ở chế độ chọn VÀ Đã thanh toán -> Hiện Checkbox */}
                    {isSelectionMode ? (
                         item.can_print ? (
+                            // Hiện Checkbox nếu được phép in
                             <div 
                                 onClick={() => handleSelect(item)}
                                 className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
@@ -256,11 +258,11 @@ export const AccountCheckDebt = () => {
                                 )}
                             </div>
                         ) : (
-                            // Nếu chưa thanh toán -> Disable hoặc ẩn
+                            // Ẩn/Disable nếu chưa thanh toán
                             <span className="text-xs text-red-400 italic">Chưa TT</span>
                         )
                    ) : (
-                       // Chế độ thường -> Hiện text trạng thái
+                       // Chế độ thường -> Hiện Text trạng thái
                         <>
                             <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
                             <p className={`text-xs font-bold ${item.status_color}`}>
