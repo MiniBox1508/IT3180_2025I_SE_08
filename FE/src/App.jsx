@@ -35,6 +35,7 @@ import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
 // import Security pages
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
 import { SecurityNotification as SNotification } from "./pages/Security/SecurityNotification.jsx";
+import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProblem.jsx"; 
 
 // -----------------------------------------------
 
@@ -109,6 +110,7 @@ export default function App() {
         {/* BẢO VỆ */}
         <Route path="/security_dashboard" element={<SLayout />}>
           <Route index element={<SProPage />} />
+          <Route path="incidents" element={<SCheck />} />
           <Route path="notifications" element={<SNotification />} />
         </Route>
       </Routes>
