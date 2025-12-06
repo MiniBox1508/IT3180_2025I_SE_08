@@ -28,7 +28,7 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl w-full max-w-2xl p-8 relative shadow-2xl animate-fade-in-up">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -144,6 +144,13 @@ export const SecurityProblem = () => {
     } else {
       setIsBatchMode(true);
     }
+
+    // --- Tự động chọn những item đã có status là "Đã xử lý" ---
+    const processedIds = incidents
+        .filter((item) => item.status === "Đã xử lý")
+        .map((item) => item.id);
+      
+      setSelectedIds(processedIds);
   };
 
   // Chọn item
