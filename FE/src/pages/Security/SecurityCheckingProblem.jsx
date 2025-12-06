@@ -151,6 +151,7 @@ export const SecurityProblem = () => {
         .map((item) => item.id);
       
       setSelectedIds(processedIds);
+    }
   };
 
   // Chọn item
