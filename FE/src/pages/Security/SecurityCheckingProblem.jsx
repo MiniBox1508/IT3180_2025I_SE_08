@@ -138,15 +138,15 @@ export const SecurityProblem = () => {
   // Toggle chế độ hàng loạt
   const toggleBatchMode = () => {
     if (isBatchMode) {
-      // Hủy chế độ -> Reset
+      // Tắt chế độ -> Reset
       setIsBatchMode(false);
       setSelectedIds([]);
     } else {
+      // Bật chế độ
       setIsBatchMode(true);
-    }
 
-    // --- Tự động chọn những item đã có status là "Đã xử lý" ---
-    const processedIds = incidents
+      // --- Pre-select những item đang là "Đã xử lý" ---
+      const processedIds = incidents
         .filter((item) => item.status === "Đã xử lý")
         .map((item) => item.id);
       
