@@ -58,7 +58,7 @@ const EditableField = ({ label, value, isEditing, onChange, name, type = "text" 
         className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
       />
     ) : (
-      <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px]">
+      <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
         {value || "Chưa cập nhật"}
       </div>
     )}
@@ -76,7 +76,7 @@ export const SecurityProfilePage = () => {
     securityId: "",
     role: "",
     unit: "",
-    badgeNumber: "", // Sẽ map với CCCD hoặc cột khác trong DB
+    badgeNumber: "", 
     dob: "",
     email: "",
     phone: "",
@@ -90,8 +90,6 @@ export const SecurityProfilePage = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // Lấy User ID từ localStorage (Giả định bạn đã lưu khi Login)
-  // Nếu chưa có login flow, bạn có thể hardcode id ví dụ: const userId = 1;
   const getUserFromStorage = () => {
     const userStr = localStorage.getItem("user");
     if (userStr) return JSON.parse(userStr);
@@ -114,16 +112,14 @@ export const SecurityProfilePage = () => {
         const response = await axios.get(`${API_BASE_URL}/residents/${userId}`);
         const data = response.data;
 
-        // Map dữ liệu từ DB (snake_case) sang UI state
-        // Lưu ý: DB bạn dùng 'apartment_id', tôi tạm map nó vào 'unit' (Đơn vị)
-        // 'cccd' tạm map vào 'badgeNumber' (Số hiệu)
+        // Map dữ liệu từ DB
         const mappedData = {
           name: data.full_name || "",
-          securityId: String(data.id).padStart(4, '0'), // Format ID thành 0001
+          securityId: String(data.id).padStart(4, '0'),
           role: data.role || "Công an",
           unit: data.apartment_id || "", 
           badgeNumber: data.cccd || "",
-          // Convert ISO date (YYYY-MM-DD) sang DD/MM/YYYY để hiển thị
+          // --- SỬA TẠI ĐÂY: Format về YYYY-MM-DD để input date hiểu ---
           dob: data.birth_date ? dayjs(data.birth_date).format("YYYY-MM-DD") : "",  
           email: data.email || "",
           phone: data.phone || "",
@@ -166,27 +162,17 @@ export const SecurityProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Convert ngày sinh từ DD/MM/YYYY sang YYYY-MM-DD để lưu vào MySQL
-    let formattedDob = null;
-    if (formData.dob) {
-      // Parse theo định dạng VN
-      const dateParts = formData.dob.split("/");
-      if (dateParts.length === 3) {
-        // format: YYYY-MM-DD
-        formattedDob = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`; 
-      }
-    }
+    // --- SỬA TẠI ĐÂY: Không cần split nữa vì input type="date" trả về YYYY-MM-DD chuẩn ---
+    const formattedDob = formData.dob; 
 
-    // Chuẩn bị payload gửi lên server (khớp với body của API PUT /residents/:id)
     const payload = {
       full_name: formData.name,
       role: formData.role,
-      apartment_id: formData.unit, // Map 'unit' về 'apartment_id'
-      cccd: formData.badgeNumber, // Map 'badgeNumber' về 'cccd'
+      apartment_id: formData.unit, 
+      cccd: formData.badgeNumber, 
       birth_date: formattedDob, 
       email: formData.email,
       phone: formData.phone,
-      // Các trường khác giữ nguyên hoặc null
     };
 
     try {
@@ -196,10 +182,8 @@ export const SecurityProfilePage = () => {
       setStatusMessage("Cập nhật thông tin thành công!");
       setIsEditing(false);
       
-      // Cập nhật lại originalData bằng data mới nhất
       setOriginalData(formData); 
       
-      // Cập nhật lại localStorage nếu cần (để tên hiển thị trên header đổi theo)
       if (user) {
         const updatedUser = { ...user, ...payload };
         localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -241,7 +225,6 @@ export const SecurityProfilePage = () => {
       <h1 className="text-2xl font-bold text-white mb-6">Thông tin cá nhân</h1>
 
       <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 relative">
-        {/* Nút Edit */}
         {!isEditing && (
           <button 
             onClick={handleEditClick}
@@ -252,7 +235,6 @@ export const SecurityProfilePage = () => {
           </button>
         )}
 
-        {/* Profile Header */}
         <div className="flex items-center space-x-4 mb-8 border-b border-gray-100 pb-8">
           <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
             <UserIcon />
@@ -280,27 +262,43 @@ export const SecurityProfilePage = () => {
                 onChange={handleChange}
               />
               <EditableField
-                label="Đơn vị công tác" // Map vào apartment_id trong DB
+                label="Đơn vị công tác"
                 name="unit"
                 value={formData.unit}
                 isEditing={isEditing}
                 onChange={handleChange}
               />
               <EditableField
-                label="Số hiệu công an" // Map vào cccd trong DB
+                label="Số hiệu công an"
                 name="badgeNumber"
                 value={formData.badgeNumber}
                 isEditing={isEditing}
                 onChange={handleChange}
               />
-              <EditableField
-                label="Ngày sinh (DD/MM/YYYY)"
-                name="dob"
-                value={formData.dob}
-                isEditing={isEditing}
-                onChange={handleChange}
-                // Nếu muốn input type date thì cần xử lý format khác
-              />
+              
+              {/* --- SỬA TẠI ĐÂY: Xử lý riêng trường Ngày sinh --- */}
+              <div className="w-full">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Ngày sinh
+                </label>
+                {isEditing ? (
+                  // Mode SỬA: Input type DATE (yêu cầu value chuẩn YYYY-MM-DD)
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                ) : (
+                  // Mode XEM: Format sang DD/MM/YYYY cho đẹp
+                  <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
+                    {formData.dob ? dayjs(formData.dob).format("DD/MM/YYYY") : "Chưa cập nhật"}
+                  </div>
+                )}
+              </div>
+              {/* --- KẾT THÚC SỬA --- */}
+
             </div>
           </div>
 
@@ -348,7 +346,6 @@ export const SecurityProfilePage = () => {
         </form>
       </div>
 
-      {/* Status Modal */}
       <StatusModal
         isOpen={isStatusModalOpen}
         onClose={handleCloseStatusModal}
