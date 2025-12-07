@@ -16,12 +16,12 @@ import LogoutModal from "../layouts/LogoutModal";
 
 // --- Nav Items ---
 const navItems = [
-  { name: "Trang chủ", to: "/resident_dashboard", icon: iconTrangChu },
-  { name: "Dân cư", to: "/resident_dashboard/residents", icon: iconDanCu },
-  { name: "Dịch vụ", to: "/resident_dashboard/services", icon: iconDichVu },
+  { name: "Trang chủ", to: "/resident", icon: iconTrangChu },
+  { name: "Dân cư", to: "/resident/residents", icon: iconDanCu },
+  { name: "Dịch vụ", to: "/resident/services", icon: iconDichVu },
   {
     name: "Thanh toán",
-    to: "/resident_dashboard/payment",
+    to: "/resident/payment",
     icon: iconThanhToan,
   },
   {
