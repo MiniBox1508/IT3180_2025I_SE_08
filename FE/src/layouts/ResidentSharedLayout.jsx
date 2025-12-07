@@ -103,7 +103,7 @@ export const ResidentSharedLayout = () => {
               key={item.name}
               to={item.to}
               // Chỉ NavLink 'Trang chủ' mới cần prop end để active đúng index
-              end={item.to === "/resident_dashboard"}
+              end={item.to === "/resident"}
               className={getNavLinkClass}
             >
               <img src={item.icon} alt="" className="w-6 h-6" />
