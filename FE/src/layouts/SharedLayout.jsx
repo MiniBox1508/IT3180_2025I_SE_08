@@ -51,7 +51,7 @@ export const SharedLayout = () => {
     // Xóa session/token (nếu có)
     // ...
     setShowLogoutModal(false);
-    navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
+    navigate("/welcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
   // === SỬA TẠI ĐÂY: Thanh active bên TRÁI ===

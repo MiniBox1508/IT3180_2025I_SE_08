@@ -1,15 +1,18 @@
+// import
 import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import LogoutModal from "../layouts/LogoutModal";
-// --- Imports ---
+// import icon page
 import logo from "../images/company-s-logo.png";
+import support from "../images/support.png";
+// import sidebar icons
 import iconTrangChu from "../images/inactive.svg";
 import iconDanCu from "../images/dash_resident_icon.svg";
 import iconDichVu from "../images/dash_user_icon.svg";
 import iconThanhToan from "../images/dash_payment_icon.svg";
 import iconThongBao from "../images/dash_message_icon.svg";
-import support from "../images/support.png";
+// import logout component
 import iconLogout from "../images/logout.svg";
+import LogoutModal from "../layouts/LogoutModal";
 
 // --- Nav Items ---
 const navItems = [
@@ -59,7 +62,7 @@ export const ResidentSharedLayout = () => {
     // Xóa session/token (nếu có)
     // ...
     setShowLogoutModal(false);
-    navigate("/newwelcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
+    navigate("/welcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
   // === SỬA TẠI ĐÂY: Thanh active bên TRÁI ===

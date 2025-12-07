@@ -4,7 +4,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
 // --- Imports Images (Giả định tái sử dụng các icon có sẵn hoặc bạn cần thay thế đúng icon) ---
 import logo from "../images/company-s-logo.png";
-import iconTrangChu from "../images/inactive.svg"; 
+import iconTrangChu from "../images/inactive.svg";
 import iconSuCo from "../images/dash_user_icon.svg"; // Placeholder: Thay bằng icon sự cố
 import iconQuanLy from "../images/dash_payment_icon.svg"; // Placeholder: Thay bằng icon quản lý
 import iconThongBao from "../images/dash_message_icon.svg";
@@ -35,7 +35,7 @@ export const SecuritySharedLayout = () => {
   const handleLogoutConfirm = () => {
     // Xóa session/token
     setShowLogoutModal(false);
-    navigate("/newwelcome"); 
+    navigate("/welcome");
   };
 
   // Style cho NavLink
@@ -58,7 +58,7 @@ export const SecuritySharedLayout = () => {
         <div className="h-20 flex items-center justify-center px-6">
           <img src={logo} alt="Logo" className="h-10 w-auto" />
         </div>
-        
+
         {/* Nav Links */}
         <nav className="flex-1 p-4 space-y-2">
           {navItems.map((item) => (
@@ -90,7 +90,7 @@ export const SecuritySharedLayout = () => {
             <img src={iconLogout} alt="" className="w-6 h-6" />
             <span>Đăng xuất</span>
           </button>
-          
+
           {/* Logout Modal */}
           <LogoutModal
             isOpen={showLogoutModal}

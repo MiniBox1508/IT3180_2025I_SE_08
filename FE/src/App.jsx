@@ -54,13 +54,13 @@ export default function App() {
     <Router>
       <Routes>
         {/* Route mặc định, chuyển hướng đến /welcome */}
-        <Route path="/" element={<Navigate to="/newwelcome" />} />
+        <Route path="/" element={<Navigate to="/welcome" />} />
 
         {/*---------------------------------------------*/}
 
         {/* ĐĂNG NHẬP/QUÊN MẬT KHẨU */}
         <Route
-          path="/newwelcome"
+          path="/welcome"
           element={
             <div className="min-h-screen relative">
               <NewWelcomeScreen />
