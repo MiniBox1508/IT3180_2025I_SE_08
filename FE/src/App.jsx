@@ -37,7 +37,7 @@ import { AccountantNotification } from "./pages/Accountant/AccountNotification.j
 // import Security pages
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
 import { SecurityNotification as SNotification } from "./pages/Security/SecurityNotification.jsx";
-import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProblem.jsx"; 
+import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProblem.jsx";
 
 // -----------------------------------------------
 

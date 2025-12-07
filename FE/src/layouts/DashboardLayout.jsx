@@ -7,14 +7,13 @@ import logout from "../images/logout.svg";
 import main from "../images/main.png";
 import support from "../images/support.png";
 import LogoutModal from "../layouts/LogoutModal";
-import service from "../images/dash_user_icon.svg";
-import main_icon from "../images/main_dashboard_icon.svg";
-import resident from "../images/dash_resident_icon.svg";
-import message from "../images/dash_message_icon.svg";
-import payment from "../images/dash_payment_icon.svg";
+// import service from "../images/dash_user_icon.svg";
+// import main_icon from "../images/main_dashboard_icon.svg";
+// import resident from "../images/dash_resident_icon.svg";
+// import message from "../images/dash_message_icon.svg";
+// import payment from "../images/dash_payment_icon.svg";
 
 // Adding the missing imports
-import shape from "../images/shape.svg";
 import inactive from "../images/inactive.png";
 
 export const DashboardLayout = () => {
@@ -50,13 +49,13 @@ export const DashboardLayout = () => {
   // Log state mỗi khi component render
   console.log("DashboardLayout render - showLogoutModal:", showLogoutModal);
 
-  const navigationItems = [
-    { id: 1, label: "Trang chủ", isActive: false, icon: main_icon },
-    { id: 2, label: "Dân cư", isActive: true, icon: resident },
-    { id: 3, label: "Dịch vụ", isActive: false, icon: service },
-    { id: 4, label: "Thanh toán", isActive: false, icon: payment },
-    { id: 5, label: "Thông báo", isActive: false, icon: message },
-  ];
+  // const navigationItems = [
+  //   { id: 1, label: "Trang chủ", isActive: false, icon: main_icon },
+  //   { id: 2, label: "Dân cư", isActive: true, icon: resident },
+  //   { id: 3, label: "Dịch vụ", isActive: false, icon: service },
+  //   { id: 4, label: "Thanh toán", isActive: false, icon: payment },
+  //   { id: 5, label: "Thông báo", isActive: false, icon: message },
+  // ];
 
   return (
     <>
