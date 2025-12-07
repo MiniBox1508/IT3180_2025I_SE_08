@@ -14,16 +14,16 @@ import iconCongNo from "../images/coins.png";
 
 // --- Nav Items ---
 const navItems = [
-  { name: "Trang chủ", to: "/accountant_dashboard", icon: iconTrangChu },
+  { name: "Trang chủ", to: "/accountant", icon: iconTrangChu },
   {
     name: "Hóa đơn",
-    to: "/accountant_dashboard/accountant_payment",
+    to: "/accountant/invoices",
     icon: iconThanhToan,
   },
-  { name: "Công nợ", to: "/accountant_dashboard/check_debt", icon: iconCongNo },
+  { name: "Công nợ", to: "/accountant/debt", icon: iconCongNo },
   {
     name: "Thông báo",
-    to: "/accountant_dashboard/notifications",
+    to: "/accountant/notifications",
     icon: iconThongBao,
   },
 ];
@@ -100,7 +100,7 @@ export const AccountantSharedLayout = () => {
               key={item.name}
               to={item.to}
               // Chỉ NavLink 'Trang chủ' mới cần prop end để active đúng index
-              end={item.to === "/accountant_dashboard"}
+              end={item.to === "/accountant"}
               className={getNavLinkClass}
             >
               <img src={item.icon} alt="" className="w-6 h-6" />

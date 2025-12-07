@@ -13,16 +13,16 @@ import iconLogout from "../images/logout.svg";
 
 // --- Nav Items cho trang Công An ---
 const navItems = [
-  { name: "Trang chủ", to: "/security_dashboard", icon: iconTrangChu },
+  { name: "Trang chủ", to: "/security", icon: iconTrangChu },
   {
     name: "Sự cố",
-    to: "/security_dashboard/incidents",
+    to: "/security/incidents",
     icon: iconSuCo,
   },
-  { name: "Quản lý", to: "/security_dashboard/management", icon: iconQuanLy },
+  { name: "Quản lý", to: "/security/management", icon: iconQuanLy },
   {
     name: "Thông báo",
-    to: "/security_dashboard/notifications",
+    to: "/security/notifications",
     icon: iconThongBao,
   },
 ];
@@ -65,7 +65,7 @@ export const SecuritySharedLayout = () => {
             <NavLink
               key={item.name}
               to={item.to}
-              end={item.to === "/security_dashboard"}
+              end={item.to === "/security"}
               className={getNavLinkClass}
             >
               <img src={item.icon} alt="" className="w-6 h-6" />

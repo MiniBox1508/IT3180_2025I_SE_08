@@ -26,7 +26,7 @@ const navItems = [
   },
   {
     name: "Thông báo",
-    to: "/resident_dashboard/notifications",
+    to: "/resident/notifications",
     icon: iconThongBao,
   },
 ];

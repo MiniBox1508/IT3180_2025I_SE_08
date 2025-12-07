@@ -90,7 +90,7 @@ export const SharedLayout = () => {
             <NavLink
               key={item.name}
               to={item.to}
-              end={item.to === "/dashboard"}
+              end={item.to === "/management"}
               className={getNavLinkClass}
             >
               <img src={item.icon} alt="" className="w-6 h-6" />
