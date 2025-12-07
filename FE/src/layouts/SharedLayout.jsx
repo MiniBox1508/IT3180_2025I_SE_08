@@ -13,11 +13,11 @@ import iconLogout from "../images/logout.svg";
 
 // --- Nav Items ---
 const navItems = [
-  { name: "Trang chủ", to: "/dashboard", icon: iconTrangChu },
-  { name: "Dân cư", to: "/dashboard/residents", icon: iconDanCu },
-  { name: "Dịch vụ", to: "/dashboard/services", icon: iconDichVu },
-  { name: "Thanh toán", to: "/dashboard/payment", icon: iconThanhToan },
-  { name: "Thông báo", to: "/dashboard/notifications", icon: iconThongBao },
+  { name: "Trang chủ", to: "/management", icon: iconTrangChu },
+  { name: "Dân cư", to: "/management/residents", icon: iconDanCu },
+  { name: "Dịch vụ", to: "/management/services", icon: iconDichVu },
+  { name: "Thanh toán", to: "/management/payments", icon: iconThanhToan },
+  { name: "Thông báo", to: "/management/notifications", icon: iconThongBao },
 ];
 
 // --- Search Icon (Giữ nguyên cho việc tái sử dụng nếu cần) ---
