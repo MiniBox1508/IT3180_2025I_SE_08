@@ -95,10 +95,10 @@ export const ResidentPaymentPage = () => {
     setError(null);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
-      const residentId = user?.id;
-      if (!residentId) throw new Error("Không tìm thấy thông tin người dùng.");
+      const resident_id = user?.id;
+      if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
       const response = await fetch(
-        `${API_BASE_URL}/payments/by-resident/${residentId}`
+        `${API_BASE_URL}/payments/by-resident/${resident_id}`
       );
       if (!response.ok) {
         const errorData = await response
