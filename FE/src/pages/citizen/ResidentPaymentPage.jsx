@@ -100,7 +100,7 @@ export const ResidentPaymentPage = () => {
       console.log("Resident ID:", resident_id);
       if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
       const response = await fetch(
-        `${API_BASE_URL}/payments/by-resident/${resident_id}`,
+        `${API_BASE_URL}/payments/${resident_id}`,
         console.log("2. Fetching URL:", `${API_BASE_URL}/payments/by-resident/${resident_id}`) // <--- DEBUG 2
       );
       if (!response.ok) {
