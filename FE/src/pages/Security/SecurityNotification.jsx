@@ -8,30 +8,72 @@ import { StatusModal } from "../../layouts/StatusModal";
 // thay vì dùng ConfirmationModal chung nếu nó không khớp style.
 
 // --- API CONFIG ---
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- ICONS ---
 const SearchIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 text-gray-400"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
   </svg>
 );
 
 const PlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 mr-1"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 4v16m8-8H4"
+    />
   </svg>
 );
 
 const CloseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-6 w-6 text-gray-500 hover:text-gray-700"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M6 18L18 6M6 6l12 12"
+    />
   </svg>
 );
 
 const WarningIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-24 h-24 text-red-500 mx-auto mb-4">
-    <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="w-24 h-24 text-red-500 mx-auto mb-4"
+  >
+    <path
+      fillRule="evenodd"
+      d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
@@ -55,8 +97,10 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl">
-        <button onClick={onClose} className="absolute top-6 right-6"><CloseIcon /></button>
-        
+        <button onClick={onClose} className="absolute top-6 right-6">
+          <CloseIcon />
+        </button>
+
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {initialData ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
         </h2>
@@ -64,7 +108,9 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         <div className="space-y-6">
           {/* Thông báo ID - Readonly */}
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Thông báo ID</label>
+            <label className="block text-sm font-medium text-gray-500 mb-2">
+              Thông báo ID
+            </label>
             <input
               type="text"
               placeholder={initialData ? initialData.id : "Tự động tạo"}
@@ -75,11 +121,15 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
           {/* Người nhận */}
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Người nhận</label>
+            <label className="block text-sm font-medium text-gray-500 mb-2">
+              Người nhận
+            </label>
             <input
               type="text"
               value={formData.apartment_id}
-              onChange={(e) => setFormData({ ...formData, apartment_id: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, apartment_id: e.target.value })
+              }
               placeholder="Nhập mã căn hộ hoặc 'all'"
               className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 shadow-sm"
             />
@@ -87,11 +137,15 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
           {/* Nội dung */}
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Nội dung</label>
+            <label className="block text-sm font-medium text-gray-500 mb-2">
+              Nội dung
+            </label>
             <input
               type="text"
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, content: e.target.value })
+              }
               placeholder="Nhập nội dung thông báo"
               className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 shadow-sm"
             />
@@ -118,7 +172,9 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl p-8 w-full max-w-md text-center shadow-2xl animate-fade-in-up">
         <WarningIcon />
-        <h3 className="text-2xl font-bold text-gray-800 mb-8">Xóa các mục đã chọn</h3>
+        <h3 className="text-2xl font-bold text-gray-800 mb-8">
+          Xóa các mục đã chọn
+        </h3>
         <div className="flex justify-between space-x-4">
           <button
             onClick={onClose}
@@ -144,25 +200,33 @@ export const SecurityNotification = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // State UI Modes
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  
+
   // State Modals
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  
+
   // Status Modal (Success/Fail)
-  const [statusModal, setStatusModal] = useState({ open: false, type: "success", message: "" });
+  const [statusModal, setStatusModal] = useState({
+    open: false,
+    type: "success",
+    message: "",
+  });
   const [acceptIconSrc, setAcceptIconSrc] = useState(null);
   const [notAcceptIconSrc, setNotAcceptIconSrc] = useState(null);
 
   // Import images for StatusModal dynamically or standard import
   useEffect(() => {
-    import("../../images/accept_icon.png").then(m => setAcceptIconSrc(m.default));
-    import("../../images/not_accept_icon.png").then(m => setNotAcceptIconSrc(m.default));
+    import("../../images/accept_icon.png").then((m) =>
+      setAcceptIconSrc(m.default)
+    );
+    import("../../images/not_accept_icon.png").then((m) =>
+      setNotAcceptIconSrc(m.default)
+    );
   }, []);
 
   // --- FETCH DATA ---
@@ -171,7 +235,11 @@ export const SecurityNotification = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/notifications`);
       // Sort mới nhất lên đầu
-      const sorted = response.data.sort((a, b) => new Date(b.created_at || b.notification_date) - new Date(a.created_at || a.notification_date));
+      const sorted = response.data.sort(
+        (a, b) =>
+          new Date(b.created_at || b.notification_date) -
+          new Date(a.created_at || a.notification_date)
+      );
       setNotifications(sorted);
     } catch (error) {
       console.error("Lỗi tải data:", error);
@@ -200,16 +268,31 @@ export const SecurityNotification = () => {
     try {
       if (editingItem) {
         // Edit logic
-        await axios.put(`${API_BASE_URL}/notifications/${editingItem.id}`, formData);
-        setStatusModal({ open: true, type: "success", message: "Cập nhật thành công!" });
+        await axios.put(
+          `${API_BASE_URL}/notifications/${editingItem.id}`,
+          formData
+        );
+        setStatusModal({
+          open: true,
+          type: "success",
+          message: "Cập nhật thành công!",
+        });
       } else {
         // Add logic
         await axios.post(`${API_BASE_URL}/notifications`, formData);
-        setStatusModal({ open: true, type: "success", message: "Thêm thông báo thành công!" });
+        setStatusModal({
+          open: true,
+          type: "success",
+          message: "Thêm thông báo thành công!",
+        });
       }
       fetchNotifications();
     } catch (error) {
-      setStatusModal({ open: true, type: "failure", message: "Thao tác thất bại!" });
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Thao tác thất bại!",
+      });
     }
   };
 
@@ -227,7 +310,7 @@ export const SecurityNotification = () => {
 
   const handleSelect = (id) => {
     if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(itemId => itemId !== id));
+      setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
     } else {
       setSelectedIds([...selectedIds, id]);
     }
@@ -242,21 +325,36 @@ export const SecurityNotification = () => {
     setShowConfirmDelete(false);
     try {
       // Gọi API xóa từng item (Do API mẫu thường không có bulk delete)
-      await Promise.all(selectedIds.map(id => axios.delete(`${API_BASE_URL}/notifications/${id}`)));
-      
-      setStatusModal({ open: true, type: "success", message: "Xóa đăng ký thành công!" }); // Giống ảnh "Xóa thành công"
+      await Promise.all(
+        selectedIds.map((id) =>
+          axios.delete(`${API_BASE_URL}/notifications/${id}`)
+        )
+      );
+
+      setStatusModal({
+        open: true,
+        type: "success",
+        message: "Xóa đăng ký thành công!",
+      }); // Giống ảnh "Xóa thành công"
       fetchNotifications();
       setIsDeleteMode(false);
       setSelectedIds([]);
     } catch (error) {
-      setStatusModal({ open: true, type: "failure", message: "Xóa đăng ký không thành công!" });
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Xóa đăng ký không thành công!",
+      });
     }
   };
 
   // --- FILTER ---
-  const filteredList = notifications.filter(item => {
+  const filteredList = notifications.filter((item) => {
     const term = searchTerm.toLowerCase();
-    return String(item.id).includes(term) || (item.content && item.content.toLowerCase().includes(term));
+    return (
+      String(item.id).includes(term) ||
+      (item.content && item.content.toLowerCase().includes(term))
+    );
   });
 
   return (
@@ -280,7 +378,7 @@ export const SecurityNotification = () => {
       {/* 2. TITLE & BUTTONS */}
       <div className="flex justify-between items-end mb-6">
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
-        
+
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             // Mode thường
@@ -304,7 +402,9 @@ export const SecurityNotification = () => {
               <button
                 onClick={handleDeleteConfirmClick}
                 className={`px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors ${
-                  selectedIds.length > 0 ? "bg-red-500 hover:bg-red-600 text-white" : "bg-red-300 text-white cursor-not-allowed"
+                  selectedIds.length > 0
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-red-300 text-white cursor-not-allowed"
                 }`}
               >
                 Xóa các mục đã chọn
@@ -324,97 +424,129 @@ export const SecurityNotification = () => {
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <p className="text-white">Đang tải...</p>
-        ) : filteredList.map((item) => (
-          <div key={item.id} className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]">
-            {/* Thanh xanh bên trái (Tách biệt hẳn như ảnh) */}
-            <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
+        ) : (
+          filteredList.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
+            >
+              {/* Thanh xanh bên trái (Tách biệt hẳn như ảnh) */}
+              <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
 
-            {/* Content Grid */}
-            <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-              
-              {/* Cột 1: ID */}
-              <div className="col-span-3 sm:col-span-2">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Thông báo ID</p>
-                <p className="text-2xl font-bold text-gray-900 leading-none">{item.id}</p>
-              </div>
+              {/* Content Grid */}
+              <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
+                {/* Cột 1: ID */}
+                <div className="col-span-3 sm:col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Thông báo ID
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none">
+                    {item.id}
+                  </p>
+                </div>
 
-              {/* Cột 2: Loại thông báo / Nội dung */}
-              <div className="col-span-5 sm:col-span-6">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Loại thông báo</p>
-                <p className="text-sm font-semibold text-gray-900 truncate pr-4" title={item.content}>
-                  {item.content || "Nội dung thông báo"}
-                </p>
-              </div>
-
-              {/* Cột 3: Ngày gửi */}
-              <div className="col-span-3 sm:col-span-2">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Ngày gửi</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {item.notification_date ? dayjs(item.notification_date).format("DD/MM/YYYY") : "---"}
-                </p>
-              </div>
-
-              {/* Cột 4: Action (Edit Text hoặc Checkbox) */}
-              <div className="col-span-1 sm:col-span-2 flex justify-end items-center">
-                {!isDeleteMode ? (
-                  <button 
-                    onClick={() => handleEditClick(item)}
-                    className="text-blue-500 font-bold text-sm hover:underline"
+                {/* Cột 2: Loại thông báo / Nội dung */}
+                <div className="col-span-5 sm:col-span-6">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Loại thông báo
+                  </p>
+                  <p
+                    className="text-sm font-semibold text-gray-900 truncate pr-4"
+                    title={item.content}
                   >
-                    Chỉnh sửa
-                  </button>
-                ) : (
-                  // Custom Checkbox giống ảnh "Chọn xóa.jpg"
-                  <div 
-                    onClick={() => handleSelect(item.id)}
-                    className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
-                      selectedIds.includes(item.id) 
-                        ? "bg-blue-500 shadow-blue-500/50" 
-                        : "bg-gray-300 hover:bg-gray-400"
-                    }`}
-                  >
-                    {selectedIds.includes(item.id) && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                  </div>
-                )}
+                    {item.content || "Nội dung thông báo"}
+                  </p>
+                </div>
+
+                {/* Cột 3: Ngày gửi */}
+                <div className="col-span-3 sm:col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Ngày gửi
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {item.notification_date
+                      ? dayjs(item.notification_date).format("DD/MM/YYYY")
+                      : "---"}
+                  </p>
+                </div>
+
+                {/* Cột 4: Action (Edit Text hoặc Checkbox) */}
+                <div className="col-span-1 sm:col-span-2 flex justify-end items-center">
+                  {!isDeleteMode ? (
+                    <button
+                      onClick={() => handleEditClick(item)}
+                      className="text-blue-500 font-bold text-sm hover:underline"
+                    >
+                      Chỉnh sửa
+                    </button>
+                  ) : (
+                    // Custom Checkbox giống ảnh "Chọn xóa.jpg"
+                    <div
+                      onClick={() => handleSelect(item.id)}
+                      className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                        selectedIds.includes(item.id)
+                          ? "bg-blue-500 shadow-blue-500/50"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                    >
+                      {selectedIds.includes(item.id) && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* --- MODAL SECTIONS --- */}
-      
+
       {/* 1. Modal Thêm/Sửa */}
-      <NotificationFormModal 
-        isOpen={showFormModal} 
+      <NotificationFormModal
+        isOpen={showFormModal}
         onClose={() => setShowFormModal(false)}
         onSubmit={handleSubmitForm}
         initialData={editingItem}
       />
 
       {/* 2. Modal Xác nhận Xóa (Custom giống ảnh) */}
-      <DeleteConfirmModal 
+      <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
       {/* 3. Modal Trạng thái (Success/Fail) */}
-      <StatusModal isOpen={statusModal.open} onClose={() => setStatusModal({ ...statusModal, open: false })}>
+      <StatusModal
+        isOpen={statusModal.open}
+        onClose={() => setStatusModal({ ...statusModal, open: false })}
+      >
         <div className="flex flex-col items-center justify-center p-4">
           {statusModal.type === "success" ? (
-             <img src={acceptIconSrc} alt="Success" className="w-20 h-20 mb-4" />
+            <img src={acceptIconSrc} alt="Success" className="w-20 h-20 mb-4" />
           ) : (
-             <img src={notAcceptIconSrc} alt="Fail" className="w-20 h-20 mb-4" />
+            <img src={notAcceptIconSrc} alt="Fail" className="w-20 h-20 mb-4" />
           )}
-          <h3 className="text-xl font-bold text-gray-800 text-center">{statusModal.message}</h3>
+          <h3 className="text-xl font-bold text-gray-800 text-center">
+            {statusModal.message}
+          </h3>
         </div>
       </StatusModal>
-
     </div>
   );
 };

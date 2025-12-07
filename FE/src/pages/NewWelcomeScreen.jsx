@@ -5,7 +5,7 @@ import bgImage from "../images/new_welcome_background.jpg";
 
 export const NewWelcomeScreen = () => {
   const navigate = useNavigate();
-  const API_BASE_URL = "https://off-be-deploy.vercel.app";
+  const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
   const [selectedRole, setSelectedRole] = useState("Cư dân");
   const [username, setUsername] = useState("");

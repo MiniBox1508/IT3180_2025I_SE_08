@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 // import { Link } from "react-router-dom";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";

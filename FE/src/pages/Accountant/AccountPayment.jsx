@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 
-const API_BASE_URL = 'https://off-be-deploy.vercel.app';
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
@@ -10,9 +10,16 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 // =========================================================================
 // === INVOICE FORM MODAL (ADD/EDIT) ===
 // =========================================================================
-const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setError }) => {
+const InvoiceFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  invoiceData,
+  error,
+  setError,
+}) => {
   const isEditing = !!invoiceData;
-  
+
   const [formData, setFormData] = useState({
     apartment_id: "",
     feetype: "",
@@ -23,10 +30,10 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
-        const paymentDate = invoiceData.payment_date 
-          ? new Date(invoiceData.payment_date).toISOString().split('T')[0] 
+        const paymentDate = invoiceData.payment_date
+          ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
-        
+
         setFormData({
           apartment_id: invoiceData.apartment_id || "",
           feetype: invoiceData.feetype || "",
@@ -46,7 +53,7 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -81,7 +88,7 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
         <h2 className="text-lg font-bold mb-4">
           {isEditing ? "Chỉnh sửa hóa đơn" : "Thêm hóa đơn mới"}
         </h2>
-        
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
             {error}
@@ -101,7 +108,10 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
           )}
 
           <div>
-            <label htmlFor="apartment_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="apartment_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Số căn hộ <span className="text-red-500">*</span>
             </label>
             <input
@@ -132,7 +142,10 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
           </div>
 
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Số tiền (VND) <span className="text-red-500">*</span>
             </label>
             <input
@@ -149,7 +162,10 @@ const InvoiceFormModal = ({ isOpen, onClose, onSave, invoiceData, error, setErro
           </div>
 
           <div>
-            <label htmlFor="payment_date" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="payment_date"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Ngày thanh toán
             </label>
             <input
@@ -258,7 +274,7 @@ export const AccountPayment = () => {
   const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -279,7 +295,7 @@ export const AccountPayment = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/payments`);
       if (!response.ok) {
-        throw new Error('Không thể tải dữ liệu hóa đơn.');
+        throw new Error("Không thể tải dữ liệu hóa đơn.");
       }
       const data = await response.json();
       setInvoices(data);
@@ -319,14 +335,14 @@ export const AccountPayment = () => {
       if (invoiceId) {
         // Update - sử dụng endpoint PATCH /payments/:id
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
 
         if (!response.ok) {
           const result = await response.json();
-          throw new Error(result.error || 'Lỗi khi cập nhật hóa đơn.');
+          throw new Error(result.error || "Lỗi khi cập nhật hóa đơn.");
         }
 
         setModalStatus("success");
@@ -335,24 +351,24 @@ export const AccountPayment = () => {
       } else {
         // Create - sử dụng endpoint POST /payments
         const response = await fetch(`${API_BASE_URL}/payments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             resident_id: 1, // Bạn cần lấy resident_id thực tế
-            ...data
+            ...data,
           }),
         });
 
         if (!response.ok) {
           const result = await response.json();
-          throw new Error(result.error || 'Lỗi khi tạo hóa đơn.');
+          throw new Error(result.error || "Lỗi khi tạo hóa đơn.");
         }
 
         setModalStatus("success");
         setStatusMessage("Đã thêm hóa đơn mới!");
         setIsAddModalOpen(false);
       }
-      
+
       fetchInvoices(); // Refresh list
       setIsStatusModalOpen(true);
     } catch (err) {
@@ -370,15 +386,18 @@ export const AccountPayment = () => {
 
   const handleConfirmDelete = async () => {
     setShowConfirmModal(false);
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/${itemToDeleteId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/${itemToDeleteId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const result = await response.json();
-        throw new Error(result.error || 'Lỗi khi xóa hóa đơn.');
+        throw new Error(result.error || "Lỗi khi xóa hóa đơn.");
       }
 
       fetchInvoices(); // Refresh list
@@ -420,7 +439,9 @@ export const AccountPayment = () => {
   }
 
   if (error) {
-    return <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>;
+    return (
+      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
+    );
   }
 
   return (

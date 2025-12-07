@@ -4,7 +4,7 @@ import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
 import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";

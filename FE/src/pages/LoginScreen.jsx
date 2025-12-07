@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import passwordIcon from "../images/password_icon.svg";
 import loginBtn from "../images/login_btn.svg";
 import username from "../images/username_field.svg";
-const API_BASE_URL = 'https://off-be-deploy.vercel.app';
+const API_BASE_URL = "https://off-be-deploy.vercel.app";
 
 export const Box = () => {
   const [usernameValue, setUsernameValue] = useState("");
@@ -11,7 +11,8 @@ export const Box = () => {
 
   // file: src/pages/LoginScreen.jsx
 
-  const handleLogin = async (e) => { // 1. Thêm 'async'
+  const handleLogin = async (e) => {
+    // 1. Thêm 'async'
     e.preventDefault();
     setErrorMessage(""); // Xóa lỗi cũ
 
@@ -22,10 +23,10 @@ export const Box = () => {
 
     try {
       // 2. Gọi API bằng proxy (bắt đầu bằng '/api')
-      const response = await fetch('${API_BASE_URL}/login', {
-        method: 'POST',
+      const response = await fetch("${API_BASE_URL}/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username: usernameValue, // Đây sẽ là email
@@ -45,7 +46,6 @@ export const Box = () => {
         // (Tại đây, bạn sẽ chuyển hướng người dùng hoặc lưu token)
         // ví dụ: window.location.href = '/dashboard';
       }
-
     } catch (error) {
       // Lỗi mạng (server BE chưa chạy?)
       console.error("Lỗi khi gọi API login:", error);

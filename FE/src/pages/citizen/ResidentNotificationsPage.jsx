@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-const API_BASE_URL = 'https://off-be-deploy.vercel.app';
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- Component hiển thị một mục thông báo (ĐÃ SỬA để dùng dữ liệu API) ---
-function ResidentNotificationItem({
-  item,
-  isDeleteMode,
-  onDeleteClick,
-}) {
-    // Định dạng ngày tháng
-    const formattedDate = item.notification_date
+function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
+  // Định dạng ngày tháng
+  const formattedDate = item.notification_date
     ? new Date(item.notification_date).toLocaleDateString("vi-VN")
     : "---";
 
@@ -40,8 +36,11 @@ function ResidentNotificationItem({
       <div className="ml-auto flex-shrink-0 pr-2">
         {/* Giả lập hành động 'Xem chi tiết' để hiển thị nội dung */}
         <p className="text-xs text-gray-500 mb-1">Nội dung</p>
-        <p title={item.content} className="text-blue-600 hover:underline text-sm font-medium truncate max-w-[150px]">
-            {item.content}
+        <p
+          title={item.content}
+          className="text-blue-600 hover:underline text-sm font-medium truncate max-w-[150px]"
+        >
+          {item.content}
         </p>
       </div>
     </div>
@@ -53,10 +52,10 @@ export const ResidentNotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State cho modal thông báo kết quả (Giữ lại cho thông báo xóa mock)
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); 
+  const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
   // State cho chế độ xóa & modal xác nhận (Giữ nguyên logic mock)
@@ -72,41 +71,43 @@ export const ResidentNotificationsPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-        // Gọi API GET /notifications
-        const response = await fetch(`${API_BASE_URL}/notifications`); 
-        if (!response.ok) {
-            throw new Error('Không thể tải dữ liệu thông báo.');
-        }
-        const data = await response.json();
-        
-        // Lấy apartment_id từ user đang đăng nhập
-        const user = JSON.parse(localStorage.getItem("user"));
-        const residentApartmentId = user?.apartment_id;
-        const filteredByResident = data.filter(item => 
-          String(item.apartment_id).trim().toLowerCase() === 'all' || 
-          String(item.apartment_id).trim().toLowerCase() === String(residentApartmentId).trim().toLowerCase()
-        );
-        setNotifications(filteredByResident);
+      // Gọi API GET /notifications
+      const response = await fetch(`${API_BASE_URL}/notifications`);
+      if (!response.ok) {
+        throw new Error("Không thể tải dữ liệu thông báo.");
+      }
+      const data = await response.json();
+
+      // Lấy apartment_id từ user đang đăng nhập
+      const user = JSON.parse(localStorage.getItem("user"));
+      const residentApartmentId = user?.apartment_id;
+      const filteredByResident = data.filter(
+        (item) =>
+          String(item.apartment_id).trim().toLowerCase() === "all" ||
+          String(item.apartment_id).trim().toLowerCase() ===
+            String(residentApartmentId).trim().toLowerCase()
+      );
+      setNotifications(filteredByResident);
     } catch (err) {
-        console.error('Fetch Error:', err);
-        setError(err.message);
+      console.error("Fetch Error:", err);
+      setError(err.message);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchNotifications();
   }, []);
-  
+
   // --- HÀM LỌC DỮ LIỆU (THEO SEARCH TERM ID) ---
-  const filteredNotifications = notifications.filter(item => {
-      if (!searchTerm.trim()) {
-          return true;
-      }
-      const searchLower = searchTerm.trim().toLowerCase();
-      // Chỉ lọc theo ID (id)
-      return String(item.id).toLowerCase().includes(searchLower);
+  const filteredNotifications = notifications.filter((item) => {
+    if (!searchTerm.trim()) {
+      return true;
+    }
+    const searchLower = searchTerm.trim().toLowerCase();
+    // Chỉ lọc theo ID (id)
+    return String(item.id).toLowerCase().includes(searchLower);
   });
   // -------------------------
 
@@ -124,7 +125,7 @@ export const ResidentNotificationsPage = () => {
     setShowConfirmModal(false);
     // Đây là logic mock xóa thành công trên client-side
     setNotifications(
-        notifications.filter((item) => item.id !== itemToDeleteId)
+      notifications.filter((item) => item.id !== itemToDeleteId)
     );
     setModalStatus("deleteSuccess");
     setStatusMessage("Đã xóa thông báo thành công! (Mocked)");
@@ -152,35 +153,47 @@ export const ResidentNotificationsPage = () => {
       </div>
     );
   };
-  
-    // --- RENDER LOADING VÀ ERROR ---
-    if (isLoading) {
-        return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
-    }
-    
-    if (error) {
-        return <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>;
-    }
 
+  // --- RENDER LOADING VÀ ERROR ---
+  if (isLoading) {
+    return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
+    );
+  }
 
   return (
     <div>
       {/* <<< Thanh Tìm kiếm Full Width >>> */}
       <div className="flex justify-start items-center mb-6">
-          <div className="relative w-full max-w-full">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-              </span>
-              <input
-                  type="search"
-                  placeholder="Tìm theo ID thông báo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" 
+        <div className="relative w-full max-w-full">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
-          </div>
+            </svg>
+          </span>
+          <input
+            type="search"
+            placeholder="Tìm theo ID thông báo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
       {/* ------------------------------------- */}
 
@@ -204,17 +217,17 @@ export const ResidentNotificationsPage = () => {
       {/* Danh sách thông báo */}
       <div className="space-y-4">
         {filteredNotifications.length === 0 ? (
-           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-              Không có thông báo nào phù hợp với tìm kiếm.
-           </div>
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">
+            Không có thông báo nào phù hợp với tìm kiếm.
+          </div>
         ) : (
-             filteredNotifications.map((item) => (
-              <ResidentNotificationItem
-                key={item.id}
-                item={item}
-                isDeleteMode={isDeleteMode}
-                onDeleteClick={handleDeleteItemClick}
-              />
+          filteredNotifications.map((item) => (
+            <ResidentNotificationItem
+              key={item.id}
+              item={item}
+              isDeleteMode={isDeleteMode}
+              onDeleteClick={handleDeleteItemClick}
+            />
           ))
         )}
       </div>

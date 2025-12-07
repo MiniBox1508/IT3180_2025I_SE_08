@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 // --- Component hiển thị modal trạng thái ---
-const API_BASE_URL = 'https://off-be-deploy.vercel.app';
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- Import ảnh ---
 import qrImage from "../images/qr.png";

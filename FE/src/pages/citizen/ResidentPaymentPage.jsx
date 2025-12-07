@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // Dân cư chỉ cần StatusModal để xem kết quả thanh toán từ trang QR (nếu cần)
 // và ConfirmationModal không dùng ở đây.
@@ -97,7 +97,9 @@ export const ResidentPaymentPage = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       const residentId = user?.id;
       if (!residentId) throw new Error("Không tìm thấy thông tin người dùng.");
-      const response = await fetch(`${API_BASE_URL}/payments/by-resident/${residentId}`);
+      const response = await fetch(
+        `${API_BASE_URL}/payments/by-resident/${residentId}`
+      );
       if (!response.ok) {
         const errorData = await response
           .json()

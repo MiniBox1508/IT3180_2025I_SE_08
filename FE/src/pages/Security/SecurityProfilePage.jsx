@@ -7,7 +7,7 @@ import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- CẤU HÌNH API ---
-const API_BASE_URL = "https://off-be-deploy.vercel.app";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- Icons (Giữ nguyên) ---
 const UserIcon = () => (
@@ -40,7 +40,14 @@ const EditIcon = () => (
 );
 
 // --- Component EditableField (Giữ nguyên) ---
-const EditableField = ({ label, value, isEditing, onChange, name, type = "text" }) => (
+const EditableField = ({
+  label,
+  value,
+  isEditing,
+  onChange,
+  name,
+  type = "text",
+}) => (
   <div className="w-full">
     <label
       htmlFor={name}
@@ -69,19 +76,19 @@ export const SecurityProfilePage = () => {
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // State lưu dữ liệu form
   const [formData, setFormData] = useState({
     name: "",
     securityId: "",
     role: "",
     unit: "",
-    badgeNumber: "", 
+    badgeNumber: "",
     dob: "",
     email: "",
     phone: "",
   });
-  
+
   // State lưu dữ liệu gốc để khôi phục khi hủy
   const [originalData, setOriginalData] = useState({});
 
@@ -97,7 +104,7 @@ export const SecurityProfilePage = () => {
   };
 
   const user = getUserFromStorage();
-  const userId = user ? user.id : null; 
+  const userId = user ? user.id : null;
 
   // --- 1. FETCH DATA TỪ API ---
   useEffect(() => {
@@ -115,12 +122,14 @@ export const SecurityProfilePage = () => {
         // Map dữ liệu từ DB
         const mappedData = {
           name: data.full_name || "",
-          securityId: String(data.id).padStart(4, '0'),
+          securityId: String(data.id).padStart(4, "0"),
           role: data.role || "Công an",
-          unit: data.apartment_id || "", 
+          unit: data.apartment_id || "",
           badgeNumber: data.cccd || "",
           // --- SỬA TẠI ĐÂY: Format về YYYY-MM-DD để input date hiểu ---
-          dob: data.birth_date ? dayjs(data.birth_date).format("YYYY-MM-DD") : "",  
+          dob: data.birth_date
+            ? dayjs(data.birth_date).format("YYYY-MM-DD")
+            : "",
           email: data.email || "",
           phone: data.phone || "",
         };
@@ -161,34 +170,33 @@ export const SecurityProfilePage = () => {
   // --- 2. UPDATE DATA LÊN API ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // --- SỬA TẠI ĐÂY: Không cần split nữa vì input type="date" trả về YYYY-MM-DD chuẩn ---
-    const formattedDob = formData.dob; 
+    const formattedDob = formData.dob;
 
     const payload = {
       full_name: formData.name,
       role: formData.role,
-      apartment_id: formData.unit, 
-      cccd: formData.badgeNumber, 
-      birth_date: formattedDob, 
+      apartment_id: formData.unit,
+      cccd: formData.badgeNumber,
+      birth_date: formattedDob,
       email: formData.email,
       phone: formData.phone,
     };
 
     try {
       await axios.put(`${API_BASE_URL}/residents/${userId}`, payload);
-      
+
       setModalStatus("success");
       setStatusMessage("Cập nhật thông tin thành công!");
       setIsEditing(false);
-      
-      setOriginalData(formData); 
-      
+
+      setOriginalData(formData);
+
       if (user) {
         const updatedUser = { ...user, ...payload };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
-
     } catch (error) {
       console.error("Lỗi khi cập nhật:", error);
       setModalStatus("failure");
@@ -217,7 +225,9 @@ export const SecurityProfilePage = () => {
   };
 
   if (isLoading) {
-    return <div className="text-white text-center mt-10">Đang tải dữ liệu...</div>;
+    return (
+      <div className="text-white text-center mt-10">Đang tải dữ liệu...</div>
+    );
   }
 
   return (
@@ -226,7 +236,7 @@ export const SecurityProfilePage = () => {
 
       <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 relative">
         {!isEditing && (
-          <button 
+          <button
             onClick={handleEditClick}
             className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
             title="Chỉnh sửa"
@@ -275,11 +285,11 @@ export const SecurityProfilePage = () => {
                 isEditing={isEditing}
                 onChange={handleChange}
               />
-              
+
               {/* --- SỬA TẠI ĐÂY: Xử lý riêng trường Ngày sinh --- */}
               <div className="w-full">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Ngày sinh
+                  Ngày sinh
                 </label>
                 {isEditing ? (
                   // Mode SỬA: Input type DATE (yêu cầu value chuẩn YYYY-MM-DD)
@@ -293,12 +303,13 @@ export const SecurityProfilePage = () => {
                 ) : (
                   // Mode XEM: Format sang DD/MM/YYYY cho đẹp
                   <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
-                    {formData.dob ? dayjs(formData.dob).format("DD/MM/YYYY") : "Chưa cập nhật"}
+                    {formData.dob
+                      ? dayjs(formData.dob).format("DD/MM/YYYY")
+                      : "Chưa cập nhật"}
                   </div>
                 )}
               </div>
               {/* --- KẾT THÚC SỬA --- */}
-
             </div>
           </div>
 
@@ -346,10 +357,7 @@ export const SecurityProfilePage = () => {
         </form>
       </div>
 
-      <StatusModal
-        isOpen={isStatusModalOpen}
-        onClose={handleCloseStatusModal}
-      >
+      <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
     </div>
