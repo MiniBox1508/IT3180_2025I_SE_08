@@ -71,11 +71,11 @@ export default function App() {
         {/* ------------------------------------------ */}
 
         {/* BAN QUẢN TRỊ */}
-        <Route path="/dashboard" element={<SharedLayout />}>
+        <Route path="/management" element={<SharedLayout />}>
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
-          <Route path="payment">
+          <Route path="payments">
             <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
           </Route>
@@ -85,7 +85,7 @@ export default function App() {
         {/* ------------------------------------------ */}
 
         {/* CƯ DÂN */}
-        <Route path="/resident_dashboard" element={<RsLayout />}>
+        <Route path="/resident" element={<RsLayout />}>
           <Route index element={<ResidentProfilePage />} />
           <Route path="residents" element={<ResidentViewPage />} />
           <Route path="services" element={<ServicesPage />} />
@@ -99,12 +99,12 @@ export default function App() {
         {/* ------------------------------------------ */}
 
         {/* KẾ TOÁN */}
-        <Route path="/accountant_dashboard" element={<AsLayout />}>
+        <Route path="/accountant" element={<AsLayout />}>
           <Route index element={<AccountantProfilePage />} />
-          <Route path="accountant_payment">
+          <Route path="invoices">
             <Route index element={<AccountPayment />} />
           </Route>
-          <Route path="check_debt" element={<AccountCheckDebt />} />
+          <Route path="debt" element={<AccountCheckDebt />} />
           <Route path="print_invoice" element={<PrintPayments />} />
           <Route path="notifications" element={<AccountantNotification />} />
         </Route>
@@ -112,7 +112,7 @@ export default function App() {
         {/* ------------------------------------------ */}
 
         {/* BẢO VỆ */}
-        <Route path="/security_dashboard" element={<SLayout />}>
+        <Route path="/security" element={<SLayout />}>
           <Route index element={<SProPage />} />
           <Route path="incidents" element={<SCheck />} />
           <Route path="notifications" element={<SNotification />} />
