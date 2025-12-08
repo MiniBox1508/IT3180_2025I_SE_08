@@ -47,10 +47,10 @@ export const NewWelcomeScreen = () => {
       // Lưu user vào localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
       // Đăng nhập thành công, chuyển hướng theo role
-      if (selectedRole === "Cư dân") navigate("/resident_dashboard");
-      else if (selectedRole === "Ban quản trị") navigate("/dashboard");
-      else if (selectedRole === "Kế toán") navigate("/accountant_dashboard");
-      else if (selectedRole === "Công an") navigate("/security_dashboard");
+      if (selectedRole === "Cư dân") navigate("/resident");
+      else if (selectedRole === "Ban quản trị") navigate("/management");
+      else if (selectedRole === "Kế toán") navigate("/accountant");
+      else if (selectedRole === "Công an") navigate("/security");
     } catch (err) {
       setError(err.message);
     }
