@@ -27,6 +27,7 @@ import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
 import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNotificationsPage.jsx";
 import { ResidentViewPage } from "./pages/citizen/ResidentViewPage.jsx";
 import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
+import { ResidentService } from "./pages/citizen/ResidentService.jsx";
 
 // import Accountant pages
 import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
@@ -88,7 +89,7 @@ export default function App() {
         <Route path="/resident" element={<RsLayout />}>
           <Route index element={<ResidentProfilePage />} />
           <Route path="residents" element={<ResidentViewPage />} />
-          <Route path="services" element={<ServicesPage />} />
+          <Route path="services" element={<ResidentService />} />
           <Route path="payment">
             <Route index element={<ResidentPaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
