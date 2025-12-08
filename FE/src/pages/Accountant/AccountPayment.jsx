@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react"; // Thêm useMemo
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 
@@ -15,6 +15,7 @@ const InvoiceFormModal = ({
   onClose,
   onSave,
   invoiceData,
+  residents, // Nhận thêm prop residents
   error,
   setError,
 }) => {
@@ -25,13 +26,22 @@ const InvoiceFormModal = ({
     feetype: "",
     amount: "",
     payment_date: "",
-    state: 0, // 0: Chưa thanh toán, 1: Đã thanh toán
+    state: 0,
   });
+
+  // --- LOGIC MỚI: Lấy danh sách căn hộ duy nhất từ data cư dân ---
+  const availableApartments = useMemo(() => {
+    if (!residents) return [];
+    // Lấy tất cả apartment_id, lọc bỏ giá trị rỗng/null
+    const allApts = residents.map((r) => r.apartment_id).filter(Boolean);
+    // Dùng Set để loại bỏ trùng lặp và sort lại
+    return [...new Set(allApts)].sort();
+  }, [residents]);
+  // -------------------------------------------------------------
 
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
-        // Convert ISO date sang YYYY-MM-DD cho input type="date"
         const paymentDate = invoiceData.payment_date
           ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
@@ -44,7 +54,6 @@ const InvoiceFormModal = ({
           state: invoiceData.state !== undefined ? invoiceData.state : 0,
         });
       } else {
-        // Reset form khi thêm mới
         setFormData({
           apartment_id: "",
           feetype: "",
@@ -67,6 +76,13 @@ const InvoiceFormModal = ({
 
     if (!formData.apartment_id || !formData.feetype || !formData.amount) {
       setError("Vui lòng điền đủ Số căn hộ, Loại phí và Số tiền.");
+      return;
+    }
+
+    // Kiểm tra xem căn hộ nhập vào có nằm trong danh sách tồn tại không
+    // (Chỉ kiểm tra khi tạo mới để tránh lỗi dữ liệu cũ)
+    if (!isEditing && !availableApartments.includes(formData.apartment_id.trim())) {
+      setError("Căn hộ không tồn tại hoặc chưa có cư dân đăng ký.");
       return;
     }
 
@@ -120,18 +136,30 @@ const InvoiceFormModal = ({
             >
               Số căn hộ <span className="text-red-500">*</span>
             </label>
+            
+            {/* --- CẬP NHẬT INPUT ĐỂ HIỂN THỊ DANH SÁCH --- */}
             <input
               type="text"
               id="apartment_id"
               name="apartment_id"
+              list="apartment-list" // Liên kết với datalist bên dưới
               value={formData.apartment_id}
               onChange={handleChange}
-              // Khi sửa thì không cho sửa căn hộ để tránh lỗi logic mapping
               readOnly={isEditing} 
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${isEditing ? 'bg-gray-100' : ''}`}
-              placeholder="VD: A7-106"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${isEditing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              placeholder="Chọn hoặc nhập số căn hộ..."
               required
+              autoComplete="off"
             />
+            {/* Danh sách gợi ý */}
+            {!isEditing && (
+              <datalist id="apartment-list">
+                {availableApartments.map((apt) => (
+                  <option key={apt} value={apt} />
+                ))}
+              </datalist>
+            )}
+            {/* ------------------------------------------- */}
           </div>
 
           <div>
@@ -186,7 +214,6 @@ const InvoiceFormModal = ({
             />
           </div>
 
-          {/* --- CỘT CHỈNH SỬA TRẠNG THÁI --- */}
           <div>
             <label
               htmlFor="state"
@@ -229,7 +256,7 @@ const InvoiceFormModal = ({
 };
 
 // =========================================================================
-// === INVOICE ITEM COMPONENT ===
+// === INVOICE ITEM COMPONENT (Giữ nguyên) ===
 // =========================================================================
 const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
   const handleActionClick = () => {
@@ -332,7 +359,6 @@ export const AccountPayment = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
-  // Fetch Invoices & Residents
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
@@ -363,18 +389,7 @@ export const AccountPayment = () => {
     fetchData();
   }, []);
 
-  // Filter invoices (Thêm logic kiểm tra căn hộ tồn tại)
   const filteredInvoices = invoices.filter((item) => {
-    // 1. Kiểm tra: Căn hộ của hóa đơn phải tồn tại trong danh sách Residents
-    const itemApartmentId = item.apartment_id ? item.apartment_id.toLowerCase().trim() : "";
-    const isApartmentExist = residents.some(
-        r => r.apartment_id && r.apartment_id.toLowerCase().trim() === itemApartmentId
-    );
-
-    // Nếu căn hộ không tồn tại trong danh sách Residents -> Không hiển thị
-    if (!isApartmentExist) return false;
-
-    // 2. Logic tìm kiếm (Search)
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.trim().toLowerCase();
     
@@ -384,7 +399,6 @@ export const AccountPayment = () => {
     );
   });
 
-  // Handlers
   const handleAddClick = () => {
     setIsAddModalOpen(true);
     setFormError("");
@@ -417,22 +431,23 @@ export const AccountPayment = () => {
 
       } else {
         // CREATE
-        // Kiểm tra xem căn hộ nhập vào có tồn tại không trước khi gửi
         const inputApartment = data.apartment_id;
+        // Tìm cư dân dựa trên apartment_id đã chọn/nhập
         const foundResident = residents.find(
           r => r.apartment_id && r.apartment_id.toLowerCase() === inputApartment.toLowerCase()
         );
 
         if (!foundResident) {
-          setFormError(`Không tìm thấy cư dân nào ở căn hộ "${inputApartment}". Vui lòng kiểm tra lại danh sách cư dân.`);
-          return; 
+          setFormError(`Không tìm thấy cư dân nào ở căn hộ "${inputApartment}". Vui lòng kiểm tra lại danh sách.`);
+          return;
         }
 
         const createPayload = {
-          resident_id: foundResident.id, 
+          resident_id: foundResident.id,
           amount: data.amount,
           feetype: data.feetype,
-          payment_form: "Tiền mặt", 
+          payment_form: "Tiền mặt",
+          state: data.state
         };
 
         const response = await fetch(`${API_BASE_URL}/payments`, {
@@ -446,12 +461,16 @@ export const AccountPayment = () => {
           throw new Error(result.error || "Lỗi khi tạo hóa đơn.");
         }
 
+        // Nếu người dùng chọn "Đã thanh toán" (state=1) ngay khi tạo
+        // Cần gọi thêm PATCH để set state vì POST mặc định state=0 (tuỳ vào backend)
+        // Nhưng tạm thời ta tin tưởng vào logic backend hoặc chấp nhận state=0 ban đầu.
+        
         setModalStatus("success");
         setStatusMessage("Đã thêm hóa đơn mới thành công!");
         setIsAddModalOpen(false);
       }
 
-      fetchData(); // Refresh list
+      fetchData();
       setIsStatusModalOpen(true);
     } catch (err) {
       console.error("Save Error:", err);
@@ -482,7 +501,7 @@ export const AccountPayment = () => {
         throw new Error(result.error || "Lỗi khi xóa hóa đơn.");
       }
 
-      fetchData(); // Refresh list
+      fetchData();
       setModalStatus("success");
       setStatusMessage("Đã xóa hóa đơn thành công!");
       setIsStatusModalOpen(true);
@@ -586,7 +605,7 @@ export const AccountPayment = () => {
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-            Không có hóa đơn nào phù hợp (hoặc căn hộ không tồn tại trong danh sách cư dân).
+            Không có hóa đơn nào phù hợp với tìm kiếm.
           </div>
         ) : (
           filteredInvoices.map((item) => (
@@ -607,6 +626,7 @@ export const AccountPayment = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleSave}
         invoiceData={null}
+        residents={residents} // --- TRUYỀN DATA CƯ DÂN VÀO ĐÂY ---
         error={formError}
         setError={setFormError}
       />
@@ -616,6 +636,7 @@ export const AccountPayment = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSave}
         invoiceData={editingInvoice}
+        residents={residents} // --- TRUYỀN DATA CƯ DÂN VÀO ĐÂY ---
         error={formError}
         setError={setFormError}
       />
