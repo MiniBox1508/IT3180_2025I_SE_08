@@ -99,7 +99,7 @@ export const AccountCheckDebt = () => {
     const selectedInvoices = debts.filter(d => selectedIds.includes(d.id));
     
     // Truyền mảng dữ liệu sang trang in
-    navigate('/accountant_dashboard/print_invoice', { state: { data: selectedInvoices } });
+    navigate('/accountant/print_invoice', { state: { data: selectedInvoices } });
   };
 
   // --- FILTER ---
