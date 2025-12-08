@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"; // Thêm useMemo
+import React, { useState, useEffect } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 
@@ -15,29 +15,29 @@ const InvoiceFormModal = ({
   onClose,
   onSave,
   invoiceData,
-  residents, // Nhận thêm prop residents
+  residents, // <--- 1. NHẬN PROP RESIDENTS
   error,
   setError,
 }) => {
   const isEditing = !!invoiceData;
+
+  // <--- 2. TẠO DANH SÁCH CĂN HỘ DUY NHẤT TỪ DỮ LIỆU CƯ DÂN --->
+  // Dùng Set để loại bỏ trùng lặp, filter Boolean để bỏ giá trị rỗng/null
+  const uniqueApartments = React.useMemo(() => {
+    if (!residents) return [];
+    const apartments = residents
+      .map((r) => r.apartment_id)
+      .filter((apt) => apt && apt.trim() !== "");
+    return [...new Set(apartments)].sort(); // Sắp xếp A-Z
+  }, [residents]);
 
   const [formData, setFormData] = useState({
     apartment_id: "",
     feetype: "",
     amount: "",
     payment_date: "",
-    state: 0,
+    state: 0, 
   });
-
-  // --- LOGIC MỚI: Lấy danh sách căn hộ duy nhất từ data cư dân ---
-  const availableApartments = useMemo(() => {
-    if (!residents) return [];
-    // Lấy tất cả apartment_id, lọc bỏ giá trị rỗng/null
-    const allApts = residents.map((r) => r.apartment_id).filter(Boolean);
-    // Dùng Set để loại bỏ trùng lặp và sort lại
-    return [...new Set(allApts)].sort();
-  }, [residents]);
-  // -------------------------------------------------------------
 
   useEffect(() => {
     if (isOpen) {
@@ -51,7 +51,7 @@ const InvoiceFormModal = ({
           feetype: invoiceData.feetype || "",
           amount: invoiceData.amount || "",
           payment_date: paymentDate,
-          state: invoiceData.state !== undefined ? invoiceData.state : 0,
+          state: invoiceData.state !== undefined ? invoiceData.state : 0, 
         });
       } else {
         setFormData({
@@ -79,24 +79,17 @@ const InvoiceFormModal = ({
       return;
     }
 
-    // Kiểm tra xem căn hộ nhập vào có nằm trong danh sách tồn tại không
-    // (Chỉ kiểm tra khi tạo mới để tránh lỗi dữ liệu cũ)
-    if (!isEditing && !availableApartments.includes(formData.apartment_id.trim())) {
-      setError("Căn hộ không tồn tại hoặc chưa có cư dân đăng ký.");
-      return;
-    }
-
     if (parseFloat(formData.amount) <= 0) {
       setError("Số tiền phải lớn hơn 0.");
       return;
     }
 
     const dataToSend = {
-      apartment_id: formData.apartment_id.trim(),
+      apartment_id: formData.apartment_id,
       feetype: formData.feetype,
       amount: parseFloat(formData.amount),
       payment_date: formData.payment_date || null,
-      state: parseInt(formData.state),
+      state: parseInt(formData.state), 
     };
 
     onSave(dataToSend, isEditing ? invoiceData.id : null);
@@ -129,6 +122,7 @@ const InvoiceFormModal = ({
             </div>
           )}
 
+          {/* --- 3. LOGIC HIỂN THỊ CHỌN CĂN HỘ --- */}
           <div>
             <label
               htmlFor="apartment_id"
@@ -137,29 +131,42 @@ const InvoiceFormModal = ({
               Số căn hộ <span className="text-red-500">*</span>
             </label>
             
-            {/* --- CẬP NHẬT INPUT ĐỂ HIỂN THỊ DANH SÁCH --- */}
-            <input
-              type="text"
-              id="apartment_id"
-              name="apartment_id"
-              list="apartment-list" // Liên kết với datalist bên dưới
-              value={formData.apartment_id}
-              onChange={handleChange}
-              readOnly={isEditing} 
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${isEditing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              placeholder="Chọn hoặc nhập số căn hộ..."
-              required
-              autoComplete="off"
-            />
-            {/* Danh sách gợi ý */}
-            {!isEditing && (
-              <datalist id="apartment-list">
-                {availableApartments.map((apt) => (
-                  <option key={apt} value={apt} />
-                ))}
-              </datalist>
+            {isEditing ? (
+              // Khi chỉnh sửa: Chỉ hiển thị (readonly) để tránh lỗi logic đổi chủ hộ
+              <input
+                type="text"
+                value={formData.apartment_id}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 focus:outline-none"
+              />
+            ) : (
+              // Khi thêm mới: Dùng SELECT box hiển thị danh sách căn hộ có thật
+              <div className="relative">
+                <select
+                  id="apartment_id"
+                  name="apartment_id"
+                  value={formData.apartment_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none"
+                  required
+                >
+                  <option value="" disabled>-- Chọn căn hộ --</option>
+                  {uniqueApartments.length > 0 ? (
+                    uniqueApartments.map((apt) => (
+                      <option key={apt} value={apt}>
+                        {apt}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Đang tải danh sách...</option>
+                  )}
+                </select>
+                {/* Mũi tên dropdown custom */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
             )}
-            {/* ------------------------------------------- */}
           </div>
 
           <div>
@@ -256,7 +263,7 @@ const InvoiceFormModal = ({
 };
 
 // =========================================================================
-// === INVOICE ITEM COMPONENT (Giữ nguyên) ===
+// === INVOICE ITEM COMPONENT (GIỮ NGUYÊN) ===
 // =========================================================================
 const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
   const handleActionClick = () => {
@@ -340,7 +347,7 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 // =========================================================================
 export const AccountPayment = () => {
   const [invoices, setInvoices] = useState([]);
-  const [residents, setResidents] = useState([]);
+  const [residents, setResidents] = useState([]); // State lưu danh sách cư dân
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -431,23 +438,24 @@ export const AccountPayment = () => {
 
       } else {
         // CREATE
+        // Logic tìm resident_id dựa trên apartment_id được chọn từ dropdown
         const inputApartment = data.apartment_id;
-        // Tìm cư dân dựa trên apartment_id đã chọn/nhập
         const foundResident = residents.find(
           r => r.apartment_id && r.apartment_id.toLowerCase() === inputApartment.toLowerCase()
         );
 
         if (!foundResident) {
-          setFormError(`Không tìm thấy cư dân nào ở căn hộ "${inputApartment}". Vui lòng kiểm tra lại danh sách.`);
+          setFormError(`Không tìm thấy dữ liệu cư dân cho căn hộ "${inputApartment}".`);
           return;
         }
 
         const createPayload = {
-          resident_id: foundResident.id,
+          resident_id: foundResident.id, 
           amount: data.amount,
           feetype: data.feetype,
-          payment_form: "Tiền mặt",
-          state: data.state
+          payment_form: "Tiền mặt", 
+          // Các trường state, payment_date có thể backend chưa nhận ở POST, 
+          // nhưng logic FE đã chuẩn bị sẵn
         };
 
         const response = await fetch(`${API_BASE_URL}/payments`, {
@@ -461,16 +469,12 @@ export const AccountPayment = () => {
           throw new Error(result.error || "Lỗi khi tạo hóa đơn.");
         }
 
-        // Nếu người dùng chọn "Đã thanh toán" (state=1) ngay khi tạo
-        // Cần gọi thêm PATCH để set state vì POST mặc định state=0 (tuỳ vào backend)
-        // Nhưng tạm thời ta tin tưởng vào logic backend hoặc chấp nhận state=0 ban đầu.
-        
         setModalStatus("success");
         setStatusMessage("Đã thêm hóa đơn mới thành công!");
         setIsAddModalOpen(false);
       }
 
-      fetchData();
+      fetchData(); 
       setIsStatusModalOpen(true);
     } catch (err) {
       console.error("Save Error:", err);
@@ -501,7 +505,7 @@ export const AccountPayment = () => {
         throw new Error(result.error || "Lỗi khi xóa hóa đơn.");
       }
 
-      fetchData();
+      fetchData(); 
       setModalStatus("success");
       setStatusMessage("Đã xóa hóa đơn thành công!");
       setIsStatusModalOpen(true);
@@ -536,7 +540,7 @@ export const AccountPayment = () => {
   };
 
   if (isLoading) {
-    return <div className="text-white text-lg p-4">Đang tải dữ liệu...</div>;
+    return <div className="text-white text-lg p-4">Đang tải hóa đơn...</div>;
   }
 
   if (error) {
@@ -547,23 +551,11 @@ export const AccountPayment = () => {
 
   return (
     <div>
-      {/* Search Bar */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </span>
           <input
@@ -576,7 +568,6 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
         <div className="flex space-x-4">
@@ -601,7 +592,6 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* Invoice List */}
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
@@ -620,13 +610,12 @@ export const AccountPayment = () => {
         )}
       </div>
 
-      {/* Modals */}
       <InvoiceFormModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleSave}
         invoiceData={null}
-        residents={residents} // --- TRUYỀN DATA CƯ DÂN VÀO ĐÂY ---
+        residents={residents} // <--- TRUYỀN DANH SÁCH CƯ DÂN VÀO MODAL
         error={formError}
         setError={setFormError}
       />
@@ -636,7 +625,7 @@ export const AccountPayment = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSave}
         invoiceData={editingInvoice}
-        residents={residents} // --- TRUYỀN DATA CƯ DÂN VÀO ĐÂY ---
+        residents={residents} // <--- TRUYỀN VÀO CẢ MODAL EDIT
         error={formError}
         setError={setFormError}
       />
