@@ -25,11 +25,13 @@ const InvoiceFormModal = ({
     feetype: "",
     amount: "",
     payment_date: "",
+    state: 0, // 0: Chưa thanh toán, 1: Đã thanh toán
   });
 
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
+        // Convert ISO date sang YYYY-MM-DD cho input type="date"
         const paymentDate = invoiceData.payment_date
           ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
@@ -39,13 +41,16 @@ const InvoiceFormModal = ({
           feetype: invoiceData.feetype || "",
           amount: invoiceData.amount || "",
           payment_date: paymentDate,
+          state: invoiceData.state !== undefined ? invoiceData.state : 0,
         });
       } else {
+        // Reset form khi thêm mới
         setFormData({
           apartment_id: "",
           feetype: "",
           amount: "",
           payment_date: "",
+          state: 0,
         });
       }
     }
@@ -71,10 +76,11 @@ const InvoiceFormModal = ({
     }
 
     const dataToSend = {
-      apartment_id: formData.apartment_id,
+      apartment_id: formData.apartment_id.trim(),
       feetype: formData.feetype,
       amount: parseFloat(formData.amount),
       payment_date: formData.payment_date || null,
+      state: parseInt(formData.state),
     };
 
     onSave(dataToSend, isEditing ? invoiceData.id : null);
@@ -120,8 +126,10 @@ const InvoiceFormModal = ({
               name="apartment_id"
               value={formData.apartment_id}
               onChange={handleChange}
+              // Khi sửa thì không cho sửa căn hộ để tránh lỗi logic mapping
+              readOnly={isEditing} 
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${isEditing ? 'bg-gray-100' : ''}`}
               placeholder="VD: A7-106"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               required
             />
           </div>
@@ -135,7 +143,7 @@ const InvoiceFormModal = ({
               name="feetype"
               value={formData.feetype}
               onChange={handleChange}
-              placeholder="Ví dụ: Phí quản lý tháng 12"
+              placeholder="Ví dụ: Phí quản lý tháng 10"
               className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
               required
             />
@@ -178,6 +186,26 @@ const InvoiceFormModal = ({
             />
           </div>
 
+          {/* --- CỘT CHỈNH SỬA TRẠNG THÁI --- */}
+          <div>
+            <label
+              htmlFor="state"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Trạng thái
+            </label>
+            <select
+              id="state"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            >
+              <option value={0}>Chưa thanh toán</option>
+              <option value={1}>Đã thanh toán</option>
+            </select>
+          </div>
+
           <div className="flex justify-end space-x-4 pt-4">
             <button
               type="button"
@@ -216,11 +244,19 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
     ? new Date(item.payment_date).toLocaleDateString("vi-VN")
     : "---";
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  const isPaid = item.state === 1;
+  const statusText = isPaid ? "Đã thanh toán" : "Chưa thanh toán";
+  const statusColorClass = isPaid ? "text-green-500" : "text-red-500";
+
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
+      <div className={`absolute left-4 top-3 bottom-3 w-1.5 rounded-full ${isPaid ? 'bg-green-500' : 'bg-orange-500'}`}></div>
 
-      <div className="flex-1 grid grid-cols-5 gap-4 items-center pl-8 pr-4 text-gray-800">
+      <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8 pr-4 text-gray-800">
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p>
           <p className="font-semibold">{item.id}</p>
@@ -228,12 +264,12 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 
         <div>
           <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
-          <p className="font-medium">{item.apartment_id}</p>
+          <p className="font-medium">{item.apartment_id || "---"}</p>
         </div>
 
         <div>
           <p className="text-xs text-gray-500 mb-1">Loại phí</p>
-          <p className="font-medium">{item.feetype}</p>
+          <p className="font-medium truncate" title={item.feetype}>{item.feetype}</p>
         </div>
 
         <div>
@@ -241,10 +277,17 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
           <p className="text-gray-600">{formattedDate}</p>
         </div>
 
-        <div className="text-right">
+        <div>
           <p className="text-xs text-gray-500 mb-1">Số tiền</p>
           <p className="font-semibold text-blue-600">
-            {item.amount.toLocaleString("vi-VN")} VND
+            {formatCurrency(item.amount)}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
+          <p className={`font-bold text-sm ${statusColorClass}`}>
+            {statusText}
           </p>
         </div>
       </div>
@@ -270,6 +313,7 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 // =========================================================================
 export const AccountPayment = () => {
   const [invoices, setInvoices] = useState([]);
+  const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -288,17 +332,25 @@ export const AccountPayment = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
-  // Fetch invoices from API
-  const fetchInvoices = async () => {
+  // Fetch Invoices & Residents
+  const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments`);
-      if (!response.ok) {
-        throw new Error("Không thể tải dữ liệu hóa đơn.");
+      const [paymentsRes, residentsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/payments`),
+        fetch(`${API_BASE_URL}/residents`)
+      ]);
+
+      if (!paymentsRes.ok || !residentsRes.ok) {
+        throw new Error("Lỗi khi tải dữ liệu từ server.");
       }
-      const data = await response.json();
-      setInvoices(data);
+
+      const paymentsData = await paymentsRes.json();
+      const residentsData = await residentsRes.json();
+
+      setInvoices(paymentsData);
+      setResidents(residentsData);
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);
@@ -308,14 +360,28 @@ export const AccountPayment = () => {
   };
 
   useEffect(() => {
-    fetchInvoices();
+    fetchData();
   }, []);
 
-  // Filter invoices
+  // Filter invoices (Thêm logic kiểm tra căn hộ tồn tại)
   const filteredInvoices = invoices.filter((item) => {
+    // 1. Kiểm tra: Căn hộ của hóa đơn phải tồn tại trong danh sách Residents
+    const itemApartmentId = item.apartment_id ? item.apartment_id.toLowerCase().trim() : "";
+    const isApartmentExist = residents.some(
+        r => r.apartment_id && r.apartment_id.toLowerCase().trim() === itemApartmentId
+    );
+
+    // Nếu căn hộ không tồn tại trong danh sách Residents -> Không hiển thị
+    if (!isApartmentExist) return false;
+
+    // 2. Logic tìm kiếm (Search)
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.trim().toLowerCase();
-    return String(item.id).toLowerCase().includes(searchLower);
+    
+    return (
+      String(item.id).toLowerCase().includes(searchLower) ||
+      (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower))
+    );
   });
 
   // Handlers
@@ -333,7 +399,7 @@ export const AccountPayment = () => {
   const handleSave = async (data, invoiceId) => {
     try {
       if (invoiceId) {
-        // Update - sử dụng endpoint PATCH /payments/:id
+        // UPDATE
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -348,15 +414,31 @@ export const AccountPayment = () => {
         setModalStatus("success");
         setStatusMessage("Chỉnh sửa hóa đơn thành công!");
         setIsEditModalOpen(false);
+
       } else {
-        // Create - sử dụng endpoint POST /payments
+        // CREATE
+        // Kiểm tra xem căn hộ nhập vào có tồn tại không trước khi gửi
+        const inputApartment = data.apartment_id;
+        const foundResident = residents.find(
+          r => r.apartment_id && r.apartment_id.toLowerCase() === inputApartment.toLowerCase()
+        );
+
+        if (!foundResident) {
+          setFormError(`Không tìm thấy cư dân nào ở căn hộ "${inputApartment}". Vui lòng kiểm tra lại danh sách cư dân.`);
+          return; 
+        }
+
+        const createPayload = {
+          resident_id: foundResident.id, 
+          amount: data.amount,
+          feetype: data.feetype,
+          payment_form: "Tiền mặt", 
+        };
+
         const response = await fetch(`${API_BASE_URL}/payments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            resident_id: 1, // Bạn cần lấy resident_id thực tế
-            ...data,
-          }),
+          body: JSON.stringify(createPayload),
         });
 
         if (!response.ok) {
@@ -365,11 +447,11 @@ export const AccountPayment = () => {
         }
 
         setModalStatus("success");
-        setStatusMessage("Đã thêm hóa đơn mới!");
+        setStatusMessage("Đã thêm hóa đơn mới thành công!");
         setIsAddModalOpen(false);
       }
 
-      fetchInvoices(); // Refresh list
+      fetchData(); // Refresh list
       setIsStatusModalOpen(true);
     } catch (err) {
       console.error("Save Error:", err);
@@ -400,7 +482,7 @@ export const AccountPayment = () => {
         throw new Error(result.error || "Lỗi khi xóa hóa đơn.");
       }
 
-      fetchInvoices(); // Refresh list
+      fetchData(); // Refresh list
       setModalStatus("success");
       setStatusMessage("Đã xóa hóa đơn thành công!");
       setIsStatusModalOpen(true);
@@ -435,7 +517,7 @@ export const AccountPayment = () => {
   };
 
   if (isLoading) {
-    return <div className="text-white text-lg p-4">Đang tải hóa đơn...</div>;
+    return <div className="text-white text-lg p-4">Đang tải dữ liệu...</div>;
   }
 
   if (error) {
@@ -467,7 +549,7 @@ export const AccountPayment = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hóa đơn..."
+            placeholder="Tìm theo ID hóa đơn hoặc Số căn hộ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -504,7 +586,7 @@ export const AccountPayment = () => {
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-            Không có hóa đơn nào phù hợp với tìm kiếm.
+            Không có hóa đơn nào phù hợp (hoặc căn hộ không tồn tại trong danh sách cư dân).
           </div>
         ) : (
           filteredInvoices.map((item) => (

@@ -96,9 +96,12 @@ export const ResidentPaymentPage = () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       const resident_id = user?.id;
+      console.log("User từ Storage:", user);
+      console.log("Resident ID:", resident_id);
       if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
       const response = await fetch(
-        `${API_BASE_URL}/payments/by-resident/${resident_id}`
+        `${API_BASE_URL}/payments/by-resident/${resident_id}`,
+        console.log("2. Fetching URL:", `${API_BASE_URL}/payments/by-resident/${resident_id}`) // <--- DEBUG 2
       );
       if (!response.ok) {
         const errorData = await response
@@ -108,6 +111,7 @@ export const ResidentPaymentPage = () => {
       }
       const data = await response.json();
       setPayments(data);
+      console.log("Dữ liệu API trả về:", data);
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom"; 
 
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -19,7 +19,7 @@ const formatCurrency = (amount) => {
 };
 
 export const AccountCheckDebt = () => {
-  const navigate = useNavigate(); // Hook chuyển trang
+  const navigate = useNavigate(); 
   
   // State Data
   const [debts, setDebts] = useState([]);
@@ -28,7 +28,7 @@ export const AccountCheckDebt = () => {
 
   // State cho chức năng chọn/xuất hóa đơn
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedId, setSelectedId] = useState(null); // Chỉ chọn 1 hóa đơn để in
+  const [selectedIds, setSelectedIds] = useState([]); // SỬA: Dùng mảng để lưu nhiều ID
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -59,12 +59,10 @@ export const AccountCheckDebt = () => {
             status_text: statusText,
             status_color: statusColor,
             payment_date_display: item.payment_date ? dayjs(item.payment_date).format("DD/MM/YYYY") : "---",
-            // Flag kiểm tra xem có được phép in không (chỉ in khi đã thanh toán)
             can_print: item.state === 1 
           };
         });
 
-        // Sắp xếp: Chưa thanh toán lên đầu
         processedData.sort((a, b) => a.state - b.state || new Date(b.created_at) - new Date(a.created_at));
         setDebts(processedData);
       } catch (error) {
@@ -80,28 +78,28 @@ export const AccountCheckDebt = () => {
   // --- HANDLERS ---
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
-    setSelectedId(null); // Reset lựa chọn khi chuyển chế độ
+    setSelectedIds([]); // Reset khi tắt/bật
   };
 
   const handleSelect = (item) => {
-    // Chỉ cho phép chọn nếu đã thanh toán (can_print = true)
     if (!item.can_print) return;
 
-    if (selectedId === item.id) {
-        setSelectedId(null);
+    // Logic chọn nhiều: Nếu có rồi thì bỏ, chưa có thì thêm
+    if (selectedIds.includes(item.id)) {
+      setSelectedIds(prev => prev.filter(id => id !== item.id));
     } else {
-        setSelectedId(item.id);
+      setSelectedIds(prev => [...prev, item.id]);
     }
   };
 
   const handleExportClick = () => {
-    if (!selectedId) return;
+    if (selectedIds.length === 0) return;
     
-    // Tìm object dữ liệu đầy đủ dựa trên ID đã chọn
-    const selectedInvoice = debts.find(d => d.id === selectedId);
+    // Lọc ra danh sách các object hóa đơn dựa trên ID đã chọn
+    const selectedInvoices = debts.filter(d => selectedIds.includes(d.id));
     
-    // Chuyển sang trang print_invoice và truyền dữ liệu qua state
-    navigate('/accountant_dashboard/print_invoice', { state: { data: selectedInvoice } });
+    // Truyền mảng dữ liệu sang trang in
+    navigate('/accountant/print_invoice', { state: { data: selectedInvoices } });
   };
 
   // --- FILTER ---
@@ -132,13 +130,11 @@ export const AccountCheckDebt = () => {
         </div>
       </div>
 
-      {/* 2. TITLE & BUTTONS (PHẦN QUAN TRỌNG) */}
+      {/* 2. TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6 relative z-10">
         <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
         
-        {/* Logic hiển thị nút */}
         {!isSelectionMode ? (
-           // Nút hiển thị mặc định: "Xuất hóa đơn"
            <button
              onClick={toggleSelectionMode}
              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
@@ -146,16 +142,15 @@ export const AccountCheckDebt = () => {
              Xuất hóa đơn
            </button>
         ) : (
-           // Nút hiển thị khi đang chọn: "In hóa đơn" và "Hủy"
            <div className="flex space-x-3">
              <button
                onClick={handleExportClick}
-               disabled={!selectedId}
+               disabled={selectedIds.length === 0}
                className={`px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-white ${
-                 selectedId ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 cursor-not-allowed"
+                 selectedIds.length > 0 ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 cursor-not-allowed"
                }`}
              >
-               In hóa đơn đã chọn
+               In hóa đơn ({selectedIds.length})
              </button>
              <button
                onClick={toggleSelectionMode}
@@ -178,100 +173,71 @@ export const AccountCheckDebt = () => {
             <div 
                 key={item.id} 
                 className={`bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px] transition-all ${
-                    // Hiệu ứng highlight nếu được chọn
-                    selectedId === item.id ? "ring-2 ring-blue-400 bg-blue-50" : ""
+                    // Highlight nếu được chọn
+                    selectedIds.includes(item.id) ? "ring-2 ring-blue-400 bg-blue-50" : ""
                 }`}
             >
-              {/* Thanh trạng thái bên trái */}
               <div className={`absolute left-6 top-4 bottom-4 w-1 rounded-full ${
                   item.state === 1 ? 'bg-green-500' : 'bg-orange-500'
               }`}></div>
 
-              {/* Grid Content */}
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-                
-                {/* ID */}
                 <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Công nợ ID</p>
                   <p className="text-lg font-bold text-gray-900">{item.id}</p>
                 </div>
-
-                {/* Số căn hộ */}
                 <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Số căn hộ</p>
                   <p className="text-sm font-semibold text-gray-900">{item.apartment_id}</p>
                 </div>
-
-                {/* Loại phí */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Loại phí</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate" title={item.feetype}>
-                    {item.feetype}
-                  </p>
+                  <p className="text-sm font-semibold text-gray-900 truncate" title={item.feetype}>{item.feetype}</p>
                 </div>
-
-                {/* Kỳ TT */}
                 <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Kỳ TT</p>
                   <p className="text-sm font-semibold text-gray-900">{item.period}</p>
                 </div>
-
-                {/* Ngày thanh toán */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Ngày thanh toán</p>
                   <p className="text-sm font-semibold text-gray-900">{item.payment_date_display}</p>
                 </div>
-
-                {/* Tổng thu */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Tổng thu</p>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatCurrency(item.amount)}
-                  </p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
                 </div>
-
-                {/* Đã thu */}
                 <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Đã thu</p>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatCurrency(item.paid_amount)}
-                  </p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(item.paid_amount)}</p>
                 </div>
 
-                {/* Trạng thái & Checkbox (Logic thay đổi khi ở chế độ chọn) */}
                 <div className="col-span-2 flex flex-col items-end justify-center">
                    {isSelectionMode ? (
                         item.can_print ? (
-                            // Hiện Checkbox nếu được phép in
                             <div 
                                 onClick={() => handleSelect(item)}
                                 className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
-                                    selectedId === item.id 
+                                    selectedIds.includes(item.id) 
                                     ? "bg-blue-500 border-blue-500" 
                                     : "bg-gray-100 border-gray-300 hover:bg-gray-200"
                                 }`}
                             >
-                                {selectedId === item.id && (
+                                {selectedIds.includes(item.id) && (
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                 )}
                             </div>
                         ) : (
-                            // Ẩn/Disable nếu chưa thanh toán
                             <span className="text-xs text-red-400 italic">Chưa TT</span>
                         )
                    ) : (
-                       // Chế độ thường -> Hiện Text trạng thái
                         <>
                             <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
-                            <p className={`text-xs font-bold ${item.status_color}`}>
-                                {item.status_text}
-                            </p>
+                            <p className={`text-xs font-bold ${item.status_color}`}>{item.status_text}</p>
                         </>
                    )}
                 </div>
-
               </div>
             </div>
           ))
