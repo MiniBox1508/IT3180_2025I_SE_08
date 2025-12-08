@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 
@@ -19,7 +19,7 @@ const SERVICE_MAPPING = {
   },
   "Khai báo tạm trú": {
     backendValue: "Khai báo tạm trú",
-    contents: ["Khai báo thông tin"], // Content bắt buộc theo app.js
+    contents: ["Khai báo thông tin"],
     handler: "Ban quản trị"
   }
 };
@@ -141,7 +141,7 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
 };
 
 // --- COMPONENT: MODAL ĐĂNG KÝ DỊCH VỤ (FORM LOGIC MỚI) ---
-const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
+const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
   const [selectedType, setSelectedType] = useState("Dịch vụ chung cư");
   const [selectedContent, setSelectedContent] = useState(SERVICE_MAPPING["Dịch vụ chung cư"].contents[0]);
   const [note, setNote] = useState("");
@@ -149,7 +149,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
   // States riêng cho Form Khai báo tạm trú
   const [residenceForm, setResidenceForm] = useState({
     fullName: "",
-    gender: "",
+    apartment_id: "", // Thay thế cho gender
     dob: "",
     cccd: "",
     startDate: "",
@@ -170,17 +170,19 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = () => {
     const backendType = SERVICE_MAPPING[selectedType].backendValue;
     
-    // Nếu là Khai báo tạm trú, gom data riêng
     if (selectedType === "Khai báo tạm trú") {
+        if (!residenceForm.apartment_id) {
+            alert("Vui lòng chọn căn hộ!");
+            return;
+        }
         const payload = {
             isResidence: true,
             service_type: backendType,
-            content: "Khai báo thông tin", // Content cố định cho loại này
+            content: "Khai báo thông tin",
             formData: residenceForm
         };
         onSubmit(payload);
     } else {
-        // Dịch vụ thường
         const payload = {
             isResidence: false,
             service_type: backendType,
@@ -202,12 +204,10 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
           <CloseIcon />
         </button>
         
-        {/* Tiêu đề thay đổi theo loại */}
         <h2 className="text-xl font-bold text-gray-800 mb-2">
             {isResidence ? "Phiếu khai báo tạm trú" : "Đăng ký dịch vụ"}
         </h2>
 
-        {/* Nếu là Khai báo tạm trú, hiển thị thông tin Header */}
         {isResidence && (
             <div className="text-sm text-gray-600 mb-6 border-b pb-4">
                 <p><span className="font-bold">Tên cơ sở lưu trú:</span> Chung cư Bluemoon</p>
@@ -216,7 +216,6 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
         )}
 
-        {/* --- FORM THƯỜNG --- */}
         {!isResidence && (
             <div className="space-y-4">
                 <div>
@@ -242,10 +241,9 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
         )}
 
-        {/* --- FORM KHAI BÁO TẠM TRÚ (GIỐNG ẢNH) --- */}
+        {/* --- FORM KHAI BÁO TẠM TRÚ (CẬP NHẬT) --- */}
         {isResidence && (
             <div className="space-y-4">
-                {/* Chọn loại dịch vụ để có thể quay lại */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">Loại dịch vụ đang chọn</label>
                     <select value={selectedType} onChange={handleTypeChange} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg mb-4">
@@ -258,9 +256,25 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
                     <input name="fullName" value={residenceForm.fullName} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 </div>
                 
+                {/* --- TRƯỜNG CĂN HỘ (MỚI: SELECT BOX) --- */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Giới tính</label>
-                    <input name="gender" placeholder="Enter here" value={residenceForm.gender} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Căn hộ tạm trú</label>
+                    <div className="relative">
+                        <select 
+                            name="apartment_id" 
+                            value={residenceForm.apartment_id} 
+                            onChange={handleResidenceChange} 
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                        >
+                            <option value="" disabled>-- Chọn căn hộ --</option>
+                            {apartments && apartments.map(apt => (
+                                <option key={apt} value={apt}>{apt}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -330,6 +344,7 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
 // --- MAIN PAGE ---
 export const ResidentService = () => {
   const [services, setServices] = useState([]);
+  const [residents, setResidents] = useState([]); // List all residents to get apartments
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteMode, setIsDeleteMode] = useState(false);
@@ -340,16 +355,23 @@ export const ResidentService = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // --- FETCH DATA ---
-  const fetchServices = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id) throw new Error("Không tìm thấy thông tin căn hộ");
-      const response = await axios.get(`${API_BASE_URL}/services/by-apartment/${user.apartment_id}`);
-      const sortedData = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setServices(sortedData);
+
+      // 1. Get Services
+      const servicesRes = await axios.get(`${API_BASE_URL}/services/by-apartment/${user.apartment_id}`);
+      const sortedServices = servicesRes.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setServices(sortedServices);
+
+      // 2. Get All Residents (để lọc danh sách căn hộ cho Form tạm trú)
+      const residentsRes = await axios.get(`${API_BASE_URL}/residents`);
+      setResidents(residentsRes.data);
+
     } catch (error) {
-      console.error("Lỗi tải dịch vụ:", error);
+      console.error("Lỗi tải dữ liệu:", error);
       setServices([]);
     } finally {
       setIsLoading(false);
@@ -357,8 +379,15 @@ export const ResidentService = () => {
   };
 
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
+
+  // Lọc danh sách căn hộ duy nhất từ API residents
+  const uniqueApartments = useMemo(() => {
+    if (!residents) return [];
+    const apts = residents.map(r => r.apartment_id).filter(a => a);
+    return [...new Set(apts)].sort();
+  }, [residents]);
 
   // --- HANDLERS ---
   const toggleDeleteMode = () => {
@@ -387,7 +416,7 @@ export const ResidentService = () => {
     setModalState({ ...modalState, isOpen: false });
     try {
       await Promise.all(selectedIds.map(id => axios.delete(`${API_BASE_URL}/services/${id}`)));
-      await fetchServices();
+      await fetchData();
       setTimeout(() => {
         setModalState({ type: "success", isOpen: true, title: "Xóa đăng ký thành công!" });
       }, 300);
@@ -400,44 +429,62 @@ export const ResidentService = () => {
     }
   };
 
-  // --- XỬ LÝ SUBMIT (TẠO DỊCH VỤ HOẶC FORM TẠM TRÚ) ---
+  // --- XỬ LÝ ĐĂNG KÝ (TẠO SERVICE + TẠO CƯ DÂN TẠM TRÚ) ---
   const handleRegisterSubmit = async (payload) => {
     setIsRegisterModalOpen(false);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id) {
-        alert("Vui lòng đăng nhập lại để lấy thông tin căn hộ.");
+        alert("Vui lòng đăng nhập lại.");
         return;
       }
 
       if (payload.isResidence) {
-        // --- XỬ LÝ KHAI BÁO TẠM TRÚ (2 BƯỚC) ---
-        // B1: Tạo Service Request
+        // --- LOGIC KHAI BÁO TẠM TRÚ ---
+        const formData = payload.formData;
+
+        // 1. Tạo Service Request (để ghi nhận yêu cầu)
         const serviceRes = await axios.post(`${API_BASE_URL}/services`, {
-            apartment_id: user.apartment_id,
+            apartment_id: formData.apartment_id, // Gắn vào căn hộ tạm trú
             service_type: payload.service_type,
             content: payload.content,
             note: "Yêu cầu khai báo tạm trú"
         });
-
         const serviceId = serviceRes.data.service_id;
 
-        // B2: Tạo Form chi tiết gắn với Service ID vừa tạo
-        const formData = payload.formData;
+        // 2. Tạo Form chi tiết (để lưu thông tin chi tiết)
         await axios.post(`${API_BASE_URL}/forms`, {
             service_id: serviceId,
-            apartment_id: user.apartment_id,
+            apartment_id: formData.apartment_id,
             full_name: formData.fullName,
             cccd: formData.cccd,
             dob: formData.dob,
             start_date: formData.startDate,
             end_date: formData.endDate,
-            note: formData.reason // Lưu lý do vào note của form
-            // Backend chưa hỗ trợ trường 'gender' trong bảng Forms nên ta tạm bỏ qua hoặc lưu vào note nếu cần
+            note: formData.reason
+        });
+
+        // 3. (MỚI) TẠO CƯ DÂN MỚI VÀO DB (Role: Khách tạm trú)
+        // Tách họ tên thành First/Last name đơn giản
+        const nameParts = formData.fullName.trim().split(" ");
+        const lastName = nameParts.pop() || "";
+        const firstName = nameParts.join(" ");
+
+        await axios.post(`${API_BASE_URL}/residents`, {
+            first_name: firstName,
+            last_name: lastName,
+            phone: `000000${Date.now().toString().slice(-4)}`, // Fake phone duy nhất vì form ko có sđt
+            apartment_id: formData.apartment_id,
+            cccd: formData.cccd,
+            birth_date: formData.dob,
+            role: "Cư dân",
+            residency_status: "khách tạm trú", // Quan trọng
+            email: null,
+            password: "123" // Mật khẩu mặc định
         });
 
       } else {
-        // --- XỬ LÝ DỊCH VỤ THƯỜNG ---
+        // --- LOGIC DỊCH VỤ THƯỜNG ---
         await axios.post(`${API_BASE_URL}/services`, {
           apartment_id: user.apartment_id,
           service_type: payload.service_type,
@@ -446,7 +493,7 @@ export const ResidentService = () => {
         });
       }
 
-      await fetchServices();
+      await fetchData();
       setTimeout(() => {
         setModalState({ type: "success", isOpen: true, title: "Đăng ký thành công!" });
       }, 300);
@@ -470,7 +517,6 @@ export const ResidentService = () => {
 
   return (
     <div className="w-full min-h-screen text-gray-800">
-      {/* Search Bar */}
       <div className="flex justify-start items-center mb-8">
         <div className="relative w-full max-w-2xl bg-white rounded-lg overflow-hidden shadow-sm">
           <span className="absolute left-4 top-1/2 -translate-y-1/2"><SearchIcon /></span>
@@ -478,7 +524,6 @@ export const ResidentService = () => {
         </div>
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-between items-end mb-6">
         <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
         <div className="flex space-x-3">
@@ -504,7 +549,6 @@ export const ResidentService = () => {
         </div>
       </div>
 
-      {/* List Services */}
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <p className="text-white text-center">Đang tải...</p>
@@ -563,6 +607,7 @@ export const ResidentService = () => {
         isOpen={isRegisterModalOpen} 
         onClose={() => setIsRegisterModalOpen(false)} 
         onSubmit={handleRegisterSubmit}
+        apartments={uniqueApartments} // Truyền danh sách căn hộ vào modal
       />
 
       <CustomModal 
