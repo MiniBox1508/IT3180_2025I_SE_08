@@ -1,554 +1,477 @@
 import React, { useState, useEffect } from "react";
-import { StatusModal } from "../../layouts/StatusModal";
-import { ConfirmationModal } from "../../layouts/ConfirmationModal";
+import axios from "axios";
+import dayjs from "dayjs";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
+// --- Components Layout/Modal ---
+import { StatusModal } from "../../layouts/StatusModal";
+
+// --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-import acceptIcon from "../../images/accept_icon.png";
-import notAcceptIcon from "../../images/not_accept_icon.png";
+// --- ICONS (SVG) ---
+const SearchIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
 
-// =========================================================================
-// === INVOICE FORM MODAL (ADD/EDIT) ===
-// =========================================================================
-const InvoiceFormModal = ({
-  isOpen,
-  onClose,
-  onSave,
-  invoiceData,
-  error,
-  setError,
-}) => {
-  const isEditing = !!invoiceData;
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
 
-  const [formData, setFormData] = useState({
-    apartment_id: "",
-    feetype: "",
-    amount: "",
-    payment_date: "",
-  });
+const WarningIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-24 h-24 text-red-500 mx-auto mb-4">
+    <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+  </svg>
+);
+
+// --- MODAL THÊM/SỬA (Form nhập liệu) ---
+const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
+  // Thêm state 'status' vào form data
+  const [formData, setFormData] = useState({ apartment_id: "", content: "", status: "Đã gửi" });
 
   useEffect(() => {
-    if (isOpen) {
-      if (invoiceData) {
-        const paymentDate = invoiceData.payment_date
-          ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
-          : "";
-
-        setFormData({
-          apartment_id: invoiceData.apartment_id || "",
-          feetype: invoiceData.feetype || "",
-          amount: invoiceData.amount || "",
-          payment_date: paymentDate,
-        });
-      } else {
-        setFormData({
-          apartment_id: "",
-          feetype: "",
-          amount: "",
-          payment_date: "",
-        });
-      }
+    if (initialData) {
+      setFormData({
+        apartment_id: initialData.apartment_id || "",
+        content: initialData.content || "",
+        // Giả lập logic hiển thị status dựa trên dữ liệu có sẵn
+        status: initialData.sent_date ? "Đã gửi" : "Chưa gửi"
+      });
+    } else {
+      setFormData({ apartment_id: "", content: "", status: "Chưa gửi" });
     }
-  }, [isOpen, invoiceData]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError("");
-
-    if (!formData.apartment_id || !formData.feetype || !formData.amount) {
-      setError("Vui lòng điền đủ Số căn hộ, Loại phí và Số tiền.");
-      return;
-    }
-
-    if (parseFloat(formData.amount) <= 0) {
-      setError("Số tiền phải lớn hơn 0.");
-      return;
-    }
-
-    const dataToSend = {
-      apartment_id: formData.apartment_id,
-      feetype: formData.feetype,
-      amount: parseFloat(formData.amount),
-      payment_date: formData.payment_date || null,
-    };
-
-    onSave(dataToSend, isEditing ? invoiceData.id : null);
-  };
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
-        <h2 className="text-lg font-bold mb-4">
-          {isEditing ? "Chỉnh sửa hóa đơn" : "Thêm hóa đơn mới"}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl animate-fade-in-up">
+        <button onClick={onClose} className="absolute top-6 right-6 hover:bg-gray-100 rounded-full p-1 transition-colors">
+          <CloseIcon />
+        </button>
+        
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          {initialData ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
         </h2>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Hóa đơn ID
-              </label>
-              <div className="w-full bg-gray-100 rounded-lg border border-gray-200 px-4 py-3 text-gray-700">
-                {invoiceData.id}
-              </div>
-            </div>
-          )}
-
+        <div className="space-y-6">
+          {/* ID (Readonly) */}
           <div>
-            <label
-              htmlFor="apartment_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Số căn hộ <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-500 mb-2">Thông báo ID</label>
             <input
               type="text"
-              id="apartment_id"
-              name="apartment_id"
+              placeholder={initialData ? initialData.id : "Tự động tạo"}
+              disabled
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Người nhận */}
+          <div>
+            <label className="block text-sm font-medium text-gray-500 mb-2">Người nhận (Mã căn hộ)</label>
+            <input
+              type="text"
               value={formData.apartment_id}
-              onChange={handleChange}
-              placeholder="VD: A7-106"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              required
+              onChange={(e) => setFormData({ ...formData, apartment_id: e.target.value })}
+              placeholder="Nhập mã căn hộ (VD: A101) hoặc 'all'"
+              className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 shadow-sm transition-all"
             />
           </div>
 
+          {/* Nội dung */}
           <div>
-            <label className="mb-1 text-sm font-medium text-gray-700 block">
-              Loại phí
-            </label>
+            <label className="block text-sm font-medium text-gray-500 mb-2">Nội dung / Loại thông báo</label>
             <input
               type="text"
-              name="feetype"
-              value={formData.feetype}
-              onChange={handleChange}
-              placeholder="Ví dụ: Phí quản lý tháng 12"
-              className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
-              required
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              placeholder="Nhập nội dung (VD: Nợ phí điện)"
+              className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 shadow-sm transition-all"
             />
           </div>
 
+          {/* --- CỘT TRẠNG THÁI (MỚI THÊM) --- */}
           <div>
-            <label
-              htmlFor="amount"
-              className="block text-sm font-medium text-gray-700 mb-1"
+            <label className="block text-sm font-medium text-gray-500 mb-2">Trạng thái</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 shadow-sm transition-all appearance-none"
             >
-              Số tiền (VND) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              id="amount"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              placeholder="VD: 100000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              required
-              min="1"
-            />
+              <option value="Đã gửi">Đã gửi</option>
+              <option value="Chưa gửi">Chưa gửi</option>
+            </select>
           </div>
 
-          <div>
-            <label
-              htmlFor="payment_date"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Ngày thanh toán
-            </label>
-            <input
-              type="date"
-              id="payment_date"
-              name="payment_date"
-              value={formData.payment_date}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-            />
-          </div>
+        </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors"
-            >
-              {isEditing ? "Lưu Thay Đổi" : "Thêm"}
-            </button>
-          </div>
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={() => onSubmit(formData)}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-10 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+          >
+            {initialData ? "Lưu thay đổi" : "Thêm mới"}
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// =========================================================================
-// === INVOICE ITEM COMPONENT ===
-// =========================================================================
-const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
-  const handleActionClick = () => {
-    if (isDeleteMode) {
-      onDeleteClick(item.id);
-    } else {
-      onEditClick(item);
-    }
-  };
-
-  const formattedDate = item.payment_date
-    ? new Date(item.payment_date).toLocaleDateString("vi-VN")
-    : "---";
-
+// --- MODAL XÁC NHẬN XÓA (Tam giác đỏ) ---
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
   return (
-    <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-
-      <div className="flex-1 grid grid-cols-5 gap-4 items-center pl-8 pr-4 text-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p>
-          <p className="font-semibold">{item.id}</p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md text-center shadow-2xl animate-fade-in-up">
+        <WarningIcon />
+        <h3 className="text-2xl font-bold text-gray-800 mb-2">Xóa các mục đã chọn</h3>
+        <p className="text-gray-500 mb-8">Hành động này không thể hoàn tác.</p>
+        <div className="flex justify-between space-x-4">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all"
+          >
+            Hoàn tác
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-green-500/30 transition-all"
+          >
+            Xác nhận
+          </button>
         </div>
-
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
-          <p className="font-medium">{item.apartment_id}</p>
-        </div>
-
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Loại phí</p>
-          <p className="font-medium">{item.feetype}</p>
-        </div>
-
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-          <p className="text-gray-600">{formattedDate}</p>
-        </div>
-
-        <div className="text-right">
-          <p className="text-xs text-gray-500 mb-1">Số tiền</p>
-          <p className="font-semibold text-blue-600">
-            {item.amount.toLocaleString("vi-VN")} VND
-          </p>
-        </div>
-      </div>
-
-      <div className="ml-auto flex-shrink-0 pr-2">
-        <button
-          onClick={handleActionClick}
-          className={`${
-            isDeleteMode
-              ? "text-red-600 hover:text-red-800"
-              : "text-blue-600 hover:text-blue-800"
-          } hover:underline text-sm font-medium`}
-        >
-          {isDeleteMode ? "Xóa hóa đơn" : "Chỉnh sửa"}
-        </button>
       </div>
     </div>
   );
 };
 
-// =========================================================================
-// === MAIN PAGE COMPONENT ===
-// =========================================================================
-export const AccountPayment = () => {
-  const [invoices, setInvoices] = useState([]);
+// --- COMPONENT CHÍNH ---
+export const AccountantNotification = () => {
+  // State quản lý dữ liệu
+  const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState(null);
-  const [formError, setFormError] = useState("");
-
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null);
-  const [statusMessage, setStatusMessage] = useState("");
-
+  
+  // State quản lý chế độ Xóa
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  
+  // State quản lý Modal
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  
+  // State Status Modal (Thông báo thành công/thất bại)
+  const [statusModal, setStatusModal] = useState({ open: false, type: "success", message: "" });
+  const [acceptIconSrc, setAcceptIconSrc] = useState(null);
+  const [notAcceptIconSrc, setNotAcceptIconSrc] = useState(null);
 
-  // Fetch invoices from API
-  const fetchInvoices = async () => {
+  // Load icons động
+  useEffect(() => {
+    import("../../images/accept_icon.png").then(m => setAcceptIconSrc(m.default));
+    import("../../images/not_accept_icon.png").then(m => setNotAcceptIconSrc(m.default));
+  }, []);
+
+  // --- 1. FETCH DỮ LIỆU TỪ DATABASE ---
+  const fetchNotifications = async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments`);
-      if (!response.ok) {
-        throw new Error("Không thể tải dữ liệu hóa đơn.");
-      }
-      const data = await response.json();
-      setInvoices(data);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      setError(err.message);
+      const response = await axios.get(`${API_BASE_URL}/notifications`);
+      // Sắp xếp: Mới nhất lên đầu
+      const sortedData = response.data.sort((a, b) => 
+        new Date(b.created_at || b.notification_date) - new Date(a.created_at || a.notification_date)
+      );
+      setNotifications(sortedData);
+    } catch (error) {
+      console.error("Lỗi khi tải thông báo:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInvoices();
+    fetchNotifications();
   }, []);
 
-  // Filter invoices
-  const filteredInvoices = invoices.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const searchLower = searchTerm.trim().toLowerCase();
-    return String(item.id).toLowerCase().includes(searchLower);
+  // --- 2. XỬ LÝ THÊM / SỬA ---
+  const handleAddClick = () => {
+    setEditingItem(null);
+    setShowFormModal(true);
+  };
+
+  const handleEditClick = (item) => {
+    setEditingItem(item);
+    setShowFormModal(true);
+  };
+
+  const handleSubmitForm = async (formData) => {
+    setShowFormModal(false);
+    try {
+      // Vì API không hỗ trợ field 'status' trực tiếp, ta chỉ gửi các field chuẩn
+      // (Việc hiển thị status sẽ dựa vào logic giả định ở Frontend hoặc trường sent_date nếu có)
+      const payload = {
+        apartment_id: formData.apartment_id,
+        content: formData.content
+      };
+
+      if (editingItem) {
+        await axios.put(`${API_BASE_URL}/notifications/${editingItem.id}`, payload);
+        setStatusModal({ open: true, type: "success", message: "Cập nhật thành công!" });
+      } else {
+        await axios.post(`${API_BASE_URL}/notifications`, payload);
+        setStatusModal({ open: true, type: "success", message: "Thêm thông báo thành công!" });
+      }
+      fetchNotifications(); 
+    } catch (error) {
+      console.error(error);
+      setStatusModal({ open: true, type: "failure", message: "Thao tác thất bại!" });
+    }
+  };
+
+  // --- 3. XỬ LÝ XÓA (HÀNG LOẠT) ---
+  const toggleDeleteMode = () => {
+    if (isDeleteMode) {
+      setIsDeleteMode(false);
+      setSelectedIds([]); 
+    } else {
+      setIsDeleteMode(true);
+    }
+  };
+
+  const handleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(itemId => itemId !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleDeleteConfirmClick = () => {
+    if (selectedIds.length === 0) return;
+    setShowConfirmDelete(true);
+  };
+
+  const executeDelete = async () => {
+    setShowConfirmDelete(false);
+    try {
+      await Promise.all(selectedIds.map(id => axios.delete(`${API_BASE_URL}/notifications/${id}`)));
+      
+      setStatusModal({ open: true, type: "success", message: "Xóa thông báo thành công!" });
+      fetchNotifications();
+      setIsDeleteMode(false);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error(error);
+      setStatusModal({ open: true, type: "failure", message: "Xóa thông báo không thành công!" });
+    }
+  };
+
+  // --- 4. HÀM EXPORT PDF ---
+  const handleExportPDF = () => {
+    const input = document.getElementById('notification-table'); 
+    
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save("danh-sach-thong-bao.pdf");
+    });
+  };
+
+  // --- 5. LỌC DỮ LIỆU (SEARCH) ---
+  const filteredList = notifications.filter(item => {
+    const term = searchTerm.toLowerCase();
+    const content = item.content ? item.content.toLowerCase() : "";
+    const id = String(item.id);
+    return id.includes(term) || content.includes(term);
   });
 
-  // Handlers
-  const handleAddClick = () => {
-    setIsAddModalOpen(true);
-    setFormError("");
-  };
-
-  const handleEditClick = (invoice) => {
-    setEditingInvoice(invoice);
-    setIsEditModalOpen(true);
-    setFormError("");
-  };
-
-  const handleSave = async (data, invoiceId) => {
-    try {
-      if (invoiceId) {
-        // Update - sử dụng endpoint PATCH /payments/:id
-        const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const result = await response.json();
-          throw new Error(result.error || "Lỗi khi cập nhật hóa đơn.");
-        }
-
-        setModalStatus("success");
-        setStatusMessage("Chỉnh sửa hóa đơn thành công!");
-        setIsEditModalOpen(false);
-      } else {
-        // Create - sử dụng endpoint POST /payments
-        const response = await fetch(`${API_BASE_URL}/payments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            resident_id: 1, // Bạn cần lấy resident_id thực tế
-            ...data,
-          }),
-        });
-
-        if (!response.ok) {
-          const result = await response.json();
-          throw new Error(result.error || "Lỗi khi tạo hóa đơn.");
-        }
-
-        setModalStatus("success");
-        setStatusMessage("Đã thêm hóa đơn mới!");
-        setIsAddModalOpen(false);
-      }
-
-      fetchInvoices(); // Refresh list
-      setIsStatusModalOpen(true);
-    } catch (err) {
-      console.error("Save Error:", err);
-      setFormError(err.message);
-    }
-  };
-
-  const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
-
-  const handleDeleteClick = (id) => {
-    setItemToDeleteId(id);
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    setShowConfirmModal(false);
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/payments/${itemToDeleteId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "Lỗi khi xóa hóa đơn.");
-      }
-
-      fetchInvoices(); // Refresh list
-      setModalStatus("success");
-      setStatusMessage("Đã xóa hóa đơn thành công!");
-      setIsStatusModalOpen(true);
-    } catch (err) {
-      console.error("Delete Error:", err);
-      setModalStatus("failure");
-      setStatusMessage(err.message);
-      setIsStatusModalOpen(true);
-    } finally {
-      setItemToDeleteId(null);
-    }
-  };
-
-  const handleCloseStatusModal = () => {
-    setIsStatusModalOpen(false);
-    setModalStatus(null);
-    setStatusMessage("");
-  };
-
-  const renderStatusModalContent = () => {
-    if (!modalStatus) return null;
-    const isSuccess = modalStatus === "success";
-    const icon = isSuccess ? acceptIcon : notAcceptIcon;
-    return (
-      <div className="flex flex-col items-center">
-        <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">
-          {statusMessage}
-        </p>
-      </div>
-    );
-  };
-
-  if (isLoading) {
-    return <div className="text-white text-lg p-4">Đang tải hóa đơn...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
-    );
-  }
-
   return (
-    <div>
+    <div className="w-full min-h-screen">
       {/* Search Bar */}
-      <div className="flex justify-start items-center mb-6">
-        <div className="relative w-full max-w-full">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+      <div className="flex justify-start items-center mb-8">
+        <div className="relative w-full max-w-2xl bg-white rounded-lg overflow-hidden shadow-sm">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2">
+            <SearchIcon />
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hóa đơn..."
+            placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+            className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
           />
         </div>
       </div>
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
+      {/* Header & Buttons */}
+      <div className="flex justify-between items-end mb-6">
+        <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
+        
         <div className="flex space-x-4">
-          {!isDeleteMode && (
-            <button
-              onClick={handleAddClick}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
-            >
-              <span>+ Thêm hóa đơn</span>
-            </button>
-          )}
           <button
-            onClick={toggleDeleteMode}
-            className={`${
-              isDeleteMode
-                ? "bg-gray-500 hover:bg-gray-600"
-                : "bg-red-500 hover:bg-red-600"
-            } text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200`}
-          >
-            {isDeleteMode ? "Hoàn tất" : "Xóa hóa đơn"}
+                onClick={handleExportPDF}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+             >
+                Xuất PDF
           </button>
+
+          {!isDeleteMode ? (
+            <>
+              <button
+                onClick={handleAddClick}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
+              >
+                + Thêm thông báo
+              </button>
+              <button
+                onClick={toggleDeleteMode}
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+              >
+                Xóa thông báo
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleDeleteConfirmClick}
+                className={`px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors ${
+                  selectedIds.length > 0 ? "bg-red-500 hover:bg-red-600 text-white" : "bg-red-300 text-white cursor-not-allowed"
+                }`}
+              >
+                Xóa các mục đã chọn
+              </button>
+              <button
+                onClick={toggleDeleteMode}
+                className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+              >
+                Hủy xóa
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Invoice List */}
-      <div className="space-y-4">
-        {filteredInvoices.length === 0 ? (
-          <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-            Không có hóa đơn nào phù hợp với tìm kiếm.
-          </div>
+      {/* Danh sách Card Thông báo */}
+      <div id="notification-table" className="space-y-4 pb-10">
+        {isLoading ? (
+          <p className="text-white text-center">Đang tải dữ liệu...</p>
+        ) : filteredList.length === 0 ? (
+          <p className="text-white text-center">Không tìm thấy thông báo nào.</p>
         ) : (
-          filteredInvoices.map((item) => (
-            <InvoiceItem
-              key={item.id}
-              item={item}
-              isDeleteMode={isDeleteMode}
-              onDeleteClick={handleDeleteClick}
-              onEditClick={handleEditClick}
-            />
+          filteredList.map((item) => (
+            <div key={item.id} className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]">
+              {/* Thanh xanh bên trái */}
+              <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
+
+              {/* Grid Content */}
+              <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
+                
+                {/* Cột 1: ID */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Thông báo ID</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none">{item.id}</p>
+                </div>
+
+                {/* Cột 2: Nội dung */}
+                <div className="col-span-4">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Loại thông báo</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate pr-4" title={item.content}>
+                    {item.content || "Nội dung thông báo"}
+                  </p>
+                </div>
+
+                {/* Cột 3: Ngày gửi */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Ngày gửi</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {/* Ưu tiên sent_date, nếu không có thì lấy notification_date */}
+                    {item.sent_date 
+                      ? dayjs(item.sent_date).format("DD/MM/YYYY") 
+                      : (item.notification_date ? dayjs(item.notification_date).format("DD/MM/YYYY") : "---")}
+                  </p>
+                </div>
+
+                {/* --- CỘT 4: TRẠNG THÁI (MỚI THÊM) --- */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
+                  {/* Logic giả định: Có ngày gửi là Đã gửi, chưa có là Chưa gửi */}
+                  <p className={`text-sm font-bold ${item.sent_date ? 'text-green-500' : 'text-red-500'}`}>
+                    {item.sent_date ? "Đã gửi" : "Chưa gửi"}
+                  </p>
+                </div>
+
+                {/* Cột 5: Action (Edit Text hoặc Checkbox) */}
+                <div className="col-span-2 flex justify-end items-center">
+                  {!isDeleteMode ? (
+                    <button 
+                      onClick={() => handleEditClick(item)}
+                      className="text-blue-500 font-bold text-sm hover:underline"
+                    >
+                      Chỉnh sửa
+                    </button>
+                  ) : (
+                    // Custom Checkbox
+                    <div 
+                      onClick={() => handleSelect(item.id)}
+                      className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                        selectedIds.includes(item.id) 
+                          ? "bg-blue-500 shadow-blue-500/50" 
+                          : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                    >
+                      {selectedIds.includes(item.id) && (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           ))
         )}
       </div>
 
-      {/* Modals */}
-      <InvoiceFormModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSave}
-        invoiceData={null}
-        error={formError}
-        setError={setFormError}
+      {/* --- MODALS --- */}
+      
+      {/* 1. Modal Thêm/Sửa */}
+      <NotificationFormModal 
+        isOpen={showFormModal} 
+        onClose={() => setShowFormModal(false)}
+        onSubmit={handleSubmitForm}
+        initialData={editingItem}
       />
 
-      <InvoiceFormModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSave}
-        invoiceData={editingInvoice}
-        error={formError}
-        setError={setFormError}
+      {/* 2. Modal Xác nhận Xóa */}
+      <DeleteConfirmModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={executeDelete}
       />
 
-      <ConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmDelete}
-        title="Chú ý: Xóa hóa đơn!!!"
-        message="Bạn có chắc chắn muốn xóa hóa đơn này không?"
-      />
-
-      <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
-        {renderStatusModalContent()}
+      {/* 3. Modal Trạng thái */}
+      <StatusModal isOpen={statusModal.open} onClose={() => setStatusModal({ ...statusModal, open: false })}>
+        <div className="flex flex-col items-center justify-center p-4">
+          {statusModal.type === "success" ? (
+             <img src={acceptIconSrc} alt="Success" className="w-20 h-20 mb-4" />
+          ) : (
+             <img src={notAcceptIconSrc} alt="Fail" className="w-20 h-20 mb-4" />
+          )}
+          <h3 className="text-xl font-bold text-gray-800 text-center">{statusModal.message}</h3>
+        </div>
       </StatusModal>
+
     </div>
   );
 };
