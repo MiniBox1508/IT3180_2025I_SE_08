@@ -14,7 +14,9 @@ import iconThongBao from "../images/dash_message_icon.svg";
 import iconLogout from "../images/logout.svg";
 import LogoutModal from "../layouts/LogoutModal";
 
-// --- Nav Items ---
+// --------------------------------------------------------
+
+// --- Nav Items cho UI cư dân ---
 const navItems = [
   { name: "Trang chủ", to: "/resident", icon: iconTrangChu },
   { name: "Dân cư", to: "/resident/residents", icon: iconDanCu },
@@ -30,6 +32,8 @@ const navItems = [
     icon: iconThongBao,
   },
 ];
+
+// -------------------------------------------------------
 
 // --- Search Icon ---
 const SearchIcon = () => (
@@ -49,15 +53,16 @@ const SearchIcon = () => (
   </svg>
 );
 
+// -------------------------------------------------------
+
+//  === Code chính của ResidentSharedLayout ===
 export const ResidentSharedLayout = () => {
+  //Khai báo biến
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
-
-  // Hàm xử lý Logout
-  // Modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Hàm xác nhận đăng xuất
+  // Khai báo và tạo logic hàm xác nhận đăng xuất
   const handleLogoutConfirm = () => {
     // Xóa session/token (nếu có)
     // ...
@@ -65,7 +70,9 @@ export const ResidentSharedLayout = () => {
     navigate("/welcome"); // CHUYỂN HƯỚNG VỀ TRANG WELCOME
   };
 
-  // === SỬA TẠI ĐÂY: Thanh active bên TRÁI ===
+  // -------------------------------------------------------
+
+  // === Hiệu ứng khi di chuột đến sidebar ===
   const getNavLinkClass = ({ isActive }) => {
     // Class cơ sở: luôn có viền trái 4px và padding trái 3 (pl-3)
     const baseClasses =
@@ -79,17 +86,14 @@ export const ResidentSharedLayout = () => {
       return `${baseClasses} border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium`;
     }
   };
-  // === KẾT THÚC SỬA ===
 
   return (
+    // Lớp nền màu xanh
     <div className="flex h-screen bg-blue-700">
       {" "}
-      {/* Đổi nền chính thành màu xanh */}
-      {/* === SIDEBAR === */}
-      {/* Thêm rounded-tr-2xl và rounded-br-2xl */}
+      {/* === Khung Sidebar === */}
       <aside className="w-72 flex flex-col bg-white rounded-tr-2xl rounded-br-2xl flex-shrink-0 relative z-10 shadow-lg">
         {" "}
-        {/* THÊM/SỬA Ở ĐÂY */}
         {/* Logo */}
         <div className="h-20 flex items-center justify-center px-6">
           {" "}
@@ -111,19 +115,20 @@ export const ResidentSharedLayout = () => {
             </NavLink>
           ))}
         </nav>
-        {/* Logout Section */}
+        {/* === Ảnh và nút Đăng xuất === */}
         <div className="p-4 mt-auto border-t border-gray-100">
           {" "}
-          {/* Màu border nhạt hơn */}
+          {/* === Khung cho ảnh */}
           <div className="w-full h-36 rounded-lg mb-4 flex items-center justify-center overflow-hidden bg-blue-50">
             {" "}
-            {/* Thêm nền nhẹ */}
+            {/* === Ảnh === */}
             <img
               src={support}
               alt="illustration"
               className="h-full w-auto object-contain p-2" /* Điều chỉnh object-fit và padding */
             />
           </div>
+          {/* Nút Đăng xuất */}
           <button
             onClick={() => setShowLogoutModal(true)}
             className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 font-medium"
@@ -139,10 +144,9 @@ export const ResidentSharedLayout = () => {
           />
         </div>
       </aside>
-      {/* === KHUNG NỘI DUNG CHÍNH (ĐÃ XÓA THANH SEARCH) === */}
+      {/* Khung nội dung điều chỉnh kích cỡ hiển thị */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Thanh tìm kiếm đã bị xóa khỏi đây. Chỉ còn lại p-8 pt-4 flex-1 */}
-
+        {/* Placeholder */}
         <div className="p-8 pt-4 flex-1">
           <Outlet />
         </div>

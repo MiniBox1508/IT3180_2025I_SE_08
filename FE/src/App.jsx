@@ -42,7 +42,7 @@ import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProb
 
 // -----------------------------------------------
 
-// TẠO CÁC TRANG PLACEHOLDER CHO DASHBOARD (BẢN XEM TRƯỚC CHO DỊCH VỤ CỦA CÁC ROLE)
+// Bản xem trước cho Dịch vụ
 const ServicesPage = () => (
   <h1 className="text-3xl font-bold text-white">Quản lý Dịch vụ</h1>
 );
