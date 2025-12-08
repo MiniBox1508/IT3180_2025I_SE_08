@@ -76,7 +76,7 @@ const InvoiceFormModal = ({
     }
 
     const dataToSend = {
-      apartment_id: formData.apartment_id.trim(), // Quan trọng để map resident
+      apartment_id: formData.apartment_id.trim(),
       feetype: formData.feetype,
       amount: parseFloat(formData.amount),
       payment_date: formData.payment_date || null,
@@ -248,17 +248,14 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  // Xác định trạng thái để hiển thị màu sắc (Dựa trên state 0 hoặc 1)
   const isPaid = item.state === 1;
   const statusText = isPaid ? "Đã thanh toán" : "Chưa thanh toán";
   const statusColorClass = isPaid ? "text-green-500" : "text-red-500";
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      {/* Thanh màu trạng thái bên trái */}
       <div className={`absolute left-4 top-3 bottom-3 w-1.5 rounded-full ${isPaid ? 'bg-green-500' : 'bg-orange-500'}`}></div>
 
-      {/* Grid Layout 6 cột */}
       <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8 pr-4 text-gray-800">
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p>
@@ -267,7 +264,6 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 
         <div>
           <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
-          {/* Lấy apartment_id từ API (đã được decorate) */}
           <p className="font-medium">{item.apartment_id || "---"}</p>
         </div>
 
@@ -288,7 +284,6 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
           </p>
         </div>
 
-        {/* --- CỘT TRẠNG THÁI MỚI --- */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
           <p className={`font-bold text-sm ${statusColorClass}`}>
@@ -318,7 +313,7 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 // =========================================================================
 export const AccountPayment = () => {
   const [invoices, setInvoices] = useState([]);
-  const [residents, setResidents] = useState([]); // Thêm state lưu danh sách cư dân
+  const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -342,7 +337,6 @@ export const AccountPayment = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Gọi song song cả payments và residents
       const [paymentsRes, residentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/payments`),
         fetch(`${API_BASE_URL}/residents`)
@@ -369,12 +363,21 @@ export const AccountPayment = () => {
     fetchData();
   }, []);
 
-  // Filter invoices
+  // Filter invoices (Thêm logic kiểm tra căn hộ tồn tại)
   const filteredInvoices = invoices.filter((item) => {
+    // 1. Kiểm tra: Căn hộ của hóa đơn phải tồn tại trong danh sách Residents
+    const itemApartmentId = item.apartment_id ? item.apartment_id.toLowerCase().trim() : "";
+    const isApartmentExist = residents.some(
+        r => r.apartment_id && r.apartment_id.toLowerCase().trim() === itemApartmentId
+    );
+
+    // Nếu căn hộ không tồn tại trong danh sách Residents -> Không hiển thị
+    if (!isApartmentExist) return false;
+
+    // 2. Logic tìm kiếm (Search)
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.trim().toLowerCase();
     
-    // Tìm kiếm theo ID hóa đơn HOẶC Số căn hộ
     return (
       String(item.id).toLowerCase().includes(searchLower) ||
       (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower))
@@ -396,8 +399,7 @@ export const AccountPayment = () => {
   const handleSave = async (data, invoiceId) => {
     try {
       if (invoiceId) {
-        // --- LOGIC CHỈNH SỬA (UPDATE) ---
-        // Sử dụng PATCH /payments/:id để cập nhật feetype, amount, state, payment_date
+        // UPDATE
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -414,8 +416,8 @@ export const AccountPayment = () => {
         setIsEditModalOpen(false);
 
       } else {
-        // --- LOGIC THÊM MỚI (CREATE) ---
-        // 1. Tìm resident_id dựa trên apartment_id người dùng nhập
+        // CREATE
+        // Kiểm tra xem căn hộ nhập vào có tồn tại không trước khi gửi
         const inputApartment = data.apartment_id;
         const foundResident = residents.find(
           r => r.apartment_id && r.apartment_id.toLowerCase() === inputApartment.toLowerCase()
@@ -423,17 +425,14 @@ export const AccountPayment = () => {
 
         if (!foundResident) {
           setFormError(`Không tìm thấy cư dân nào ở căn hộ "${inputApartment}". Vui lòng kiểm tra lại danh sách cư dân.`);
-          return; // Dừng lại, không gọi API
+          return; 
         }
 
-        // 2. Tạo payload với resident_id tìm được
         const createPayload = {
-          resident_id: foundResident.id, // ID cư dân thật
+          resident_id: foundResident.id, 
           amount: data.amount,
           feetype: data.feetype,
-          payment_form: "Tiền mặt", // Mặc định hoặc thêm trường nhập
-          // API POST hiện tại chưa nhận 'state' & 'payment_date' trong body tạo mới (theo app.js)
-          // Nhưng ta cứ gửi, nếu cần backend sẽ update sau.
+          payment_form: "Tiền mặt", 
         };
 
         const response = await fetch(`${API_BASE_URL}/payments`, {
@@ -446,10 +445,6 @@ export const AccountPayment = () => {
           const result = await response.json();
           throw new Error(result.error || "Lỗi khi tạo hóa đơn.");
         }
-
-        // 3. (Optional) Nếu muốn set trạng thái ngay khi tạo (vì POST mặc định state=0)
-        // Ta có thể gọi thêm 1 lệnh PATCH ngay sau khi POST thành công nếu data.state === 1
-        // Nhưng tạm thời để đơn giản ta chấp nhận mặc định là Chưa thanh toán.
 
         setModalStatus("success");
         setStatusMessage("Đã thêm hóa đơn mới thành công!");
@@ -591,7 +586,7 @@ export const AccountPayment = () => {
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
-            Không có hóa đơn nào phù hợp với tìm kiếm.
+            Không có hóa đơn nào phù hợp (hoặc căn hộ không tồn tại trong danh sách cư dân).
           </div>
         ) : (
           filteredInvoices.map((item) => (
