@@ -19,7 +19,7 @@ const SERVICE_MAPPING = {
   },
   "Khai báo tạm trú": {
     backendValue: "Khai báo tạm trú",
-    contents: ["Khai báo thông tin"],
+    contents: ["Khai báo thông tin"], // Content bắt buộc theo app.js
     handler: "Ban quản trị"
   }
 };
@@ -65,14 +65,13 @@ const ErrorIcon = () => (
   </div>
 );
 
-// --- COMPONENT: MODAL CHI TIẾT DỊCH VỤ (MỚI) ---
+// --- COMPONENT: MODAL CHI TIẾT DỊCH VỤ ---
 const ServiceDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-2xl p-8 relative shadow-2xl">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Chi tiết dịch vụ</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -80,9 +79,7 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
           </button>
         </div>
 
-        {/* Content Form - Readonly */}
         <div className="space-y-6">
-          {/* Row 1: ID - Căn hộ - Ngày gửi */}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">ID Dịch vụ</label>
@@ -104,7 +101,6 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
-          {/* Row 2: Loại dịch vụ & Nội dung */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Nội dung yêu cầu</label>
             <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-600 bg-gray-50 min-h-[50px] flex items-center">
@@ -112,7 +108,6 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
-          {/* Row 3: Trạng thái - Ngày xử lý */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Trạng thái</label>
@@ -130,7 +125,6 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
-          {/* Row 4: Ghi chú */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Ghi chú</label>
             <textarea 
@@ -146,11 +140,22 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
   );
 };
 
-// --- COMPONENT: MODAL ĐĂNG KÝ ---
+// --- COMPONENT: MODAL ĐĂNG KÝ DỊCH VỤ (FORM LOGIC MỚI) ---
 const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
   const [selectedType, setSelectedType] = useState("Dịch vụ chung cư");
   const [selectedContent, setSelectedContent] = useState(SERVICE_MAPPING["Dịch vụ chung cư"].contents[0]);
   const [note, setNote] = useState("");
+
+  // States riêng cho Form Khai báo tạm trú
+  const [residenceForm, setResidenceForm] = useState({
+    fullName: "",
+    gender: "",
+    dob: "",
+    cccd: "",
+    startDate: "",
+    endDate: "",
+    reason: ""
+  });
 
   const handleTypeChange = (e) => {
     const newType = e.target.value;
@@ -158,49 +163,138 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
     setSelectedContent(SERVICE_MAPPING[newType].contents[0]);
   };
 
+  const handleResidenceChange = (e) => {
+    setResidenceForm({ ...residenceForm, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = () => {
-    const payload = {
-      service_type: SERVICE_MAPPING[selectedType].backendValue,
-      content: selectedContent,
-      note: note
-    };
-    onSubmit(payload);
+    const backendType = SERVICE_MAPPING[selectedType].backendValue;
+    
+    // Nếu là Khai báo tạm trú, gom data riêng
+    if (selectedType === "Khai báo tạm trú") {
+        const payload = {
+            isResidence: true,
+            service_type: backendType,
+            content: "Khai báo thông tin", // Content cố định cho loại này
+            formData: residenceForm
+        };
+        onSubmit(payload);
+    } else {
+        // Dịch vụ thường
+        const payload = {
+            isResidence: false,
+            service_type: backendType,
+            content: selectedContent,
+            note: note
+        };
+        onSubmit(payload);
+    }
   };
 
   if (!isOpen) return null;
   const currentConfig = SERVICE_MAPPING[selectedType];
+  const isResidence = selectedType === "Khai báo tạm trú";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
+      <div className={`bg-white rounded-3xl p-8 w-full ${isResidence ? 'max-w-2xl' : 'max-w-lg'} shadow-2xl relative max-h-[90vh] overflow-y-auto`}>
         <button onClick={onClose} className="absolute top-6 right-6 p-1 rounded-full hover:bg-gray-100 transition-colors">
           <CloseIcon />
         </button>
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Đăng ký dịch vụ</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Loại dịch vụ</label>
-            <select value={selectedType} onChange={handleTypeChange} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-              {Object.keys(SERVICE_MAPPING).map(key => <option key={key} value={key}>{key}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Nội dung</label>
-            <select value={selectedContent} onChange={(e) => setSelectedContent(e.target.value)} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-              {currentConfig.contents.map(content => <option key={content} value={content}>{content}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Bên xử lý</label>
-            <input type="text" value={currentConfig.handler} readOnly className="w-full p-3 bg-gray-50 border border-gray-200 text-gray-500 rounded-lg focus:outline-none" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Ghi chú</label>
-            <input type="text" placeholder="Enter here" value={note} onChange={(e) => setNote(e.target.value)} className="w-full p-3 bg-white border border-gray-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-        </div>
+        
+        {/* Tiêu đề thay đổi theo loại */}
+        <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {isResidence ? "Phiếu khai báo tạm trú" : "Đăng ký dịch vụ"}
+        </h2>
+
+        {/* Nếu là Khai báo tạm trú, hiển thị thông tin Header */}
+        {isResidence && (
+            <div className="text-sm text-gray-600 mb-6 border-b pb-4">
+                <p><span className="font-bold">Tên cơ sở lưu trú:</span> Chung cư Bluemoon</p>
+                <p><span className="font-bold">Địa chỉ:</span> 23 Đường X, Phường A, Quận B, TP. Hà Nội</p>
+                <p><span className="font-bold">Điện thoại:</span> 0913006207</p>
+            </div>
+        )}
+
+        {/* --- FORM THƯỜNG --- */}
+        {!isResidence && (
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Loại dịch vụ</label>
+                    <select value={selectedType} onChange={handleTypeChange} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                    {Object.keys(SERVICE_MAPPING).map(key => <option key={key} value={key}>{key}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Nội dung</label>
+                    <select value={selectedContent} onChange={(e) => setSelectedContent(e.target.value)} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                    {currentConfig.contents.map(content => <option key={content} value={content}>{content}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Bên xử lý</label>
+                    <input type="text" value={currentConfig.handler} readOnly className="w-full p-3 bg-gray-50 border border-gray-200 text-gray-500 rounded-lg focus:outline-none" />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Ghi chú</label>
+                    <input type="text" placeholder="Enter here" value={note} onChange={(e) => setNote(e.target.value)} className="w-full p-3 bg-white border border-gray-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+            </div>
+        )}
+
+        {/* --- FORM KHAI BÁO TẠM TRÚ (GIỐNG ẢNH) --- */}
+        {isResidence && (
+            <div className="space-y-4">
+                {/* Chọn loại dịch vụ để có thể quay lại */}
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Loại dịch vụ đang chọn</label>
+                    <select value={selectedType} onChange={handleTypeChange} className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg mb-4">
+                        {Object.keys(SERVICE_MAPPING).map(key => <option key={key} value={key}>{key}</option>)}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Họ và tên</label>
+                    <input name="fullName" value={residenceForm.fullName} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Giới tính</label>
+                    <input name="gender" placeholder="Enter here" value={residenceForm.gender} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Ngày sinh</label>
+                    <input type="date" name="dob" value={residenceForm.dob} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">CCCD</label>
+                    <input name="cccd" value={residenceForm.cccd} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">Ngày bắt đầu tạm trú</label>
+                        <input type="date" name="startDate" value={residenceForm.startDate} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">Ngày kết thúc tạm trú</label>
+                        <input type="date" name="endDate" value={residenceForm.endDate} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Lý do/ mục đích tạm trú</label>
+                    <input name="reason" value={residenceForm.reason} onChange={handleResidenceChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+            </div>
+        )}
+
         <div className="mt-8 flex justify-end">
-          <button onClick={handleSubmit} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg transition-all">Xác nhận</button>
+          <button onClick={handleSubmit} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg transition-all">
+            Xác nhận
+          </button>
         </div>
       </div>
     </div>
@@ -242,8 +336,6 @@ export const ResidentService = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [modalState, setModalState] = useState({ type: null, isOpen: false, title: "" });
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  
-  // State cho Modal Chi Tiết
   const [selectedService, setSelectedService] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
@@ -308,7 +400,8 @@ export const ResidentService = () => {
     }
   };
 
-  const handleRegisterSubmit = async (formData) => {
+  // --- XỬ LÝ SUBMIT (TẠO DỊCH VỤ HOẶC FORM TẠM TRÚ) ---
+  const handleRegisterSubmit = async (payload) => {
     setIsRegisterModalOpen(false);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -316,25 +409,55 @@ export const ResidentService = () => {
         alert("Vui lòng đăng nhập lại để lấy thông tin căn hộ.");
         return;
       }
-      await axios.post(`${API_BASE_URL}/services`, {
-        apartment_id: user.apartment_id,
-        service_type: formData.service_type,
-        content: formData.content,
-        note: formData.note
-      });
+
+      if (payload.isResidence) {
+        // --- XỬ LÝ KHAI BÁO TẠM TRÚ (2 BƯỚC) ---
+        // B1: Tạo Service Request
+        const serviceRes = await axios.post(`${API_BASE_URL}/services`, {
+            apartment_id: user.apartment_id,
+            service_type: payload.service_type,
+            content: payload.content,
+            note: "Yêu cầu khai báo tạm trú"
+        });
+
+        const serviceId = serviceRes.data.service_id;
+
+        // B2: Tạo Form chi tiết gắn với Service ID vừa tạo
+        const formData = payload.formData;
+        await axios.post(`${API_BASE_URL}/forms`, {
+            service_id: serviceId,
+            apartment_id: user.apartment_id,
+            full_name: formData.fullName,
+            cccd: formData.cccd,
+            dob: formData.dob,
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            note: formData.reason // Lưu lý do vào note của form
+            // Backend chưa hỗ trợ trường 'gender' trong bảng Forms nên ta tạm bỏ qua hoặc lưu vào note nếu cần
+        });
+
+      } else {
+        // --- XỬ LÝ DỊCH VỤ THƯỜNG ---
+        await axios.post(`${API_BASE_URL}/services`, {
+          apartment_id: user.apartment_id,
+          service_type: payload.service_type,
+          content: payload.content,
+          note: payload.note
+        });
+      }
+
       await fetchServices();
       setTimeout(() => {
-        setModalState({ type: "success", isOpen: true, title: "Đăng ký dịch vụ thành công!" });
+        setModalState({ type: "success", isOpen: true, title: "Đăng ký thành công!" });
       }, 300);
     } catch (e) {
       console.error(e);
       setTimeout(() => {
-        setModalState({ type: "error", isOpen: true, title: "Đăng ký dịch vụ thất bại!" });
+        setModalState({ type: "error", isOpen: true, title: "Đăng ký thất bại!" });
       }, 300);
     }
   };
 
-  // Mở modal chi tiết
   const handleViewDetail = (service) => {
     setSelectedService(service);
     setIsDetailModalOpen(true);
@@ -436,7 +559,6 @@ export const ResidentService = () => {
         )}
       </div>
 
-      {/* --- MODALS --- */}
       <RegisterServiceModal 
         isOpen={isRegisterModalOpen} 
         onClose={() => setIsRegisterModalOpen(false)} 
@@ -451,7 +573,6 @@ export const ResidentService = () => {
         onConfirm={executeDelete} 
       />
 
-      {/* Modal Chi tiết Dịch vụ */}
       <ServiceDetailModal 
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
