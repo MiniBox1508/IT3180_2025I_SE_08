@@ -221,24 +221,26 @@ const InvoiceFormModal = ({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="state"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Trạng thái
-            </label>
-            <select
-              id="state"
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-            >
-              <option value={0}>Chưa thanh toán</option>
-              <option value={1}>Đã thanh toán</option>
-            </select>
-          </div>
+          {isEditing && (
+            <div>
+              <label
+                htmlFor="state"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Trạng thái
+              </label>
+              <select
+                id="state"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              >
+                <option value={0}>Chưa thanh toán</option>
+                <option value={1}>Đã thanh toán</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-4 pt-4">
             <button
