@@ -5,7 +5,27 @@ import dayjs from "dayjs";
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- ICONS & COMPONENTS (Giữ nguyên giao diện) ---
+// --- CẤU HÌNH DỊCH VỤ (Mapping Logic) ---
+// Key là giá trị hiển thị/logic, value là cấu hình chi tiết
+const SERVICE_MAPPING = {
+  "Dịch vụ chung cư": {
+    backendValue: "Dịch vụ trung cư", // Giá trị gửi về BE (khớp app.js)
+    contents: ["Làm thẻ xe", "Sửa chữa căn hộ", "Vận chuyển đồ", "Dọn dẹp căn hộ"],
+    handler: "Ban quản trị"
+  },
+  "Khiếu nại": {
+    backendValue: "Khiếu nại",
+    contents: ["tài sản chung", "mất tài sản"],
+    handler: "Công an"
+  },
+  "Khai báo tạm trú": {
+    backendValue: "Khai báo tạm trú",
+    contents: ["Khai báo thông tin"],
+    handler: "Ban quản trị"
+  }
+};
+
+// --- ICONS & COMPONENTS ---
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -24,14 +44,13 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Icon Tam giác cảnh báo
+// Icons cho Modal thông báo
 const WarningIcon = () => (
   <div className="w-20 h-20 mx-auto mb-4 border-4 border-red-500 rounded-full flex items-center justify-center">
       <span className="text-5xl text-red-500 font-bold">!</span>
   </div>
 );
 
-// Icon Dấu tích xanh
 const SuccessIcon = () => (
   <div className="w-20 h-20 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +59,6 @@ const SuccessIcon = () => (
   </div>
 );
 
-// Icon Dấu X đỏ
 const ErrorIcon = () => (
   <div className="w-20 h-20 mx-auto mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-red-600">
@@ -49,7 +67,109 @@ const ErrorIcon = () => (
   </div>
 );
 
-// Modal Component
+// --- COMPONENT: MODAL ĐĂNG KÝ DỊCH VỤ (FORM) ---
+const RegisterServiceModal = ({ isOpen, onClose, onSubmit }) => {
+  const [selectedType, setSelectedType] = useState("Dịch vụ chung cư");
+  const [selectedContent, setSelectedContent] = useState(SERVICE_MAPPING["Dịch vụ chung cư"].contents[0]);
+  const [note, setNote] = useState("");
+
+  // Khi thay đổi loại dịch vụ, tự động reset nội dung về mục đầu tiên của loại đó
+  const handleTypeChange = (e) => {
+    const newType = e.target.value;
+    setSelectedType(newType);
+    setSelectedContent(SERVICE_MAPPING[newType].contents[0]);
+  };
+
+  const handleSubmit = () => {
+    const payload = {
+      // Lấy giá trị backendValue để gửi ("Dịch vụ trung cư" thay vì "Dịch vụ chung cư")
+      service_type: SERVICE_MAPPING[selectedType].backendValue,
+      content: selectedContent,
+      note: note
+    };
+    onSubmit(payload);
+  };
+
+  if (!isOpen) return null;
+
+  const currentConfig = SERVICE_MAPPING[selectedType];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
+        <button onClick={onClose} className="absolute top-6 right-6 p-1 rounded-full hover:bg-gray-100 transition-colors">
+          <CloseIcon />
+        </button>
+        
+        <h2 className="text-xl font-bold text-gray-800 mb-6">Đăng ký dịch vụ</h2>
+
+        <div className="space-y-4">
+          {/* 1. Loại dịch vụ */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Loại dịch vụ</label>
+            <select 
+              value={selectedType}
+              onChange={handleTypeChange}
+              className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            >
+              {Object.keys(SERVICE_MAPPING).map(key => (
+                <option key={key} value={key}>{key}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Nội dung */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Nội dung</label>
+            <select 
+              value={selectedContent}
+              onChange={(e) => setSelectedContent(e.target.value)}
+              className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            >
+              {currentConfig.contents.map(content => (
+                <option key={content} value={content}>{content}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Bên xử lý (Readonly) */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Bên xử lý</label>
+            <input 
+              type="text" 
+              value={currentConfig.handler} 
+              readOnly 
+              className="w-full p-3 bg-gray-50 border border-gray-200 text-gray-500 rounded-lg focus:outline-none"
+            />
+          </div>
+
+          {/* 4. Ghi chú */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Ghi chú</label>
+            <input 
+              type="text" 
+              placeholder="Enter here"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full p-3 bg-white border border-gray-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-end">
+          <button 
+            onClick={handleSubmit}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg transition-all"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENT: MODAL THÔNG BÁO (Confirm, Success, Error) ---
 const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -82,21 +202,26 @@ export const ResidentService = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  
+  // States cho Modals
   const [modalState, setModalState] = useState({ type: null, isOpen: false, title: "" });
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  // --- FETCH DATA (Dùng API by-apartment) ---
+  // --- FETCH DATA ---
   const fetchServices = async () => {
     setIsLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id) throw new Error("Không tìm thấy thông tin căn hộ");
 
-      // Gọi API lấy dịch vụ theo căn hộ (theo logic app.js mới)
+      // Gọi API lấy dịch vụ theo căn hộ
       const response = await axios.get(`${API_BASE_URL}/services/by-apartment/${user.apartment_id}`);
-      setServices(response.data);
+      // Sort mới nhất lên đầu
+      const sortedData = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setServices(sortedData);
     } catch (error) {
       console.error("Lỗi tải dịch vụ:", error);
-      setServices([]); // Reset về mảng rỗng nếu lỗi
+      setServices([]);
     } finally {
       setIsLoading(false);
     }
@@ -132,26 +257,24 @@ export const ResidentService = () => {
   const executeDelete = async () => {
     setModalState({ ...modalState, isOpen: false });
     try {
-      // Gọi API xóa
       await Promise.all(selectedIds.map(id => axios.delete(`${API_BASE_URL}/services/${id}`)));
-      
-      await fetchServices(); // Reload
-      
+      await fetchServices();
       setTimeout(() => {
         setModalState({ type: "success", isOpen: true, title: "Xóa đăng ký thành công!" });
       }, 300);
       setIsDeleteMode(false);
       setSelectedIds([]);
     } catch (error) {
-      console.error(error);
       setTimeout(() => {
         setModalState({ type: "error", isOpen: true, title: "Xóa đăng ký không thành công!" });
       }, 300);
     }
   };
 
-  // --- CREATE MOCK (Để test tính năng thêm) ---
-  const handleCreateMockService = async () => {
+  // --- XỬ LÝ ĐĂNG KÝ DỊCH VỤ ---
+  const handleRegisterSubmit = async (formData) => {
+    setIsRegisterModalOpen(false); // Đóng form nhập liệu trước
+    
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id) {
@@ -159,19 +282,26 @@ export const ResidentService = () => {
         return;
       }
 
-      // Payload phải đúng chuẩn SERVICE_CONFIG trong app.js
       await axios.post(`${API_BASE_URL}/services`, {
         apartment_id: user.apartment_id,
-        service_type: "Dịch vụ trung cư", // Bắt buộc phải đúng tên này
-        content: "Làm thẻ xe", // Bắt buộc phải nằm trong allowedContents
-        note: "Đăng ký mới"
+        service_type: formData.service_type,
+        content: formData.content,
+        note: formData.note
       });
       
-      await fetchServices();
-      alert("Đã gửi yêu cầu 'Làm thẻ xe' thành công!");
+      await fetchServices(); // Reload list
+      
+      // Hiện popup thành công
+      setTimeout(() => {
+        setModalState({ type: "success", isOpen: true, title: "Đăng ký dịch vụ thành công!" });
+      }, 300);
+
     } catch (e) {
       console.error(e);
-      alert("Lỗi: " + (e.response?.data?.error || e.message));
+      // Hiện popup thất bại
+      setTimeout(() => {
+        setModalState({ type: "error", isOpen: true, title: "Đăng ký dịch vụ thất bại!" });
+      }, 300);
     }
   };
 
@@ -182,6 +312,7 @@ export const ResidentService = () => {
 
   return (
     <div className="w-full min-h-screen text-gray-800">
+      {/* Search Bar */}
       <div className="flex justify-start items-center mb-8">
         <div className="relative w-full max-w-2xl bg-white rounded-lg overflow-hidden shadow-sm">
           <span className="absolute left-4 top-1/2 -translate-y-1/2"><SearchIcon /></span>
@@ -189,17 +320,30 @@ export const ResidentService = () => {
         </div>
       </div>
 
+      {/* Buttons */}
       <div className="flex justify-between items-end mb-6">
         <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
         <div className="flex space-x-3">
           {!isDeleteMode ? (
             <>
-              {/* Nút này tạm thời gọi hàm tạo mẫu để bạn thấy dữ liệu */}
-              <button onClick={handleCreateMockService} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors text-sm">
+              {/* Nút mở Modal Đăng ký */}
+              <button 
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors text-sm"
+              >
                 <PlusIcon /> Đăng ký dịch vụ
               </button>
-              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm">Phản ánh dịch vụ</button>
-              <button onClick={toggleDeleteMode} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm">Xóa dịch vụ</button>
+              
+              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm">
+                Phản ánh dịch vụ
+              </button>
+              
+              <button 
+                onClick={toggleDeleteMode} 
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm"
+              >
+                Xóa dịch vụ
+              </button>
             </>
           ) : (
             <>
@@ -210,6 +354,7 @@ export const ResidentService = () => {
         </div>
       </div>
 
+      {/* List Services */}
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <p className="text-white text-center">Đang tải...</p>
@@ -234,14 +379,12 @@ export const ResidentService = () => {
                 </div>
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
-                  {/* Field backend là 'servicestatus', không phải 'status' */}
                   <p className={`text-sm font-bold ${item.servicestatus === "Đã xử lý" ? "text-green-500" : "text-gray-800"}`}>
                     {item.servicestatus || "Đã ghi nhận"}
                   </p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Ngày xử lý</p>
-                  {/* Field backend là 'handle_date' */}
                   <p className="text-sm font-semibold text-gray-900">
                     {item.handle_date ? dayjs(item.handle_date).format("DD/MM/YYYY") : "----------"}
                   </p>
@@ -261,7 +404,22 @@ export const ResidentService = () => {
         )}
       </div>
 
-      <CustomModal isOpen={modalState.isOpen} onClose={() => setModalState({...modalState, isOpen: false})} type={modalState.type} title={modalState.title} onConfirm={executeDelete} />
+      {/* --- MODALS --- */}
+      {/* 1. Modal Form Đăng ký */}
+      <RegisterServiceModal 
+        isOpen={isRegisterModalOpen} 
+        onClose={() => setIsRegisterModalOpen(false)} 
+        onSubmit={handleRegisterSubmit}
+      />
+
+      {/* 2. Modal Thông báo (Success/Error/Warning) */}
+      <CustomModal 
+        isOpen={modalState.isOpen} 
+        onClose={() => setModalState({...modalState, isOpen: false})} 
+        type={modalState.type} 
+        title={modalState.title} 
+        onConfirm={executeDelete} 
+      />
     </div>
   );
 };
