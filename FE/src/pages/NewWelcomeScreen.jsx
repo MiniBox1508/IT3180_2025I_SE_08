@@ -159,7 +159,7 @@ export const NewWelcomeScreen = () => {
 
       {/* --- MODAL QUÊN MẬT KHẨU (NỘI DUNG GIỐNG HỆT ẢNH) --- */}
       {isForgotPasswordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-opacity-50 backdrop-blur-sm transition-opacity duration-300">
           <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl transform transition-all scale-100">
             
             {/* Header 1 */}
