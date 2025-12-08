@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom"; 
 
 // --- API CONFIG ---
-const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app/";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- ICONS ---
 const SearchIcon = () => (
