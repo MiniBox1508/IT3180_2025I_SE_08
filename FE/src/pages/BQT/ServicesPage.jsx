@@ -146,7 +146,9 @@ const ServicesPage = () => {
                     Ngày xử lý
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {item.handle_date}
+                    {item.handle_date
+                      ? new Date(item.handle_date).toLocaleDateString("vi-VN")
+                      : ""}
                   </div>
                 </div>
                 {/* Action */}
