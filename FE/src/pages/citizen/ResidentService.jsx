@@ -681,6 +681,8 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
 
 // --- MAIN PAGE ---
 const ResidentService = () => {
+    // --- FEEDBACK SELECTION MODE STATE ---
+    const [isFeedbackMode, setIsFeedbackMode] = useState(false);
   // --- FEEDBACK MODAL STATE & HANDLERS ---
   const [feedbackModal, setFeedbackModal] = useState({
     isOpen: false,
@@ -947,23 +949,35 @@ const ResidentService = () => {
         <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
         <div className="flex space-x-3">
           {!isDeleteMode ? (
-            <>
+            !isFeedbackMode ? (
+              <>
+                <button
+                  onClick={() => setIsRegisterModalOpen(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors text-sm"
+                >
+                  <PlusIcon /> Đăng ký dịch vụ
+                </button>
+                <button
+                  onClick={() => setIsFeedbackMode(true)}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm"
+                >
+                  Phản ánh dịch vụ
+                </button>
+                <button
+                  onClick={toggleDeleteMode}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm"
+                >
+                  Xóa dịch vụ
+                </button>
+              </>
+            ) : (
               <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors text-sm"
+                onClick={() => setIsFeedbackMode(false)}
+                className="bg-gray-400 text-white rounded-md px-4 py-2 font-bold shadow-lg transition-colors text-sm"
               >
-                <PlusIcon /> Đăng ký dịch vụ
+                Quay lại
               </button>
-              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm">
-                Phản ánh dịch vụ
-              </button>
-              <button
-                onClick={toggleDeleteMode}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm"
-              >
-                Xóa dịch vụ
-              </button>
-            </>
+            )
           ) : (
             <>
               <button
@@ -1050,20 +1064,29 @@ const ResidentService = () => {
                 </div>
                 <div className="col-span-2 flex justify-end items-center">
                   {!isDeleteMode ? (
-                    <>
-                      <button
-                        onClick={() => handleViewDetail(item)}
-                        className="text-blue-500 font-bold text-xs hover:underline"
-                      >
-                        Xem thêm chi tiết
-                      </button>
-                      <button
+                    !isFeedbackMode ? (
+                      <>
+                        <button
+                          onClick={() => handleViewDetail(item)}
+                          className="text-blue-500 font-bold text-xs hover:underline"
+                        >
+                          Xem thêm chi tiết
+                        </button>
+                        <button
+                          onClick={() => handleOpenFeedbackModal(item)}
+                          className="text-blue-500 font-bold text-xs hover:underline hover:text-blue-700 transition-colors ml-4"
+                        >
+                          Phản ánh dịch vụ
+                        </button>
+                      </>
+                    ) : (
+                      <span
+                        className="ml-auto text-green-600 underline cursor-pointer font-bold"
                         onClick={() => handleOpenFeedbackModal(item)}
-                        className="text-blue-500 font-bold text-xs hover:underline hover:text-blue-700 transition-colors ml-4"
                       >
                         Phản ánh dịch vụ
-                      </button>
-                    </>
+                      </span>
+                    )
                   ) : (
                     <div
                       onClick={() => handleSelect(item.id)}
