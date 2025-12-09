@@ -1,60 +1,66 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+// === Import Layout
 import { StatusModal } from "../../layouts/StatusModal";
-import { ConfirmationModal } from "../../layouts/ConfirmationModal"; // <<< THÊM: Import modal xác nhận
+import { ConfirmationModal } from "../../layouts/ConfirmationModal";
+// === Import Icons Components
 import { FiCheckCircle, FiXCircle } from "react-icons/fi";
-
-const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
-
+// === Import Icon Images
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
+// === Khai báo API Base URL
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// =========================================================================
-// === COMPONENT: PAYMENT FORM MODAL (ADD NEW) ===
-// (Giữ nguyên không đổi)
-// =========================================================================
+// ====================================================
+
+// === COMPONENT: PAYMENT FORM MODAL ===
 const PaymentFormModal = ({
-  isOpen,
-  onClose,
-  onSave,
-  residentOptions,
-  error,
-  setError,
+  isOpen, // Boolean xác định đóng/mở modal
+  onClose, // Hàm gọi khi đóng modal
+  onSave, // Hàm gọi khi tạo thanh toán thành công
+  residentOptions, // Mảng chứa danh sách cư dân để hiển thị trong select
+  error, // state lỗi từ component cha
+  setError, // hàm cập nhật state lỗi từ component cha
 }) => {
+  // Tạo state form dữ liệu
   const [formData, setFormData] = useState({
-    resident_id: residentOptions[0]?.id || "", // Mặc định chọn resident đầu tiên
-    amount: "",
-    feetype: "",
-    payment_form: "Chuyển khoản QR", // Mặc định là Chuyển khoản QR
+    resident_id: residentOptions[0]?.id || "", // Mặc định chọn resident_id đầu tiên, nếu danh sách rỗng thì để chuỗi rỗng
+    amount: "", // Khởi tạo thuộc tính số tiền rỗng
+    feetype: "", // Khởi tạo thuộc tính loại phí rỗng
+    payment_form: "Chuyển khoản QR", // Khởi tạo hình thức thanh toán với mặc định là Chuyển khoản QR
   });
 
   useEffect(() => {
+    //Kiểm tra đồng thời modal được mở, có ít nhất 1 cư dân trong residentOptions và resident_id chưa được set
     if (isOpen && residentOptions.length > 0 && !formData.resident_id) {
-      // Đặt resident_id mặc định khi mở modal lần đầu nếu chưa có
+      // Tạo 1 bản sao của formData cũ và cập nhật resident_id thành ID của cư dân đầu tiên trong danh sách
       setFormData((prev) => ({ ...prev, resident_id: residentOptions[0].id }));
     }
-  }, [isOpen, residentOptions, formData.resident_id]);
+  }, [isOpen, residentOptions, formData.resident_id]); //useEffect sẽ chạy lại mảng phụ thuộc gồm isOpen, residentOptions và formData.resident_id thay đổi
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Hàm xử lý thay đổi trong form
+    const { name, value } = e.target; // Lấy tên và giá trị của trường thay đổi target (input/select)
+    setFormData((prev) => ({ ...prev, [name]: value })); //Cập nhật state formData với giá trị mới
   };
 
+  // Hàm xử lý khi submit form
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); // Ngăn chặn hành vi mặc định của form (reload trang) do dùng SPA
+    setError(""); // Xoá các thông báo lỗi cũ, chỉ để hiển thị thông báo lỗi mới nhất
 
+    // Định dạng dữ liệu gửi lên API
     const dataToSend = {
-      resident_id: parseInt(formData.resident_id),
-      amount: parseFloat(formData.amount),
-      feetype: formData.feetype,
-      payment_form: formData.payment_form,
+      resident_id: parseInt(formData.resident_id), // Chuyển resident_id từ chuỗi sang kiểu số nguyên
+      amount: parseFloat(formData.amount), // Chuyển amount từ chuỗi sang kiểu số thực
+      feetype: formData.feetype, // Loại phí giữ nguyên kiểu chuỗi
+      payment_form: formData.payment_form, // Hình thức thanh toán giữ nguyên kiểu chuỗi
     };
 
-    // Kiểm tra trường bắt buộc
+    // Kiểm tra tính đúng đắn của trường dữ liệu trước khi gửi lên API
     if (
       !dataToSend.resident_id ||
-      isNaN(dataToSend.amount) ||
+      isNaN(dataToSend.amount) || // Kiểm tra amount có phải số không
       dataToSend.amount <= 0 ||
       !dataToSend.feetype
     ) {
@@ -62,65 +68,83 @@ const PaymentFormModal = ({
       return;
     }
 
+    // Gửi dữ liệu lên API
     try {
       // Gọi API POST /payment
       const response = await fetch(`${API_BASE_URL}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
+        // Gửi request tới endpoint tạo thanh toán được ghép từ API_BASE_URL và /payments
+        method: "POST", // Phương thức HTTP là POST để tạo mới
+        headers: { "Content-Type": "application/json" }, // Thiết lập header để thông báo gửi dữ liệu ở định dạng JSON
+        body: JSON.stringify(dataToSend), // Chuyển đổi đối tượng dataToSend thành chuỗi JSON để gửi trong nội dung (body) của request
       });
 
+      // Đọc phản hồi (Response) từ API và chuyển đổi nó thành đối tượng JSON
       const result = await response.json();
 
+      // Kiểm tra nếu phản hồi không thành công
       if (!response.ok) {
-        throw new Error(result.error || "Lỗi khi tạo giao dịch thanh toán.");
+        const result = await response.json().catch(() => ({})); // Đọc phản hồi lỗi từ API, nếu không đọc được thì trả về đối tượng rỗng
+        throw new Error(result.error || "Lỗi khi tạo giao dịch thanh toán."); // Ném lỗi dạng thông báo từ API hoặc thông báo mặc định
       }
 
       // Mặc định là Chưa thanh toán (state = 0) ở BE, nên chỉ cần onSave để refresh danh sách
-      onSave();
-      onClose();
+      onSave(); // Gọi hàm onSave từ component cha để thông báo tạo thành công
+      onClose(); // Đóng modal tạo sau khi tạo thành công
     } catch (err) {
-      console.error("API Error:", err);
-      setError(err.message);
+      // Bắt lỗi nếu có lỗi xảy ra trong quá trình gọi API
+      console.error("API Error:", err); // In lỗi ra console để debug
+      setError(err.message); // Cập nhật state lỗi để hiển thị thông báo lỗi cho người dùng
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) return null; // Nếu modal không mở, không render gì cả
 
   return (
+    // Overlay nền mờ
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+      {/* Modal chính */}
       <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
+        {/* Hiển thị tiêu đề modal tạo thanh toán mới*/}
         <h2 className="text-lg font-bold mb-4">Tạo thanh toán mới</h2>
-        {error && (
+        {error && ( // Hiển thị giao diện dưới khi biến error có giá trị (khác rỗng)
           <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
+            {" "}
+            {/* Hộp thông báo lỗi với nền đỏ nhạt */}
             {error}
           </div>
         )}
 
+        {/* Form nhập dữ liệu */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 1. Resident ID (Select) */}
+          {/* 1. Resident ID */}
           <div>
+            {/* Thẻ cho trường Resident ID */}
             <label className="mb-1 text-sm font-medium text-gray-700 block">
               Cư dân (ID)
             </label>
-            <select
+            <select // Thẻ chọn thả xuống cho danh sách cư dân
               name="resident_id"
               value={formData.resident_id}
               onChange={handleChange}
               className="p-2 border border-gray-300 rounded text-sm w-full bg-white text-gray-900 focus:border-blue-500"
-              required
+              required // Bắt buộc người dùng chọn cư dân
             >
-              {residentOptions.map((res) => (
-                <option
-                  key={res.id}
-                  value={res.id}
-                >{`${res.full_name} (ID: ${res.id})`}</option>
-              ))}
+              {residentOptions.map(
+                (
+                  res // Lặp qua danh sách cư dân để tạo các thẻ chọn
+                ) => (
+                  <option
+                    key={res.id} // Sử dụng ID cư dân làm khóa duy nhất
+                    value={res.id} // Giá trị của thẻ chọn (được lưu vào state) là ID cư dân
+                  >{`${res.full_name} (ID: ${res.id})`}</option> // Nội dung văn bản hiển thị cho người dùng là tên cư dân và ID
+                )
+              )}
             </select>
           </div>
 
           {/* 2. Amount */}
           <div>
+            {/* Thẻ cho trường Số tiền */}
             <label className="mb-1 text-sm font-medium text-gray-700 block">
               Số tiền (VND)
             </label>
@@ -128,16 +152,17 @@ const PaymentFormModal = ({
               type="number"
               name="amount"
               value={formData.amount}
-              onChange={handleChange}
+              onChange={handleChange} // Hàm cập nhật state formData khi người dùng nhập số tiền mới
               placeholder="Ví dụ: 350000"
               className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
-              required
+              required // Bắt buộc người dùng nhập số tiền
               min="1"
             />
           </div>
 
           {/* 3. Fee Type */}
           <div>
+            {/* Thẻ cho trường Loại phí */}
             <label className="mb-1 text-sm font-medium text-gray-700 block">
               Loại phí
             </label>
@@ -145,35 +170,41 @@ const PaymentFormModal = ({
               type="text"
               name="feetype"
               value={formData.feetype}
-              onChange={handleChange}
+              onChange={handleChange} // Hàm cập nhật state formData khi người dùng nhập loại phí mới
               placeholder="Ví dụ: Phí quản lý tháng 12"
               className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
-              required
+              required // Bắt buộc người dùng nhập loại phí
             />
           </div>
 
           {/* 4. Payment Form (chỉ để hiển thị cho API) */}
           <div>
+            {/* Thẻ cho trường Hình thức TT dự kiến */}
             <label className="mb-1 text-sm font-medium text-gray-700 block">
               Hình thức TT dự kiến (Mặc định)
             </label>
             <select
               name="payment_form"
               value={formData.payment_form}
-              onChange={handleChange}
+              onChange={handleChange} // Hàm cập nhật state formData khi người dùng chọn hình thức thanh toán mới
               className="p-2 border border-gray-300 rounded text-sm w-full bg-gray-100 text-gray-600 cursor-default"
-              disabled
+              disabled // Chỉ để hiển thị, không cho phép người dùng thay đổi
             >
+              {/* Các tùy chọn hình thức thanh toán khác */}
               <option value="Chuyển khoản QR">Chuyển khoản QR</option>
               <option value="Tiền mặt">Tiền mặt</option>
               <option value="Chưa xác định">Chưa xác định</option>
             </select>
+            {/* Thông báo cho người dùng thanh toán mới luôn có trạng thái Chưa thanh toán */}
             <p className="text-xs text-gray-500 mt-1">
               Giao dịch mới luôn có trạng thái: **Chưa thanh toán**.
             </p>
           </div>
-
+          {/* Nút Hủy và Tạo Giao Dịch */}
           <div className="flex justify-end space-x-4 pt-4">
+            {" "}
+            {/* Khung chứa hai nút trên cùng một hàng */}
+            {/* Nút Hủy */}
             <button
               type="button"
               onClick={onClose}
@@ -181,6 +212,7 @@ const PaymentFormModal = ({
             >
               Hủy
             </button>
+            {/* Nút Tạo Giao Dịch */}
             <button
               type="submit"
               className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors"
@@ -194,10 +226,9 @@ const PaymentFormModal = ({
   );
 };
 
-// =========================================================================
+// ====================================================
+
 // === COMPONENT: CHANGE STATUS MODAL ===
-// (Giữ nguyên không đổi)
-// =========================================================================
 const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   const [newStatus, setNewStatus] = useState(null);
 
@@ -271,9 +302,9 @@ const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
   );
 };
 
-// =========================================================================
+// ===================================================
+
 // === COMPONENT: PAYMENT ITEM (ĐÃ SỬA) ===
-// =========================================================================
 const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
   // <<< THÊM: isDeleteMode, onDeleteClick
   const navigate = useNavigate();
@@ -341,9 +372,8 @@ const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
   );
 };
 
-// =========================================================================
+// ====================================================
 // === COMPONENT: TRANG THANH TOÁN CHÍNH (ĐÃ SỬA) ===
-// =========================================================================
 const PaymentPage = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const userName = user?.full_name || "Ban quản trị";
