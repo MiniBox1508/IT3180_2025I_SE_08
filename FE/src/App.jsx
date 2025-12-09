@@ -78,7 +78,7 @@ export default function App() {
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
-          <Route path="reports" element={<ReportPage />} />
+          <Route path="reports" element={<Report />} />
           <Route path="payments">
             <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
