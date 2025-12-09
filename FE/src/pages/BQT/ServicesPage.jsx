@@ -14,7 +14,7 @@ const ServicesPage = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch("/services");
+        const res = await fetch(`${API_BASE_URL}/services`);
         const data = await res.json();
         setServices(Array.isArray(data) ? data : []);
       } catch (err) {
