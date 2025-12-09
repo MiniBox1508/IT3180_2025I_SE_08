@@ -3,6 +3,7 @@ const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 const statusColor = {
   "Đã xử lý": "text-green-600 font-bold",
+  "Đã ghi nhận": "text-gray-800 font-bold", // Thêm màu cho trạng thái mặc định
   "Chưa xử lý": "text-red-500 font-bold",
   "Đang chờ": "text-yellow-500 font-bold",
 };
@@ -22,7 +23,11 @@ const ServicesPage = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/services`);
         const data = await res.json();
-        setServices(Array.isArray(data) ? data : []);
+        // Sắp xếp mới nhất lên đầu
+        const sortedData = Array.isArray(data)
+          ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          : [];
+        setServices(sortedData);
       } catch (err) {
         setServices([]);
       }
@@ -36,25 +41,6 @@ const ServicesPage = () => {
       String(item.id).includes(search)
   );
 
-  // Hàm phản ánh dịch vụ
-  const handleReportService = async (id) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/services/${id}/report`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ service_id: id }),
-      });
-      const data = await res.json();
-      if (data.message) {
-        alert("Phản ánh dịch vụ thành công!");
-      } else {
-        alert(data.error || "Phản ánh thất bại");
-      }
-    } catch (err) {
-      alert("Phản ánh thất bại");
-    }
-  };
-
   // Multi-Select Delete logic
   const handleToggleSelect = (id) => {
     setSelectedServices((prev) =>
@@ -64,9 +50,7 @@ const ServicesPage = () => {
 
   const handleDeleteSelected = async () => {
     setShowConfirmModal(false);
-    // Simulate API call
     try {
-      // Xóa tuần tự từng service, có thể thay bằng Promise.all nếu BE hỗ trợ
       for (const id of selectedServices) {
         await fetch(`${API_BASE_URL}/services/${id}`, { method: "DELETE" });
       }
@@ -74,7 +58,12 @@ const ServicesPage = () => {
       // Reload lại danh sách
       const resReload = await fetch(`${API_BASE_URL}/services`);
       const dataReload = await resReload.json();
-      setServices(Array.isArray(dataReload) ? dataReload : []);
+      const sortedReload = Array.isArray(dataReload)
+        ? dataReload.sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          )
+        : [];
+      setServices(sortedReload);
       setSelectedServices([]);
       setIsDeleteMode(false);
     } catch {
@@ -132,9 +121,6 @@ const ServicesPage = () => {
             <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
             {!isDeleteMode ? (
               <div className="flex gap-3">
-                {/* <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow">
-                  Phản hồi
-                </button> */}
                 <button
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
                   onClick={() => setIsDeleteMode(true)}
@@ -203,22 +189,23 @@ const ServicesPage = () => {
                     {item.apartment_id}
                   </div>
                 </div>
-                {/* Status */}
+                {/* Status - SỬA item.status THÀNH item.servicestatus */}
                 <div className="col-span-2">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Trạng thái
                   </div>
                   <div
                     className={
-                      statusColor[item.status] || "text-gray-800 font-bold"
+                      statusColor[item.servicestatus] ||
+                      "text-gray-800 font-bold"
                     }
                   >
-                    {item.status}
+                    {item.servicestatus || "Đã ghi nhận"}
                   </div>
                   <div className="mt-1">
                     <select
                       className="text-xs border rounded px-2 py-1"
-                      value={item.status}
+                      value={item.servicestatus || "Đã ghi nhận"}
                       onChange={async (e) => {
                         const newStatus = e.target.value;
                         try {
@@ -240,9 +227,14 @@ const ServicesPage = () => {
                               `${API_BASE_URL}/services`
                             );
                             const dataReload = await resReload.json();
-                            setServices(
-                              Array.isArray(dataReload) ? dataReload : []
-                            );
+                            const sortedReload = Array.isArray(dataReload)
+                              ? dataReload.sort(
+                                  (a, b) =>
+                                    new Date(b.created_at) -
+                                    new Date(a.created_at)
+                                )
+                              : [];
+                            setServices(sortedReload);
                           } else {
                             alert(data.error || "Cập nhật thất bại");
                           }
@@ -264,13 +256,18 @@ const ServicesPage = () => {
                   <div className="font-semibold text-gray-900">
                     {item.handle_date
                       ? new Date(item.handle_date).toLocaleDateString("vi-VN")
-                      : ""}
+                      : "----------"}
                   </div>
                 </div>
-                {/* Phản ánh dịch vụ */}
+                {/* Phản ánh dịch vụ - HIỂN THỊ TÌNH TRẠNG PHẢN HỒI Ở DƯỚI */}
                 <div className="col-span-2">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Phản ánh dịch vụ
+                  </div>
+                  <div className="font-bold text-gray-900">
+                    {!item.problems || item.problems === "Ko vấn đề"
+                      ? "----------"
+                      : item.problems}
                   </div>
                 </div>
                 {/* Action hoặc Checkbox Delete Mode */}
