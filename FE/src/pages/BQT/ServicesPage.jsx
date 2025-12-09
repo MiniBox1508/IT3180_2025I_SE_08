@@ -132,9 +132,9 @@ const ServicesPage = () => {
             <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
             {!isDeleteMode ? (
               <div className="flex gap-3">
-                <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow">
+                {/* <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow">
                   Phản hồi
-                </button>
+                </button> */}
                 <button
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
                   onClick={() => setIsDeleteMode(true)}
@@ -147,7 +147,9 @@ const ServicesPage = () => {
                 <button
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
                   disabled={selectedServices.length === 0}
-                  onClick={() => selectedServices.length > 0 && setShowConfirmModal(true)}
+                  onClick={() =>
+                    selectedServices.length > 0 && setShowConfirmModal(true)
+                  }
                 >
                   Xóa các mục đã chọn
                 </button>
@@ -279,79 +281,150 @@ const ServicesPage = () => {
                     </button>
                   ) : (
                     <div
-                      className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer select-none transition ${selectedServices.includes(item.id)
-                        ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer select-none transition ${
+                        selectedServices.includes(item.id)
+                          ? "bg-blue-500"
+                          : "bg-gray-300"
+                      }`}
                       onClick={() => handleToggleSelect(item.id)}
                     >
                       {selectedServices.includes(item.id) ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-5 h-5 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       ) : null}
                     </div>
                   )}
                 </div>
-                    {/* Confirm Delete Modal */}
-                    {showConfirmModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
-                          <div className="mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
-                            </svg>
-                          </div>
-                          <div className="text-xl font-bold text-center mb-6">Xóa các mục đã chọn</div>
-                          <div className="flex gap-4 w-full justify-center">
-                            <button
-                              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold shadow"
-                              onClick={() => setShowConfirmModal(false)}
-                            >
-                              Hoàn tác
-                            </button>
-                            <button
-                              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-bold shadow"
-                              onClick={handleDeleteSelected}
-                            >
-                              Xác nhận
-                            </button>
-                          </div>
-                        </div>
+                {/* Confirm Delete Modal */}
+                {showConfirmModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
+                      <div className="mb-4">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-16 h-16 text-red-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
+                          />
+                        </svg>
                       </div>
-                    )}
+                      <div className="text-xl font-bold text-center mb-6">
+                        Xóa các mục đã chọn
+                      </div>
+                      <div className="flex gap-4 w-full justify-center">
+                        <button
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold shadow"
+                          onClick={() => setShowConfirmModal(false)}
+                        >
+                          Hoàn tác
+                        </button>
+                        <button
+                          className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-bold shadow"
+                          onClick={handleDeleteSelected}
+                        >
+                          Xác nhận
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                    {/* Success Modal */}
-                    {showSuccessModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                          </svg>
-                          <div className="text-lg font-bold text-center mb-2">Xóa dịch vụ thành công!</div>
-                          <button
-                            className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
-                            onClick={() => setShowSuccessModal(false)}
-                          >Đóng</button>
-                        </div>
+                {/* Success Modal */}
+                {showSuccessModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-16 h-16 text-blue-500 mb-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12l2 2 4-4"
+                        />
+                      </svg>
+                      <div className="text-lg font-bold text-center mb-2">
+                        Xóa dịch vụ thành công!
                       </div>
-                    )}
+                      <button
+                        className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
+                        onClick={() => setShowSuccessModal(false)}
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                    {/* Error Modal */}
-                    {showErrorModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6m0-6l6 6" />
-                          </svg>
-                          <div className="text-lg font-bold text-center mb-2">Xóa dịch vụ không thành công!</div>
-                          <button
-                            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
-                            onClick={() => setShowErrorModal(false)}
-                          >Đóng</button>
-                        </div>
+                {/* Error Modal */}
+                {showErrorModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-16 h-16 text-red-500 mb-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 9l-6 6m0-6l6 6"
+                        />
+                      </svg>
+                      <div className="text-lg font-bold text-center mb-2">
+                        Xóa dịch vụ không thành công!
                       </div>
-                    )}
+                      <button
+                        className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
+                        onClick={() => setShowErrorModal(false)}
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
