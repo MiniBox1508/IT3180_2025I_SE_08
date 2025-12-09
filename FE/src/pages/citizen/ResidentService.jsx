@@ -2,6 +2,138 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 
+// --- FEEDBACK DROPDOWN & SUBMODAL ---
+const PROBLEM_OPTIONS = [
+  "Không vấn đề",
+  "Chi phí đắt",
+  "Phản hồi chậm",
+  "Thiếu chuyên nghiệp"
+];
+
+const CustomDropdown = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <div
+        className="border border-gray-300 rounded px-3 py-2 bg-white cursor-pointer flex items-center justify-between"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={value ? "text-gray-800" : "text-gray-400"}>
+          {value || "Chọn vấn đề"}
+        </span>
+        <svg className="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50">
+          {PROBLEM_OPTIONS.map((opt) => (
+            <div
+              key={opt}
+              className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${value === opt ? "bg-gray-100 font-bold" : ""}`}
+              onClick={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const RATING_OPTIONS = [
+  { value: "Rất hài lòng", desc: "Dịch vụ xuất sắc, vượt mong đợi" },
+  { value: "Hài lòng", desc: "Dịch vụ tốt, đáp ứng nhu cầu" },
+  { value: "Tạm ổn", desc: "Dịch vụ chấp nhận được" },
+  { value: "Không hài lòng", desc: "Cần cải thiện nhiều" }
+];
+
+const QualitySubModal = ({ value, onConfirm, onCancel }) => {
+  const [selected, setSelected] = useState(value);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-white rounded-2xl w-[90%] max-w-[400px] p-6 shadow-2xl relative">
+        <h3 className="text-lg font-bold mb-4">Đánh giá chất lượng dịch vụ</h3>
+        <div className="space-y-3 mb-6">
+          {RATING_OPTIONS.map(opt => (
+            <label key={opt.value} className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="radio"
+                className="mt-1 accent-blue-600"
+                checked={selected === opt.value}
+                onChange={() => setSelected(opt.value)}
+              />
+              <div>
+                <span className="font-semibold">{opt.value}</span>
+                <div className="text-xs text-gray-500">{opt.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded border border-red-500 text-red-500 font-bold hover:bg-red-50"
+          >
+            Hoàn tác
+          </button>
+          <button
+            onClick={() => onConfirm(selected)}
+            className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-700"
+            disabled={!selected}
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- FEEDBACK MODAL STATE ---
+
+function ResidentService(props) {
+
+  // ...existing code...
+
+  const [feedbackModal, setFeedbackModal] = useState({
+    isOpen: false,
+    service: null,
+    problem: "",
+    rating: "",
+    details: "",
+    isSubModalOpen: false,
+  });
+
+  const handleOpenFeedbackModal = (service) => {
+    setFeedbackModal({
+      isOpen: true,
+      service,
+      problem: "",
+      rating: "",
+      details: "",
+      isSubModalOpen: false,
+    });
+  };
+
+  const handleCloseFeedbackModal = () => {
+    setFeedbackModal((prev) => ({ ...prev, isOpen: false, isSubModalOpen: false }));
+  };
+
+  const handleOpenSubModal = () => {
+    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: true }));
+  };
+
+  const handleCloseSubModal = () => {
+    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: false }));
+  };
+
+  // ...existing code...
+
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -594,18 +726,118 @@ export const ResidentService = () => {
                 </div>
                 <div className="col-span-2 flex justify-end items-center">
                   {!isDeleteMode ? (
-                    <button 
-                      onClick={() => handleViewDetail(item)}
-                      className="text-blue-500 font-bold text-xs hover:underline"
-                    >
-                      Xem thêm chi tiết
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => handleViewDetail(item)}
+                        className="text-blue-500 font-bold text-xs hover:underline"
+                      >
+                        Xem thêm chi tiết
+                      </button>
+                      <button
+                        onClick={() => handleOpenFeedbackModal(item)}
+                        className="text-blue-500 font-bold text-xs hover:underline hover:text-blue-700 transition-colors ml-4"
+                      >
+                        Phản ánh dịch vụ
+                      </button>
+                    </>
                   ) : (
                     <div onClick={() => handleSelect(item.id)} className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${selectedIds.includes(item.id) ? "bg-blue-500 shadow-blue-500/50" : "bg-gray-300 hover:bg-gray-400"}`}>
                       {selectedIds.includes(item.id) && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>}
                     </div>
                   )}
                 </div>
+                    {/* --- MAIN FEEDBACK MODAL --- */}
+                    {feedbackModal.isOpen && (
+                      <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
+                        <div className="bg-white rounded-2xl w-[90%] max-w-lg p-6 shadow-2xl relative">
+                          {/* Close Button */}
+                          <button
+                            onClick={handleCloseFeedbackModal}
+                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100"
+                          >
+                            <CloseIcon />
+                          </button>
+                          {/* Title */}
+                          <h2 className="text-xl font-bold mb-4">Phản ánh dịch vụ</h2>
+                          {/* Service Info */}
+                          <div className="mb-4">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">ID Dịch vụ</label>
+                            <input
+                              className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 mb-2 cursor-not-allowed"
+                              value={feedbackModal.service?.id || ""}
+                              readOnly
+                            />
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Nội dung</label>
+                            <input
+                              className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 cursor-not-allowed"
+                              value={feedbackModal.service?.content || ""}
+                              readOnly
+                            />
+                          </div>
+                          {/* Problem Dropdown */}
+                          <div className="mb-4 relative">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Vấn đề</label>
+                            <CustomDropdown
+                              value={feedbackModal.problem}
+                              onChange={(val) => setFeedbackModal((prev) => ({ ...prev, problem: val }))}
+                            />
+                          </div>
+                          {/* Service Quality Rating Trigger */}
+                          <div className="mb-4">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Đánh giá chất lượng</label>
+                            <div
+                              className="w-full border border-gray-300 rounded px-3 py-2 bg-white cursor-pointer flex items-center justify-between"
+                              onClick={handleOpenSubModal}
+                            >
+                              <span className={feedbackModal.rating ? "text-gray-800" : "text-gray-400"}>
+                                {feedbackModal.rating || "Chọn mức độ hài lòng"}
+                              </span>
+                              <svg className="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </div>
+                          {/* Details */}
+                          <div className="mb-6">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Chi tiết</label>
+                            <textarea
+                              rows={4}
+                              className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                              value={feedbackModal.details}
+                              onChange={(e) => setFeedbackModal((prev) => ({ ...prev, details: e.target.value }))}
+                            />
+                          </div>
+                          {/* Footer */}
+                          <button
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all"
+                            onClick={() => {
+                              // Gửi feedback (API hoặc console)
+                              console.log({
+                                serviceId: feedbackModal.service?.id,
+                                problem: feedbackModal.problem,
+                                rating: feedbackModal.rating,
+                                details: feedbackModal.details,
+                              });
+                              handleCloseFeedbackModal();
+                            }}
+                          >
+                            Thêm
+                          </button>
+                          {/* Sub-Modal */}
+                          {feedbackModal.isSubModalOpen && (
+                            <QualitySubModal
+                              value={feedbackModal.rating}
+                              onConfirm={(val) => setFeedbackModal((prev) => ({ ...prev, rating: val, isSubModalOpen: false }))}
+                              onCancel={handleCloseSubModal}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                // ...existing code...
+
+              }
               </div>
             </div>
           ))
