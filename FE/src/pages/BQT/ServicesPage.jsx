@@ -118,7 +118,7 @@ const ServicesPage = () => {
               {/* Accent bar */}
               <div className="w-2 bg-blue-500 rounded-l-2xl" />
               {/* Card Content */}
-              <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl">
+              <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl gap-0">
                 {/* ID */}
                 <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
@@ -177,8 +177,8 @@ const ServicesPage = () => {
                   </div>
                 </div>
                 {/* Action */}
-                <div className="col-span-2 flex justify-end items-center">
-                  <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition">
+                <div className="col-span-2 flex items-center justify-end h-full">
+                  <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
                     Xem thêm chi tiết
                   </button>
                 </div>
