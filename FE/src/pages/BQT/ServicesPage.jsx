@@ -171,13 +171,10 @@ const ServicesPage = () => {
                   </div>
                 </div>
                 {/* Phản ánh dịch vụ */}
-                <div className="col-span-2 flex justify-center items-center">
-                  <button
-                    className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold shadow"
-                    onClick={() => handleReportService(item.id)}
-                  >
+                <div className="col-span-2">
+                  <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Phản ánh dịch vụ
-                  </button>
+                  </div>
                 </div>
                 {/* Action */}
                 <div className="col-span-2 flex justify-end items-center">
