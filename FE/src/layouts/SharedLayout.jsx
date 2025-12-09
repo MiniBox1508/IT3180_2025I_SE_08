@@ -16,6 +16,7 @@ const navItems = [
   { name: "Trang chủ", to: "/management", icon: iconTrangChu },
   { name: "Dân cư", to: "/management/residents", icon: iconDanCu },
   { name: "Dịch vụ", to: "/management/services", icon: iconDichVu },
+  { name: "Báo cáo", to: "/management/reports", icon: iconThanhToan },
   { name: "Thanh toán", to: "/management/payments", icon: iconThanhToan },
   { name: "Thông báo", to: "/management/notifications", icon: iconThongBao },
 ];

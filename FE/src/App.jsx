@@ -21,6 +21,7 @@ import PaymentPage from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
+import { Report } from "./pages/BQT/ReportPage.jsx";
 
 // import Resident pages
 import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
@@ -35,11 +36,13 @@ import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
 import { AccountCheckDebt } from "./pages/Accountant/AccountCheckDebt.jsx";
 import { AccountantNotification } from "./pages/Accountant/AccountNotification.jsx";
 import { PrintPayments } from "./pages/Accountant/printPayment.jsx";
+import { AccountReport } from "./pages/Accountant/AccountReport.jsx";
 
 // import Security pages
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
 import { SecurityNotification as SNotification } from "./pages/Security/SecurityNotification.jsx";
 import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProblem.jsx";
+import { SecurityReport as SReport } from "./pages/Security/SecurityReport.jsx";
 
 // -----------------------------------------------
 
@@ -76,6 +79,7 @@ export default function App() {
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
+          <Route path="reports" element={<Report />} />
           <Route path="payments">
             <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
@@ -107,6 +111,7 @@ export default function App() {
           </Route>
           <Route path="debt" element={<AccountCheckDebt />} />
           <Route path="print_invoice" element={<PrintPayments />} />
+          <Route path="report" element={<AccountReport />} />
           <Route path="notifications" element={<AccountantNotification />} />
         </Route>
 
@@ -116,6 +121,7 @@ export default function App() {
         <Route path="/security" element={<SLayout />}>
           <Route index element={<SProPage />} />
           <Route path="incidents" element={<SCheck />} />
+          <Route path="reports" element={<SReport />} />
           <Route path="notifications" element={<SNotification />} />
         </Route>
       </Routes>

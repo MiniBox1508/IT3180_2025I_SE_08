@@ -21,6 +21,7 @@ const navItems = [
     icon: iconThanhToan,
   },
   { name: "Công nợ", to: "/accountant/debt", icon: iconCongNo },
+  { name: "Báo cáo", to: "/accountant/report", icon: iconTrangChu },
   {
     name: "Thông báo",
     to: "/accountant/notifications",

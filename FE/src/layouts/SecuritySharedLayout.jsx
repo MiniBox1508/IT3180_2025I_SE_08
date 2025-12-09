@@ -19,7 +19,7 @@ const navItems = [
     to: "/security/incidents",
     icon: iconSuCo,
   },
-  { name: "Quản lý", to: "/security/management", icon: iconQuanLy },
+  { name: "Quản lý", to: "/security/reports", icon: iconQuanLy },
   {
     name: "Thông báo",
     to: "/security/notifications",
