@@ -273,9 +273,10 @@ const ServicesPage = () => {
                 {/* Action hoặc Checkbox Delete Mode */}
                 <div className="col-span-1 flex justify-end items-center">
                   {!isDeleteMode ? (
-                    <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
-                      Xem thêm chi tiết
-                    </button>
+                    // <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
+                    //   Xem thêm chi tiết
+                    // </button>
+                    <div></div>
                   ) : (
                     <div
                       className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer select-none transition ${
