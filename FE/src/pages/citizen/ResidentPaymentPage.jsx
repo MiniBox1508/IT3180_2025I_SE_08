@@ -21,7 +21,7 @@ const PaymentItem = ({ item }) => {
 
   const handlePayInvoice = (invoiceId) => {
     // Dân cư có thể thanh toán hóa đơn của mình
-    navigate(`/resident_dashboard/payment/${invoiceId}/qr`);
+    navigate(`/resident/payment/${invoiceId}/qr`);
   };
 
   return (
