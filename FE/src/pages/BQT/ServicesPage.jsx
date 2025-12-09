@@ -194,14 +194,14 @@ const ServicesPage = () => {
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Trạng thái
                   </div>
-                  <div
+                  {/* <div
                     className={
                       statusColor[item.servicestatus] ||
                       "text-gray-800 font-bold"
                     }
                   >
                     {item.servicestatus || "Đã ghi nhận"}
-                  </div>
+                  </div> */}
                   <div className="mt-1">
                     <select
                       className="text-xs border rounded px-2 py-1"
