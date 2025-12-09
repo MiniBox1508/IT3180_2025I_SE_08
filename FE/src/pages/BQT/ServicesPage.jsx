@@ -10,6 +10,12 @@ const statusColor = {
 const ServicesPage = () => {
   const [search, setSearch] = useState("");
   const [services, setServices] = useState([]);
+  // Multi-Select Delete Workflow states
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -46,6 +52,33 @@ const ServicesPage = () => {
       }
     } catch (err) {
       alert("Phản ánh thất bại");
+    }
+  };
+
+  // Multi-Select Delete logic
+  const handleToggleSelect = (id) => {
+    setSelectedServices((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    setShowConfirmModal(false);
+    // Simulate API call
+    try {
+      // Xóa tuần tự từng service, có thể thay bằng Promise.all nếu BE hỗ trợ
+      for (const id of selectedServices) {
+        await fetch(`${API_BASE_URL}/services/${id}`, { method: "DELETE" });
+      }
+      setShowSuccessModal(true);
+      // Reload lại danh sách
+      const resReload = await fetch(`${API_BASE_URL}/services`);
+      const dataReload = await resReload.json();
+      setServices(Array.isArray(dataReload) ? dataReload : []);
+      setSelectedServices([]);
+      setIsDeleteMode(false);
+    } catch {
+      setShowErrorModal(true);
     }
   };
 
@@ -97,14 +130,38 @@ const ServicesPage = () => {
           {/* Title & Actions */}
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
-            <div className="flex gap-3">
-              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow">
-                Phản hồi
-              </button>
-              <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow">
-                Xóa dịch vụ
-              </button>
-            </div>
+            {!isDeleteMode ? (
+              <div className="flex gap-3">
+                <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow">
+                  Phản hồi
+                </button>
+                <button
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
+                  onClick={() => setIsDeleteMode(true)}
+                >
+                  Xóa dịch vụ
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
+                  disabled={selectedServices.length === 0}
+                  onClick={() => selectedServices.length > 0 && setShowConfirmModal(true)}
+                >
+                  Xóa các mục đã chọn
+                </button>
+                <button
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded font-bold shadow"
+                  onClick={() => {
+                    setIsDeleteMode(false);
+                    setSelectedServices([]);
+                  }}
+                >
+                  Hủy xóa
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -214,12 +271,87 @@ const ServicesPage = () => {
                     Phản ánh dịch vụ
                   </div>
                 </div>
-                {/* Action */}
-                <div className="col-span-1 text-right">
-                  <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
-                    Xem thêm chi tiết
-                  </button>
+                {/* Action hoặc Checkbox Delete Mode */}
+                <div className="col-span-1 flex justify-end items-center">
+                  {!isDeleteMode ? (
+                    <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
+                      Xem thêm chi tiết
+                    </button>
+                  ) : (
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center rounded-md cursor-pointer select-none transition ${selectedServices.includes(item.id)
+                        ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      onClick={() => handleToggleSelect(item.id)}
+                    >
+                      {selectedServices.includes(item.id) ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
+                    {/* Confirm Delete Modal */}
+                    {showConfirmModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
+                          <div className="mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+                            </svg>
+                          </div>
+                          <div className="text-xl font-bold text-center mb-6">Xóa các mục đã chọn</div>
+                          <div className="flex gap-4 w-full justify-center">
+                            <button
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold shadow"
+                              onClick={() => setShowConfirmModal(false)}
+                            >
+                              Hoàn tác
+                            </button>
+                            <button
+                              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-bold shadow"
+                              onClick={handleDeleteSelected}
+                            >
+                              Xác nhận
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Success Modal */}
+                    {showSuccessModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+                          </svg>
+                          <div className="text-lg font-bold text-center mb-2">Xóa dịch vụ thành công!</div>
+                          <button
+                            className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
+                            onClick={() => setShowSuccessModal(false)}
+                          >Đóng</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Error Modal */}
+                    {showErrorModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6m0-6l6 6" />
+                          </svg>
+                          <div className="text-lg font-bold text-center mb-2">Xóa dịch vụ không thành công!</div>
+                          <button
+                            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
+                            onClick={() => setShowErrorModal(false)}
+                          >Đóng</button>
+                        </div>
+                      </div>
+                    )}
               </div>
             </div>
           ))}
