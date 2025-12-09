@@ -48,6 +48,24 @@ const ServicesPage = () => {
       String(item.id).includes(search)
   );
 
+  // Kính lúp SVG
+  const SearchIcon = () => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      className="w-5 h-5 text-gray-400"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+  );
+
   return (
     <>
       {/* Sidebar placeholder */}
@@ -57,13 +75,16 @@ const ServicesPage = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-8">
           {/* Search Bar */}
-          <div className="flex justify-center">
+          <div className="flex justify-center relative">
+            <span className="absolute left-8 top-1/2 -translate-y-1/2">
+              <SearchIcon />
+            </span>
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-2/3 max-w-2xl bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none"
+              placeholder="Search"
+              className="w-2/3 max-w-2xl bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none pl-10"
             />
           </div>
           {/* Title & Actions */}
