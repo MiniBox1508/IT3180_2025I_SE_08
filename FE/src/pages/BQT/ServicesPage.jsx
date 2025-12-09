@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 const statusColor = {
   "Đã xử lý": "text-green-600 font-bold",
