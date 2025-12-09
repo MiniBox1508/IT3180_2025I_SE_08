@@ -1209,14 +1209,36 @@ const ResidentService = () => {
                       {/* Footer */}
                       <button
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all"
-                        onClick={() => {
-                          // Gửi feedback (API hoặc console)
-                          console.log({
-                            serviceId: feedbackModal.service?.id,
-                            problem: feedbackModal.problem,
-                            rating: feedbackModal.rating,
-                            details: feedbackModal.details,
-                          });
+                        onClick={async () => {
+                          // Gửi phản ánh dịch vụ qua API PATCH
+                          try {
+                            const id = feedbackModal.service?.id;
+                            if (!id) return;
+                            // Map problem & rating sang giá trị BE
+                            let problems = feedbackModal.problem || "Ko vấn đề";
+                            // Chuẩn hóa cho BE
+                            if (problems === "Không vấn đề")
+                              problems = "Ko vấn đề";
+                            let rates = "Chất lượng ổn";
+                            if (feedbackModal.rating === "Rất hài lòng")
+                              rates = "Chất lượng cao";
+                            else if (feedbackModal.rating === "Hài lòng")
+                              rates = "Chất lượng tốt";
+                            else if (feedbackModal.rating === "Tạm ổn")
+                              rates = "Chất lượng ổn";
+                            else if (feedbackModal.rating === "Không hài lòng")
+                              rates = "Chất lượng kém";
+                            await axios.patch(
+                              `${API_BASE_URL}/services/${id}`,
+                              {
+                                problems,
+                                rates,
+                                scripts: feedbackModal.details || null,
+                              }
+                            );
+                          } catch (err) {
+                            alert("Gửi phản ánh thất bại!");
+                          }
                           handleCloseFeedbackModal();
                         }}
                       >
