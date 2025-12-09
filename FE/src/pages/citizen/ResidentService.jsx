@@ -1254,4 +1254,4 @@ const ResidentService = () => {
   );
 };
 
-export default ResidentService;
+export default { ResidentService };

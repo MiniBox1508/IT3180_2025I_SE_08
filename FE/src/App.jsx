@@ -28,7 +28,7 @@ import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
 import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNotificationsPage.jsx";
 import { ResidentViewPage } from "./pages/citizen/ResidentViewPage.jsx";
 import { ResidentPaymentPage } from "./pages/citizen/ResidentPaymentPage.jsx";
-import ResidentService from "./pages/citizen/ResidentService.jsx";
+import { ResidentService } from "./pages/citizen/ResidentService.jsx";
 
 // import Accountant pages
 import { AccountantProfilePage } from "./pages/Accountant/AccountProfile.jsx";
