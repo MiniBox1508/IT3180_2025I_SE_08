@@ -21,6 +21,7 @@ import PaymentPage from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
+import { ReportPage } from "./pages/BQT/ReportPage.jsx";
 
 // import Resident pages
 import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
@@ -77,6 +78,7 @@ export default function App() {
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
+          <Route path="reports" element={<ReportPage />} />
           <Route path="payments">
             <Route index element={<PaymentPage />} />
             <Route path=":invoiceId/qr" element={<QRCodePayment />} />
