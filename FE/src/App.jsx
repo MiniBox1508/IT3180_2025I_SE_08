@@ -46,13 +46,6 @@ import { SecurityReport as SReport } from "./pages/Security/SecurityReport.jsx";
 
 // -----------------------------------------------
 
-// Bản xem trước cho Dịch vụ
-const ServicesPage = () => (
-  <h1 className="text-3xl font-bold text-white">Quản lý Dịch vụ</h1>
-);
-
-// -----------------------------------------------
-
 export default function App() {
   return (
     <Router>
