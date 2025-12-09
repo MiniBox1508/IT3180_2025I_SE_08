@@ -49,9 +49,9 @@ const ServicesPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <>
       {/* Sidebar placeholder */}
-      <div className="r-[250px]" />
+      <div className="w-[250px]" />
       {/* Main content */}
       <div className="flex-1 p-8">
         {/* Header Section */}
@@ -154,7 +154,7 @@ const ServicesPage = () => {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
