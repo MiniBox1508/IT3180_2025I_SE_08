@@ -118,13 +118,13 @@ const ServicesPage = () => {
               {/* Accent bar */}
               <div className="w-2 bg-blue-500 rounded-l-2xl" />
               {/* Card Content */}
-              <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl gap-0">
+              <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl gap-2 text-sm">
                 {/* ID */}
                 <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Dịch vụ ID
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 leading-none">
+                  <div className="font-bold text-gray-900 leading-none">
                     {item.id}
                   </div>
                 </div>
@@ -133,16 +133,16 @@ const ServicesPage = () => {
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Nội dung
                   </div>
-                  <div className="text-sm font-bold text-gray-900">
+                  <div className="font-bold text-gray-900">
                     {item.content}
                   </div>
                 </div>
                 {/* Apartment */}
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Số căn hộ
                   </div>
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="font-semibold text-gray-900">
                     {item.apartment_id}
                   </div>
                 </div>
@@ -164,7 +164,7 @@ const ServicesPage = () => {
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Ngày xử lý
                   </div>
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="font-semibold text-gray-900">
                     {item.handle_date
                       ? new Date(item.handle_date).toLocaleDateString("vi-VN")
                       : ""}
@@ -177,7 +177,7 @@ const ServicesPage = () => {
                   </div>
                 </div>
                 {/* Action */}
-                <div className="col-span-2 flex items-center justify-end h-full">
+                <div className="col-span-1 text-right">
                   <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
                     Xem thêm chi tiết
                   </button>
