@@ -40,6 +40,7 @@ import { PrintPayments } from "./pages/Accountant/printPayment.jsx";
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
 import { SecurityNotification as SNotification } from "./pages/Security/SecurityNotification.jsx";
 import { SecurityProblem as SCheck } from "./pages/Security/SecurityCheckingProblem.jsx";
+import { SecurityReport as SReport } from "./pages/Security/SecurityReport.jsx";
 
 // -----------------------------------------------
 
@@ -116,6 +117,7 @@ export default function App() {
         <Route path="/security" element={<SLayout />}>
           <Route index element={<SProPage />} />
           <Route path="incidents" element={<SCheck />} />
+          <Route path="reports" element={<SReport />} />
           <Route path="notifications" element={<SNotification />} />
         </Route>
       </Routes>
