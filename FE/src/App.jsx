@@ -22,7 +22,7 @@ import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
 import { Report } from "./pages/BQT/ReportPage.jsx";
-
+import ServicesPage from "./pages/BQT/ServicesPage.jsx";
 // import Resident pages
 import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
 import { ResidentNotificationsPage as RnPage } from "./pages/citizen/ResidentNotificationsPage.jsx";
