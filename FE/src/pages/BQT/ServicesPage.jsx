@@ -30,6 +30,25 @@ const ServicesPage = () => {
       String(item.id).includes(search)
   );
 
+  // Hàm phản ánh dịch vụ
+  const handleReportService = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/services/${id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_id: id }),
+      });
+      const data = await res.json();
+      if (data.message) {
+        alert("Phản ánh dịch vụ thành công!");
+      } else {
+        alert(data.error || "Phản ánh thất bại");
+      }
+    } catch (err) {
+      alert("Phản ánh thất bại");
+    }
+  };
+
   // Kính lúp SVG
   const SearchIcon = () => (
     <svg
@@ -150,6 +169,15 @@ const ServicesPage = () => {
                       ? new Date(item.handle_date).toLocaleDateString("vi-VN")
                       : ""}
                   </div>
+                </div>
+                {/* Phản ánh dịch vụ */}
+                <div className="col-span-2 flex justify-center items-center">
+                  <button
+                    className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold shadow"
+                    onClick={() => handleReportService(item.id)}
+                  >
+                    Phản ánh dịch vụ
+                  </button>
                 </div>
                 {/* Action */}
                 <div className="col-span-2 flex justify-end items-center">
