@@ -1291,7 +1291,7 @@ const ResidentService = () => {
                           } catch (err) {
                             setShowErrorModal(true); // Hiển thị modal thất bại
                           }
-                          handleCloseFeedbackModal();
+                          // KHÔNG tắt popup phản ánh dịch vụ ở đây
                         }}
                       >
                         Thêm
@@ -1313,12 +1313,18 @@ const ResidentService = () => {
                       {/* SuccessModal và ErrorModal cho phản ánh dịch vụ */}
                       <SuccessModal
                         isOpen={showSuccessModal}
-                        onClose={() => setShowSuccessModal(false)}
+                        onClose={() => {
+                          setShowSuccessModal(false);
+                          handleCloseFeedbackModal(); // Tắt popup phản ánh dịch vụ khi đóng SuccessModal
+                        }}
                         message="Gửi phản ánh thành công!"
                       />
                       <ErrorModal
                         isOpen={showErrorModal}
-                        onClose={() => setShowErrorModal(false)}
+                        onClose={() => {
+                          setShowErrorModal(false);
+                          handleCloseFeedbackModal(); // Tắt popup phản ánh dịch vụ khi đóng ErrorModal
+                        }}
                         message="Gửi phản ánh thất bại!"
                       />
                     </div>
