@@ -36,6 +36,7 @@ import { AccountPayment } from "./pages/Accountant/AccountPayment.jsx";
 import { AccountCheckDebt } from "./pages/Accountant/AccountCheckDebt.jsx";
 import { AccountantNotification } from "./pages/Accountant/AccountNotification.jsx";
 import { PrintPayments } from "./pages/Accountant/printPayment.jsx";
+import { AccountReport } from "./pages/Accountant/AccountReport.jsx";
 
 // import Security pages
 import { SecurityProfilePage as SProPage } from "./pages/Security/SecurityProfilePage.jsx";
@@ -110,6 +111,7 @@ export default function App() {
           </Route>
           <Route path="debt" element={<AccountCheckDebt />} />
           <Route path="print_invoice" element={<PrintPayments />} />
+          <Route path="report" element={<AccountReport />} />
           <Route path="notifications" element={<AccountantNotification />} />
         </Route>
 
