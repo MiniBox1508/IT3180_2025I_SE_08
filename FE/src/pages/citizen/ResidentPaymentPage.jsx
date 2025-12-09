@@ -1,228 +1,317 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import dayjs from "dayjs";
+
+// --- IMPORTS ---
+import { StatusModal } from "../../layouts/StatusModal";
+import acceptIcon from "../../images/accept_icon.png";
+import notAcceptIcon from "../../images/not_accept_icon.png";
+import EditButtonImage from "../../images/edit_button.svg"; // Import icon chỉnh sửa
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// Dân cư chỉ cần StatusModal để xem kết quả thanh toán từ trang QR (nếu cần)
-// và ConfirmationModal không dùng ở đây.
-// import { StatusModal } from "../layouts/StatusModal";
-// import acceptIcon from "../images/accept_icon.png";
-// import notAcceptIcon from "../images/not_accept_icon.png";
+// --- Icons ---
+const UserIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="#6B7280" 
+    viewBox="0 0 24 24"
+    strokeWidth={0}
+    className="w-16 h-16"
+  >
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+  </svg>
+);
 
-// --- Component hiển thị một mục thanh toán (Giữ nguyên) ---
-const PaymentItem = ({ item }) => {
-  const navigate = useNavigate();
-  // BE trả về status_text là "Đã thanh toán" hoặc "Chưa thanh toán"
-  const isPaid = item.status_text === "Đã thanh toán";
-
-  // Format ngày: BE trả về payment_date (null nếu chưa thanh toán)
-  const formattedPaymentDate = item.payment_date
-    ? new Date(item.payment_date).toLocaleDateString("vi-VN")
-    : "---";
-
-  const handlePayInvoice = (invoiceId) => {
-    // Dân cư có thể thanh toán hóa đơn của mình
-    navigate(`/resident/payment/${invoiceId}/qr`);
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4">
-      {/* Thanh xanh dọc bên trái */}
-      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-      {/* Thông tin thanh toán */}
-      <div className="flex-1 grid grid-cols-5 gap-4 items-center pl-8">
-        {/* Cột 1: ID */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Thanh toán ID</p>
-          <p className="font-semibold text-gray-800">{item.id}</p>
-        </div>
-        {/* Cột 2: Loại phí */}
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Loại phí</p>
-          <p className="font-medium text-gray-700">{item.feetype}</p>
-        </div>
-        {/* Cột 3: Ngày thanh toán */}
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-          <p className="text-gray-600">{formattedPaymentDate}</p>
-        </div>
-        {/* Cột 4: Hình thức */}
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Hình thức thanh toán</p>
-          <p className="text-gray-600">{item.payment_form || "---"}</p>
-        </div>
-        {/* Cột 5: Trạng thái & Nút */}
-        <div className="text-right">
-          <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-          <p
-            className={`font-semibold mb-2 ${
-              isPaid ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {item.status_text}
-          </p>
-          {/* Dân cư chỉ thanh toán nếu CHƯA thanh toán */}
-          {!isPaid && (
-            <button
-              onClick={() => handlePayInvoice(item.id)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-            >
-              Thanh toán hóa đơn
-            </button>
-          )}
-        </div>
+// --- Component EditableField ---
+const EditableField = ({ label, value, isEditing, onChange, name, type = "text" }) => (
+  <div className="w-full">
+    <label className="block text-sm font-bold text-gray-700 mb-2">
+      {label}
+    </label>
+    {isEditing ? (
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+      />
+    ) : (
+      <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
+        {/* Nếu là date input mà đang ở mode view, ta có thể format lại cho đẹp nếu cần, ở đây hiển thị raw value đã format từ parent */}
+        {value || "Chưa cập nhật"}
       </div>
-    </div>
-  );
-};
+    )}
+  </div>
+);
 
-// =========================================================================
-// === COMPONENT CHÍNH: RESIDENT PAYMENT PAGE ===
-// =========================================================================
-// ĐỔI TÊN THÀNH ResidentPaymentPage để phân biệt với PaymentPage của BQT
-export const ResidentPaymentPage = () => {
-  const [payments, setPayments] = useState([]);
-  // KHÔNG CẦN RESIDENTS
+export const ResidentProfilePage = () => {
+  // --- STATE ---
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // Dữ liệu form
+  const [formData, setFormData] = useState({
+    name: "",
+    residentId: "",
+    role: "",
+    apartment: "",
+    cccd: "",
+    dob: "", // Format YYYY-MM-DD cho input date
+    email: "",
+    phone: "",
+    status: "",
+  });
+  
+  // Lưu dữ liệu gốc để rollback khi Hủy
+  const [originalData, setOriginalData] = useState({});
 
-  const [searchTerm, setSearchTerm] = useState("");
+  // Modal State
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState(null); // 'success' | 'failure'
+  const [statusMessage, setStatusMessage] = useState("");
 
-  // KHÔNG CẦN CÁC STATE VÀ LOGIC CHO ADD MODAL VÀ STATUS MODAL
-
-  // Hàm Fetch dữ liệu Thanh toán: chỉ lấy của cư dân đang đăng nhập
-  const fetchPayments = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const resident_id = user?.id;
-      console.log("User từ Storage:", user);
-      console.log("Resident ID:", resident_id);
-      if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
-      const response = await fetch(
-        `${API_BASE_URL}/payments/by-resident/${resident_id}`,
-        console.log("2. Fetching URL:", `${API_BASE_URL}/payments/by-resident/${resident_id}`) // <--- DEBUG 2
-      );
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Lỗi không xác định khi tải dữ liệu." }));
-        throw new Error(errorData.error || "Không thể tải dữ liệu thanh toán.");
-      }
-      const data = await response.json();
-      setPayments(data);
-      console.log("Dữ liệu API trả về:", data);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+  // Lấy ID user hiện tại
+  const getUserFromStorage = () => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) return JSON.parse(userStr);
+    return null;
   };
+  const user = getUserFromStorage();
+  const userId = user ? user.id : null;
 
+  // --- FETCH DATA ---
   useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  // Logic Lọc và Sắp xếp dữ liệu (Giữ nguyên logic sắp xếp: Chưa TT lên trên)
-  const filteredPayments = payments
-    .filter((payment) => {
-      if (!searchTerm.trim()) {
-        return true;
+    const fetchData = async () => {
+      if (!userId) {
+        setIsLoading(false);
+        return;
       }
-      const searchLower = searchTerm.trim().toLowerCase();
-      const idMatch = String(payment.id).toLowerCase().includes(searchLower);
-      return idMatch;
-    })
-    .sort((a, b) => {
-      const isAPaid = a.status_text === "Đã thanh toán" ? 1 : 0;
-      const isBPaid = b.status_text === "Đã thanh toán" ? 1 : 0;
+      try {
+        const response = await axios.get(`${API_BASE_URL}/residents/${userId}`);
+        const data = response.data;
 
-      if (isAPaid !== isBPaid) {
-        return isAPaid - isBPaid;
+        const mappedData = {
+          name: data.full_name || "",
+          residentId: String(data.id).padStart(4, '0'),
+          role: data.role || "Cư dân",
+          apartment: data.apartment_id || "",
+          cccd: data.cccd || "",
+          // Chuyển về YYYY-MM-DD để dùng cho input type="date"
+          dob: data.birth_date ? dayjs(data.birth_date).format("YYYY-MM-DD") : "",
+          email: data.email || "",
+          phone: data.phone || "",
+          status: data.residency_status || "Chưa xác định",
+        };
+
+        setFormData(mappedData);
+        setOriginalData(mappedData);
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+      } finally {
+        setIsLoading(false);
       }
+    };
+    fetchData();
+  }, [userId]);
 
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-  // ----------------------------
-
-  // Xử lý Loading State
-  if (isLoading) {
-    return (
-      <div className="text-white text-lg p-4">
-        Đang tải danh sách thanh toán...
-      </div>
-    );
-  }
-
-  // Xử lý Error State
-  if (error) {
-    return (
-      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
-    );
-  }
-
-  // Hiển thị nội dung
-  const renderContent = () => {
-    if (filteredPayments.length === 0) {
-      return (
-        <div className="bg-white p-6 rounded-lg text-center text-gray-500 shadow-md">
-          Không có hóa đơn thanh toán nào phù hợp với tìm kiếm.
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {filteredPayments.map((item) => (
-          <PaymentItem key={item.id} item={item} />
-        ))}
-      </div>
-    );
+  // --- HANDLERS ---
+  const handleEditClick = () => {
+    setOriginalData(formData);
+    setIsEditing(true);
   };
+
+  const cancelEditClick = () => {
+    setFormData(originalData);
+    setIsEditing(false);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Chuẩn bị payload (chỉ gửi các trường cho phép sửa)
+    // Backend app.js endpoint PUT /residents/:id nhận: phone, cccd, birth_date, email...
+    const payload = {
+      cccd: formData.cccd,
+      birth_date: formData.dob,
+      email: formData.email,
+      phone: formData.phone,
+      // Các trường khác như apartment_id, role, name, status không gửi để tránh bị sửa sai logic (hoặc gửi nguyên giá trị cũ)
+    };
+
+    try {
+      await axios.put(`${API_BASE_URL}/residents/${userId}`, payload);
+      
+      // Thành công
+      setModalStatus("success");
+      setStatusMessage("Cập nhật thông tin thành công!");
+      setIsEditing(false);
+      setOriginalData(formData);
+
+      // Cập nhật lại localStorage để các trang khác hiển thị đúng ngay lập tức (nếu cần)
+      if (user) {
+        const updatedUser = { 
+            ...user, 
+            cccd: formData.cccd, 
+            birth_date: formData.dob, 
+            email: formData.email, 
+            phone: formData.phone 
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+
+    } catch (error) {
+      console.error(error);
+      setModalStatus("failure");
+      setStatusMessage("Cập nhật thất bại. Vui lòng thử lại!");
+    }
+    setIsStatusModalOpen(true);
+  };
+
+  // --- HELPER HIỂN THỊ NGÀY ---
+  // Khi ở chế độ View, hiển thị DD/MM/YYYY. Khi Edit hiển thị YYYY-MM-DD (do input date)
+  const displayDob = isEditing 
+    ? formData.dob 
+    : (formData.dob ? dayjs(formData.dob).format("DD/MM/YYYY") : "");
+
+  if (isLoading) return <div className="text-white text-center mt-10">Đang tải...</div>;
 
   return (
-    <div className="text-white">
-      {/* Thanh Tìm kiếm Full Width */}
-      <div className="flex justify-start items-center mb-6">
-        <div className="relative w-full max-w-full">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </span>
-          <input
-            type="search"
-            placeholder="Tìm theo ID thanh toán..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
-          />
+    <div className="w-full max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold text-white mb-6">Thông tin cá nhân</h1>
+
+      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 relative">
+        
+        {/* --- NÚT CHỈNH SỬA (Góc phải trên) --- */}
+        {!isEditing && (
+          <button 
+            onClick={handleEditClick}
+            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Chỉnh sửa thông tin"
+          >
+            <img src={EditButtonImage} alt="Edit" className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* --- HEADER: AVATAR + NAME --- */}
+        <div className="flex items-center space-x-4 mb-8 border-b border-gray-100 pb-8">
+          <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+             <UserIcon />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
+            <p className="text-gray-500 font-medium">ID Cư dân: {formData.residentId}</p>
+          </div>
         </div>
+
+        <form className="space-y-8" onSubmit={handleSubmit}>
+          {/* Section 1: Thông tin cá nhân */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Thông tin cá nhân</h3>
+            <div className="space-y-5">
+              
+              {/* KHÔNG ĐƯỢC SỬA */}
+              <EditableField label="Vai trò" value={formData.role} isEditing={false} />
+              <EditableField label="Số căn hộ" value={formData.apartment} isEditing={false} />
+              
+              {/* ĐƯỢC SỬA: CCCD */}
+              <EditableField 
+                label="Số CCCD" 
+                name="cccd" 
+                value={formData.cccd} 
+                isEditing={isEditing} 
+                onChange={handleChange} 
+              />
+
+              {/* ĐƯỢC SỬA: Ngày sinh */}
+              <div className="w-full">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Ngày sinh</label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                ) : (
+                  <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
+                    {displayDob || "Chưa cập nhật"}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section 2: Thông tin liên hệ */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Thông tin liên hệ</h3>
+            <div className="space-y-5">
+              {/* ĐƯỢC SỬA: Email */}
+              <EditableField 
+                label="Email" 
+                name="email" 
+                value={formData.email} 
+                isEditing={isEditing} 
+                onChange={handleChange} 
+              />
+              {/* ĐƯỢC SỬA: Điện thoại */}
+              <EditableField 
+                label="Điện thoại" 
+                name="phone" 
+                value={formData.phone} 
+                isEditing={isEditing} 
+                onChange={handleChange} 
+              />
+            </div>
+          </div>
+
+          {/* Section 3: Tình trạng cư trú */}
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Tình trạng cư trú</h3>
+            <div className="space-y-5">
+               {/* KHÔNG ĐƯỢC SỬA */}
+               <EditableField label="Tình trạng cư trú" value={formData.status} isEditing={false} />
+            </div>
+          </div>
+
+          {/* Buttons Action (Chỉ hiện khi đang sửa) */}
+          {isEditing && (
+            <div className="flex justify-end items-center pt-6 space-x-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={cancelEditClick}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 px-8 rounded-lg transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-8 rounded-lg transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          )}
+        </form>
       </div>
 
-      {/* Header: KHÔNG CÓ NÚT TẠO THANH TOÁN */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Lịch sử Thanh toán</h1>
-      </div>
-
-      {renderContent()}
-
-      {/* KHÔNG CÓ MODAL TẠO THANH TOÁN */}
-      {/* KHÔNG CÓ STATUS MODAL */}
+      {/* Status Modal */}
+      <StatusModal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)}>
+        <div className="flex flex-col items-center">
+            <img src={modalStatus === "success" ? acceptIcon : notAcceptIcon} alt={modalStatus} className="w-20 h-20 mb-6" />
+            <p className="text-xl font-semibold text-center text-gray-800">
+                {statusMessage}
+            </p>
+        </div>
+      </StatusModal>
     </div>
   );
 };
