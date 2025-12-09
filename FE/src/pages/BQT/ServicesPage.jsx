@@ -75,7 +75,7 @@ const ServicesPage = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-8">
           {/* Search Bar */}
-          <div className="absolute top-1/5 left-1/10">
+          <div className="absolute top-1/20 left-1/5">
             <div className="relative w-2/3 max-w-2xl">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                 <SearchIcon />
