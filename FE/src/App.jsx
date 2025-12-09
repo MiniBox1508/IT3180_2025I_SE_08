@@ -21,7 +21,7 @@ import PaymentPage from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
-import { ReportPage } from "./pages/BQT/ReportPage.jsx";
+import { Report } from "./pages/BQT/ReportPage.jsx";
 
 // import Resident pages
 import { ResidentProfilePage } from "./pages/citizen/ResidentProfilePage.jsx";
