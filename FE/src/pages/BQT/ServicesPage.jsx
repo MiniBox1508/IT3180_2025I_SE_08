@@ -1,36 +1,4 @@
-import React, { useState } from "react";
-
-// Mock data for services
-const services = [
-  {
-    id: 1,
-    content: "Làm thẻ xe",
-    apartment_id: "A101",
-    status: "Đã xử lý",
-    handle_date: "2025-12-01",
-  },
-  {
-    id: 2,
-    content: "Sửa chữa căn hộ",
-    apartment_id: "B202",
-    status: "Chưa xử lý",
-    handle_date: "2025-12-03",
-  },
-  {
-    id: 3,
-    content: "Vận chuyển đồ",
-    apartment_id: "C303",
-    status: "Đang chờ",
-    handle_date: "2025-12-05",
-  },
-  {
-    id: 4,
-    content: "Dọn dẹp căn hộ",
-    apartment_id: "D404",
-    status: "Đã xử lý",
-    handle_date: "2025-12-07",
-  },
-];
+import React, { useState, useEffect } from "react";
 
 const statusColor = {
   "Đã xử lý": "text-green-600 font-bold",
@@ -40,11 +8,24 @@ const statusColor = {
 
 const ServicesPage = () => {
   const [search, setSearch] = useState("");
+  const [services, setServices] = useState([]);
 
-  // Filtered list (for demo, just filter by content or id)
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch("/services");
+        const data = await res.json();
+        setServices(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setServices([]);
+      }
+    };
+    fetchServices();
+  }, []);
+
   const filteredServices = services.filter(
     (item) =>
-      item.content.toLowerCase().includes(search.toLowerCase()) ||
+      (item.content?.toLowerCase() || "").includes(search.toLowerCase()) ||
       String(item.id).includes(search)
   );
 
