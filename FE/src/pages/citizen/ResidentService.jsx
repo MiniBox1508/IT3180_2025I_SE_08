@@ -480,7 +480,7 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
 };
 
 // --- MAIN PAGE ---
-export const ResidentService = () => {
+const ResidentService = () => {
   const [services, setServices] = useState([]);
   const [residents, setResidents] = useState([]); // List all residents to get apartments
   const [isLoading, setIsLoading] = useState(true);
@@ -867,3 +867,5 @@ export const ResidentService = () => {
     </div>
   );
 };
+
+export default ResidentService;
