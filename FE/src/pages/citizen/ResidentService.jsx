@@ -833,11 +833,7 @@ const ResidentService = () => {
                           )}
                         </div>
                       </div>
-                    )}
-
-                // ...existing code...
-
-              }
+                    )}         
               </div>
             </div>
           ))
