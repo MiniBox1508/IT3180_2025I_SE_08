@@ -75,8 +75,11 @@ const ServicesPage = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-8">
           {/* Search Bar */}
-          <div className="flex" style={{ justifyContent: 'flex-start' }}>
-            <div className="relative w-2/3 max-w-2xl" style={{ marginLeft: '20vw' }}>
+          <div className="flex" style={{ justifyContent: "flex-start" }}>
+            <div
+              className="relative w-2/3 max-w-2xl"
+              style={{ marginRight: "20vw" }}
+            >
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                 <SearchIcon />
               </span>
