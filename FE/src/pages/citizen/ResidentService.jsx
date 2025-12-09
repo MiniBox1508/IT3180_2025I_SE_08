@@ -681,8 +681,8 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
 
 // --- MAIN PAGE ---
 const ResidentService = () => {
-    // --- FEEDBACK SELECTION MODE STATE ---
-    const [isFeedbackMode, setIsFeedbackMode] = useState(false);
+  // --- FEEDBACK SELECTION MODE STATE ---
+  const [isFeedbackMode, setIsFeedbackMode] = useState(false);
   // --- FEEDBACK MODAL STATE & HANDLERS ---
   const [feedbackModal, setFeedbackModal] = useState({
     isOpen: false,
@@ -1065,20 +1065,12 @@ const ResidentService = () => {
                 <div className="col-span-2 flex justify-end items-center">
                   {!isDeleteMode ? (
                     !isFeedbackMode ? (
-                      <>
-                        <button
-                          onClick={() => handleViewDetail(item)}
-                          className="text-blue-500 font-bold text-xs hover:underline"
-                        >
-                          Xem thêm chi tiết
-                        </button>
-                        <button
-                          onClick={() => handleOpenFeedbackModal(item)}
-                          className="text-blue-500 font-bold text-xs hover:underline hover:text-blue-700 transition-colors ml-4"
-                        >
-                          Phản ánh dịch vụ
-                        </button>
-                      </>
+                      <button
+                        onClick={() => handleViewDetail(item)}
+                        className="text-blue-500 font-bold text-xs hover:underline"
+                      >
+                        Xem thêm chi tiết
+                      </button>
                     ) : (
                       <span
                         className="ml-auto text-green-600 underline cursor-pointer font-bold"
