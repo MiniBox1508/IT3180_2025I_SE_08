@@ -88,12 +88,12 @@ const ServicesPage = () => {
           {filteredServices.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl shadow-md flex items-stretch relative"
+              className="rounded-2xl shadow-md flex items-stretch relative"
             >
               {/* Accent bar */}
               <div className="w-2 bg-blue-500 rounded-l-2xl" />
               {/* Card Content */}
-              <div className="flex-1 grid grid-cols-12 items-center p-4">
+              <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl">
                 {/* ID */}
                 <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
