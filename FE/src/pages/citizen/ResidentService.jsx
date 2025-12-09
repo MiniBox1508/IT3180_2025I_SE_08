@@ -679,6 +679,60 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
   );
 };
 
+// --- SuccessModal: Hiển thị thông báo thành công khi gửi phản ánh ---
+const SuccessModal = ({ isOpen, onClose, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-[60]">
+      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-sm p-8 relative animate-fade-in">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
+        >
+          {/* X icon */}
+          <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="flex flex-col items-center">
+          <div className="bg-blue-500 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="font-bold text-xl text-gray-900 mt-4 text-center">{message || "Gửi phản ánh thành công!"}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- ErrorModal: Hiển thị thông báo thất bại khi gửi phản ánh ---
+const ErrorModal = ({ isOpen, onClose, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-[60]">
+      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-sm p-8 relative animate-fade-in">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
+        >
+          {/* X icon */}
+          <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="flex flex-col items-center">
+          <svg className="w-20 h-20 text-red-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <div className="font-bold text-xl text-gray-900 mt-4 text-center">{message || "Gửi phản ánh thất bại!"}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN PAGE ---
 const ResidentService = () => {
   // --- FEEDBACK SELECTION MODE STATE ---
@@ -692,6 +746,10 @@ const ResidentService = () => {
     details: "",
     isSubModalOpen: false,
   });
+
+  // --- State để quản lý hiển thị modal thành công/thất bại ---
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const handleOpenFeedbackModal = (service) => {
     setFeedbackModal({
@@ -1214,20 +1272,13 @@ const ResidentService = () => {
                           try {
                             const id = feedbackModal.service?.id;
                             if (!id) return;
-                            // Map problem & rating sang giá trị BE
                             let problems = feedbackModal.problem || "Ko vấn đề";
-                            // Chuẩn hóa cho BE
-                            if (problems === "Không vấn đề")
-                              problems = "Ko vấn đề";
+                            if (problems === "Không vấn đề") problems = "Ko vấn đề";
                             let rates = "Chất lượng ổn";
-                            if (feedbackModal.rating === "Rất hài lòng")
-                              rates = "Chất lượng cao";
-                            else if (feedbackModal.rating === "Hài lòng")
-                              rates = "Chất lượng tốt";
-                            else if (feedbackModal.rating === "Tạm ổn")
-                              rates = "Chất lượng ổn";
-                            else if (feedbackModal.rating === "Không hài lòng")
-                              rates = "Chất lượng kém";
+                            if (feedbackModal.rating === "Rất hài lòng") rates = "Chất lượng cao";
+                            else if (feedbackModal.rating === "Hài lòng") rates = "Chất lượng tốt";
+                            else if (feedbackModal.rating === "Tạm ổn") rates = "Chất lượng ổn";
+                            else if (feedbackModal.rating === "Không hài lòng") rates = "Chất lượng kém";
                             await axios.patch(
                               `${API_BASE_URL}/services/${id}`,
                               {
@@ -1236,8 +1287,9 @@ const ResidentService = () => {
                                 scripts: feedbackModal.details || null,
                               }
                             );
+                            setShowSuccessModal(true); // Hiển thị modal thành công
                           } catch (err) {
-                            alert("Gửi phản ánh thất bại!");
+                            setShowErrorModal(true); // Hiển thị modal thất bại
                           }
                           handleCloseFeedbackModal();
                         }}
@@ -1258,6 +1310,17 @@ const ResidentService = () => {
                           onCancel={handleCloseSubModal}
                         />
                       )}
+                      {/* SuccessModal và ErrorModal cho phản ánh dịch vụ */}
+                      <SuccessModal
+                        isOpen={showSuccessModal}
+                        onClose={() => setShowSuccessModal(false)}
+                        message="Gửi phản ánh thành công!"
+                      />
+                      <ErrorModal
+                        isOpen={showErrorModal}
+                        onClose={() => setShowErrorModal(false)}
+                        message="Gửi phản ánh thất bại!"
+                      />
                     </div>
                   </div>
                 )}
