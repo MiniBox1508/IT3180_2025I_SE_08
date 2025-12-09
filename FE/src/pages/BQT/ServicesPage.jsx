@@ -133,9 +133,7 @@ const ServicesPage = () => {
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Nội dung
                   </div>
-                  <div className="font-bold text-gray-900">
-                    {item.content}
-                  </div>
+                  <div className="font-bold text-gray-900">{item.content}</div>
                 </div>
                 {/* Apartment */}
                 <div className="col-span-1">
@@ -157,6 +155,46 @@ const ServicesPage = () => {
                     }
                   >
                     {item.status}
+                  </div>
+                  <div className="mt-1">
+                    <select
+                      className="text-xs border rounded px-2 py-1"
+                      value={item.status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value;
+                        try {
+                          const res = await fetch(
+                            `${API_BASE_URL}/services/${item.id}`,
+                            {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                servicestatus: newStatus,
+                              }),
+                            }
+                          );
+                          const data = await res.json();
+                          if (data.message) {
+                            alert("Cập nhật trạng thái thành công!");
+                            // Reload lại danh sách dịch vụ
+                            const resReload = await fetch(
+                              `${API_BASE_URL}/services`
+                            );
+                            const dataReload = await resReload.json();
+                            setServices(
+                              Array.isArray(dataReload) ? dataReload : []
+                            );
+                          } else {
+                            alert(data.error || "Cập nhật thất bại");
+                          }
+                        } catch {
+                          alert("Cập nhật thất bại");
+                        }
+                      }}
+                    >
+                      <option value="Đã ghi nhận">Đã ghi nhận</option>
+                      <option value="Đã xử lý">Đã xử lý</option>
+                    </select>
                   </div>
                 </div>
                 {/* Date */}
