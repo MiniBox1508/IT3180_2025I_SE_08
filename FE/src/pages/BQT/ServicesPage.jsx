@@ -75,17 +75,20 @@ const ServicesPage = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-8">
           {/* Search Bar */}
-          <div className="flex justify-center relative">
-            <span className="absolute left-8 top-1/2 -translate-y-1/2">
-              <SearchIcon />
-            </span>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="w-2/3 max-w-2xl bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none pl-10"
-            />
+          <div className="flex justify-center">
+            <div className="relative w-2/3 max-w-2xl">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                <SearchIcon />
+              </span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search"
+                className="w-full bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none pl-10"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
           </div>
           {/* Title & Actions */}
           <div className="flex justify-between items-center">
