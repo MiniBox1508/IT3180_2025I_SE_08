@@ -62,6 +62,10 @@ const ReportCard = ({ title, stats, chartData }) => {
 
 // --- COMPONENT CHÍNH ---
 export const SecurityReport = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   const [residents, setResidents] = useState([]);
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,9 +74,18 @@ export const SecurityReport = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = getToken();
         const [resResidents, resServices] = await Promise.all([
-          axios.get(`${API_BASE_URL}/residents`),
-          axios.get(`${API_BASE_URL}/services`),
+          axios.get(`${API_BASE_URL}/residents`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${API_BASE_URL}/services`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
         setResidents(resResidents.data);
         setServices(resServices.data);

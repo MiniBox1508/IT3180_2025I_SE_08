@@ -147,6 +147,10 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
 
 // --- MAIN PAGE ---
 export const SecurityProblem = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   // --- MOCK DATA (Để khớp với ảnh demo vì chưa có API thật sự cố) ---
   const [incidents, setIncidents] = useState([
     {

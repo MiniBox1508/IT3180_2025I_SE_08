@@ -196,6 +196,10 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
 
 // --- MAIN PAGE ---
 export const SecurityNotification = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   // State Data
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -233,7 +237,12 @@ export const SecurityNotification = () => {
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/notifications`);
+      const token = getToken();
+      const response = await axios.get(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       // Sort mới nhất lên đầu
       const sorted = response.data.sort(
         (a, b) =>
@@ -266,11 +275,17 @@ export const SecurityNotification = () => {
   const handleSubmitForm = async (formData) => {
     setShowFormModal(false);
     try {
+      const token = getToken();
       if (editingItem) {
         // Edit logic
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          formData
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setStatusModal({
           open: true,
@@ -279,7 +294,11 @@ export const SecurityNotification = () => {
         });
       } else {
         // Add logic
-        await axios.post(`${API_BASE_URL}/notifications`, formData);
+        await axios.post(`${API_BASE_URL}/notifications`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setStatusModal({
           open: true,
           type: "success",
@@ -324,10 +343,15 @@ export const SecurityNotification = () => {
   const executeDelete = async () => {
     setShowConfirmDelete(false);
     try {
+      const token = getToken();
       // Gọi API xóa từng item (Do API mẫu thường không có bulk delete)
       await Promise.all(
         selectedIds.map((id) =>
-          axios.delete(`${API_BASE_URL}/notifications/${id}`)
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
         )
       );
 

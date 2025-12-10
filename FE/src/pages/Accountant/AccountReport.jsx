@@ -78,9 +78,18 @@ export const AccountReport = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem("token");
         const [resResidents, resPayments] = await Promise.all([
-          axios.get(`${API_BASE_URL}/residents`),
-          axios.get(`${API_BASE_URL}/payments`),
+          axios.get(`${API_BASE_URL}/residents`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${API_BASE_URL}/payments`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
         setResidents(resResidents.data);
         setPayments(resPayments.data);

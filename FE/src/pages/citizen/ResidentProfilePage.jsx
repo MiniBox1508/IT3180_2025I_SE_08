@@ -46,6 +46,10 @@ const EditableField = ({ label, value, isEditing, onChange, name, type = "text" 
 );
 
 export const ResidentProfilePage = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +91,12 @@ export const ResidentProfilePage = () => {
         return;
       }
       try {
-        const response = await axios.get(`${API_BASE_URL}/residents/${userId}`);
+        const token = getToken();
+        const response = await axios.get(`${API_BASE_URL}/residents/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = response.data;
 
         const mappedData = {
@@ -141,8 +150,13 @@ export const ResidentProfilePage = () => {
     };
 
     try {
-      await axios.put(`${API_BASE_URL}/residents/${userId}`, payload);
-      
+      const token = getToken();
+      await axios.put(`${API_BASE_URL}/residents/${userId}`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       setModalStatus("success");
       setStatusMessage("Cập nhật thông tin thành công!");
       setIsEditing(false);

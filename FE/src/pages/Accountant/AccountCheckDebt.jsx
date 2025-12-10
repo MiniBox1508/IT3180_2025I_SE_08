@@ -35,7 +35,12 @@ export const AccountCheckDebt = () => {
     const fetchDebts = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${API_BASE_URL}/payments`);
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_BASE_URL}/payments`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const processedData = response.data.map(item => {
           const createdDate = dayjs(item.created_at);
           const now = dayjs();

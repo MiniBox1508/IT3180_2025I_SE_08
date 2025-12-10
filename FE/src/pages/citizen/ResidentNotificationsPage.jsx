@@ -72,7 +72,12 @@ export const ResidentNotificationsPage = () => {
     setError(null);
     try {
       // Gọi API GET /notifications
-      const response = await fetch(`${API_BASE_URL}/notifications`);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu thông báo.");
       }

@@ -321,6 +321,10 @@ const SelectGroup = ({
 // == COMPONENT DÀNH CHO DÂN CƯ: RESIDENTVIEWPAGE ==
 // =========================================================================
 export const ResidentViewPage = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -341,9 +345,16 @@ export const ResidentViewPage = () => {
       const userStr = localStorage.getItem("user");
       const currentUser = userStr ? JSON.parse(userStr) : null;
       const currentApartmentId = currentUser?.apartment_id;
+      const token = getToken();
 
       // 2. Gọi API lấy toàn bộ danh sách (do Backend chưa có API filter riêng)
-      const response = await fetch(`${API_BASE_URL}/residents`);
+      const response = await fetch(`${API_BASE_URL}/residents`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
       }

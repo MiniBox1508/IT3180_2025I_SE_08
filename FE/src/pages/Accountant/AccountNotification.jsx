@@ -218,7 +218,12 @@ export const AccountantNotification = () => {
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/notifications`);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       // Sắp xếp: Mới nhất lên đầu
       const sortedData = response.data.sort(
         (a, b) =>
@@ -253,9 +258,15 @@ export const AccountantNotification = () => {
     try {
       if (editingItem) {
         // Gọi API PUT để cập nhật
+        const token = localStorage.getItem("token");
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          formData
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setStatusModal({
           open: true,
@@ -264,7 +275,12 @@ export const AccountantNotification = () => {
         });
       } else {
         // Gọi API POST để thêm mới
-        await axios.post(`${API_BASE_URL}/notifications`, formData);
+        const token = localStorage.getItem("token");
+        await axios.post(`${API_BASE_URL}/notifications`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setStatusModal({
           open: true,
           type: "success",
@@ -309,9 +325,14 @@ export const AccountantNotification = () => {
     setShowConfirmDelete(false);
     try {
       // Xóa từng item đã chọn
+      const token = localStorage.getItem("token");
       await Promise.all(
         selectedIds.map((id) =>
-          axios.delete(`${API_BASE_URL}/notifications/${id}`)
+          axios.delete(`${API_BASE_URL}/notifications/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
         )
       );
 

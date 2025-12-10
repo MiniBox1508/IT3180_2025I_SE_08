@@ -89,7 +89,12 @@ export const ResidentPaymentPage = () => {
 
   // KHÔNG CẦN CÁC STATE VÀ LOGIC CHO ADD MODAL VÀ STATUS MODAL
 
-  // Hàm Fetch dữ liệu Thanh toán: chỉ lấy của cư dân đang đăng nhập
+  // Hàm lấy JWT token từ localStorage
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
+
+  // Hàm Fetch dữ liệu Thanh toán: chỉ lấy của cư dân đang đăng nhập, gửi token trong header
   const fetchPayments = async () => {
     setIsLoading(true);
     setError(null);
@@ -99,9 +104,16 @@ export const ResidentPaymentPage = () => {
       console.log("User từ Storage:", user);
       console.log("Resident ID:", resident_id);
       if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
+      const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/payments/by-resident/${resident_id}`,
-        console.log("2. Fetching URL:", `${API_BASE_URL}/payments/by-resident/${resident_id}`) // <--- DEBUG 2
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) {
         const errorData = await response

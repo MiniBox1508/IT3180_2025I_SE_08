@@ -735,6 +735,10 @@ const ErrorModal = ({ isOpen, onClose, message }) => {
 
 // --- MAIN PAGE ---
 const ResidentService = () => {
+    // Hàm lấy JWT token từ localStorage
+    const getToken = () => {
+      return localStorage.getItem("token");
+    };
   // --- FEEDBACK SELECTION MODE STATE ---
   const [isFeedbackMode, setIsFeedbackMode] = useState(false);
   // --- FEEDBACK MODAL STATE & HANDLERS ---
@@ -799,16 +803,26 @@ const ResidentService = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id)
         throw new Error("Không tìm thấy thông tin căn hộ");
+      const token = getToken();
 
       const servicesRes = await axios.get(
-        `${API_BASE_URL}/services/by-apartment/${user.apartment_id}`
+        `${API_BASE_URL}/services/by-apartment/${user.apartment_id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const sortedServices = servicesRes.data.sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
       setServices(sortedServices);
 
-      const residentsRes = await axios.get(`${API_BASE_URL}/residents`);
+      const residentsRes = await axios.get(`${API_BASE_URL}/residents`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setResidents(residentsRes.data);
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error);
@@ -858,8 +872,15 @@ const ResidentService = () => {
   const executeDelete = async () => {
     setModalState({ ...modalState, isOpen: false });
     try {
+      const token = getToken();
       await Promise.all(
-        selectedIds.map((id) => axios.delete(`${API_BASE_URL}/services/${id}`))
+        selectedIds.map((id) =>
+          axios.delete(`${API_BASE_URL}/services/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+        )
       );
       await fetchData();
       setTimeout(() => {
@@ -891,49 +912,74 @@ const ResidentService = () => {
         alert("Vui lòng đăng nhập lại.");
         return;
       }
+      const token = getToken();
 
       if (payload.isResidence) {
         // --- LOGIC KHAI BÁO TẠM TRÚ ---
         const formData = payload.formData;
 
         // 1. Tạo Service Request
-        const serviceRes = await axios.post(`${API_BASE_URL}/services`, {
-          apartment_id: formData.apartment_id,
-          service_type: payload.service_type,
-          content: payload.content,
-          note: "Yêu cầu khai báo tạm trú",
-        });
+        const serviceRes = await axios.post(
+          `${API_BASE_URL}/services`,
+          {
+            apartment_id: formData.apartment_id,
+            service_type: payload.service_type,
+            content: payload.content,
+            note: "Yêu cầu khai báo tạm trú",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         const serviceId = serviceRes.data.service_id;
 
         // 2. Tạo Form chi tiết
-        await axios.post(`${API_BASE_URL}/forms`, {
-          service_id: serviceId,
-          apartment_id: formData.apartment_id,
-          full_name: formData.fullName,
-          cccd: formData.cccd,
-          dob: formData.dob,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          note: formData.reason,
-        });
+        await axios.post(
+          `${API_BASE_URL}/forms`,
+          {
+            service_id: serviceId,
+            apartment_id: formData.apartment_id,
+            full_name: formData.fullName,
+            cccd: formData.cccd,
+            dob: formData.dob,
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            note: formData.reason,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         // 3. Tạo Resident (Khách tạm trú)
         const nameParts = formData.fullName.trim().split(" ");
         const lastName = nameParts.pop() || "";
         const firstName = nameParts.join(" ");
 
-        await axios.post(`${API_BASE_URL}/residents`, {
-          first_name: firstName,
-          last_name: lastName,
-          phone: `000000${Date.now().toString().slice(-4)}`,
-          apartment_id: formData.apartment_id,
-          cccd: formData.cccd,
-          birth_date: formData.dob,
-          role: "Cư dân",
-          residency_status: "khách tạm trú",
-          email: null,
-          password: "123",
-        });
+        await axios.post(
+          `${API_BASE_URL}/residents`,
+          {
+            first_name: firstName,
+            last_name: lastName,
+            phone: `000000${Date.now().toString().slice(-4)}`,
+            apartment_id: formData.apartment_id,
+            cccd: formData.cccd,
+            birth_date: formData.dob,
+            role: "Cư dân",
+            residency_status: "khách tạm trú",
+            email: null,
+            password: "123",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         // Thông báo thành công riêng cho Khai báo tạm trú
         await fetchData();
@@ -946,12 +992,20 @@ const ResidentService = () => {
         }, 300);
       } else {
         // --- LOGIC DỊCH VỤ THƯỜNG ---
-        await axios.post(`${API_BASE_URL}/services`, {
-          apartment_id: user.apartment_id,
-          service_type: payload.service_type,
-          content: payload.content,
-          note: payload.note,
-        });
+        await axios.post(
+          `${API_BASE_URL}/services`,
+          {
+            apartment_id: user.apartment_id,
+            service_type: payload.service_type,
+            content: payload.content,
+            note: payload.note,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         await fetchData();
         setTimeout(() => {
@@ -1270,6 +1324,7 @@ const ResidentService = () => {
                         onClick={async () => {
                           // Gửi phản ánh dịch vụ qua API PATCH
                           try {
+                            const token = getToken();
                             const id = feedbackModal.service?.id;
                             if (!id) return;
                             let problems = feedbackModal.problem || "Ko vấn đề";
@@ -1285,6 +1340,11 @@ const ResidentService = () => {
                                 problems,
                                 rates,
                                 scripts: feedbackModal.details || null,
+                              },
+                              {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                },
                               }
                             );
                             setShowSuccessModal(true); // Hiển thị modal thành công

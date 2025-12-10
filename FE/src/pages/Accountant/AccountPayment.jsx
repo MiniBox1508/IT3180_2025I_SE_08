@@ -372,9 +372,18 @@ export const AccountPayment = () => {
     setIsLoading(true);
     setError(null);
     try {
+      const token = localStorage.getItem("token");
       const [paymentsRes, residentsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/payments`),
-        fetch(`${API_BASE_URL}/residents`)
+        fetch(`${API_BASE_URL}/payments`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_BASE_URL}/residents`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
       ]);
 
       if (!paymentsRes.ok || !residentsRes.ok) {
@@ -421,11 +430,15 @@ export const AccountPayment = () => {
 
   const handleSave = async (data, invoiceId) => {
     try {
+      const token = localStorage.getItem("token");
       if (invoiceId) {
         // UPDATE
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(data),
         });
 
@@ -462,7 +475,10 @@ export const AccountPayment = () => {
 
         const response = await fetch(`${API_BASE_URL}/payments`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(createPayload),
         });
 
@@ -495,10 +511,14 @@ export const AccountPayment = () => {
     setShowConfirmModal(false);
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(
         `${API_BASE_URL}/payments/${itemToDeleteId}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
