@@ -11,6 +11,11 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 // === Khai báo API Base URL
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
+// --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+const getToken = () => {
+  return localStorage.getItem("token");
+};
+
 // ====================================================
 
 // === COMPONENT: PAYMENT FORM MODAL ===
@@ -71,11 +76,14 @@ const PaymentFormModal = ({
     // Gửi dữ liệu lên API
     try {
       // Gọi API POST /payment
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/payments`, {
-        // Gửi request tới endpoint tạo thanh toán được ghép từ API_BASE_URL và /payments
-        method: "POST", // Phương thức HTTP là POST để tạo mới
-        headers: { "Content-Type": "application/json" }, // Thiết lập header để thông báo gửi dữ liệu ở định dạng JSON
-        body: JSON.stringify(dataToSend), // Chuyển đổi đối tượng dataToSend thành chuỗi JSON để gửi trong nội dung (body) của request
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataToSend),
       });
 
       // Đọc phản hồi (Response) từ API và chuyển đổi nó thành đối tượng JSON
@@ -404,7 +412,12 @@ const PaymentPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments`);
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/payments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         const errorData = await response
           .json()
@@ -424,7 +437,12 @@ const PaymentPage = () => {
   // Hàm Fetch dữ liệu Cư dân (Giữ nguyên)
   const fetchResidents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/residents`);
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/residents`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("Không thể tải danh sách cư dân.");
       }
@@ -543,11 +561,15 @@ const PaymentPage = () => {
     const newStateValue = newStatus ? 1 : 0; // Convert boolean to 0 or 1
 
     try {
+      const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/payments/${selectedPayment.id}`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ state: newStateValue }),
         }
       );
@@ -589,10 +611,14 @@ const PaymentPage = () => {
     if (!itemToDeleteId) return;
 
     try {
+      const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/payments/${itemToDeleteId}`,
         {
-          method: "DELETE", // Gọi API DELETE
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 

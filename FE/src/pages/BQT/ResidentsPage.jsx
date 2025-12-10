@@ -355,11 +355,17 @@ export const ResidentsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // --- READ (Đọc danh sách cư dân - remains unchanged) ---
+  // Hàm lấy token từ localStorage
+  const getToken = () => localStorage.getItem('token');
   const fetchResidents = async () => {
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE_URL}/residents`);
+      const response = await fetch(`${API_BASE_URL}/residents`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
       }

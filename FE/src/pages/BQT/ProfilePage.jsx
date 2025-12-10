@@ -112,30 +112,43 @@ export const ProfilePage = () => {
   };
 
   // --- 3. CẬP NHẬT handleSubmit ---
-  const handleSubmit = (e) => {
+  // --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
+
+  // --- CẬP NHẬT handleSubmit GỌI API VÀ GỬI TOKEN ---
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Dữ liệu gửi đi:", formData);
 
-    // --- Giả lập gọi API ---
-    // Thay thế bằng logic gọi API thực tế của bạn
-    const isSuccess = Math.random() > 0.3; // Tăng tỉ lệ thành công lên 70%
-    // ----------------------
-
-    if (isSuccess) {
-      // Thành công
-      console.log("Cập nhật thành công!");
-      setModalStatus("success");
-      setStatusMessage("Đã sửa thông tin cá nhân thành công!");
-      setIsEditing(false); // Tắt chế độ sửa KHI thành công
-      setOriginalData(formData); // Cập nhật dữ liệu gốc thành dữ liệu mới đã lưu
-    } else {
-      // Thất bại
-      console.error("Cập nhật thất bại!");
+    try {
+      const token = getToken();
+      // Gọi API cập nhật thông tin cá nhân
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        // Thành công
+        setModalStatus("success");
+        setStatusMessage("Đã sửa thông tin cá nhân thành công!");
+        setIsEditing(false);
+        setOriginalData(formData);
+      } else {
+        // Thất bại
+        setModalStatus("failure");
+        setStatusMessage("Sửa thông tin cá nhân không thành công!");
+      }
+    } catch (err) {
       setModalStatus("failure");
       setStatusMessage("Sửa thông tin cá nhân không thành công!");
-      // Không tắt chế độ sửa khi thất bại, để người dùng thử lại
     }
-    setIsStatusModalOpen(true); // Mở modal thông báo
+    setIsStatusModalOpen(true);
   };
 
   // --- HÀM ĐÓNG STATUS MODAL ---

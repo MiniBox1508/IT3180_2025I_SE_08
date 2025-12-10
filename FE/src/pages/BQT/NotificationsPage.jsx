@@ -5,6 +5,11 @@ import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
+// --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+const getToken = () => {
+  return localStorage.getItem("token");
+};
+
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
@@ -135,13 +140,16 @@ export const NotificationsPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications`);
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu thông báo.");
       }
       const data = await response.json();
-      // BE trả về apartment_id, date dưới dạng ISO. FE hiển thị recipient, date định dạng VN.
-      // BE fields: id, content, apartment_id, notification_date
       setNotifications(data);
     } catch (err) {
       console.error("Fetch Error:", err);
@@ -190,9 +198,13 @@ export const NotificationsPage = () => {
     handleCloseAddModal(); // Đóng modal thêm
 
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/notifications`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           apartment_id: addRecipient, // recipient là apartment_id trong BE
           content: addContent,
@@ -252,11 +264,15 @@ export const NotificationsPage = () => {
     setError(null);
 
     try {
+      const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/notifications/${editingNotification.id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             apartment_id: editFormData.recipient,
             content: editFormData.content,
@@ -336,10 +352,14 @@ export const NotificationsPage = () => {
     setError(null);
 
     try {
+      const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/notifications/${itemToDeleteId}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 

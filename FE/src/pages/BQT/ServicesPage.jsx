@@ -17,11 +17,17 @@ const ServicesPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  // Hàm lấy token từ localStorage
+  const getToken = () => localStorage.getItem('token');
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/services`);
+        const res = await fetch(`${API_BASE_URL}/services`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
         const data = await res.json();
         // Sắp xếp mới nhất lên đầu
         const sortedData = Array.isArray(data)
