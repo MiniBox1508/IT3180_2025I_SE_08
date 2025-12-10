@@ -40,7 +40,12 @@ export const QRCodePayment = () => {
   useEffect(() => {
     const fetchPaymentDetails = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`); // API GET one payment by id
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (!response.ok) {
           throw new Error("Không tìm thấy hóa đơn.");
         }
