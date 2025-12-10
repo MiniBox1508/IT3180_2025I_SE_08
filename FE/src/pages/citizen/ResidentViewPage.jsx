@@ -85,7 +85,7 @@ const ResidentFormModal = ({
 
     const url = isEditing
       ? `${API_BASE_URL}/residents/${formData.id}`
-      : "${API_BASE_URL}/residents";
+      : `${API_BASE_URL}/residents`;
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -321,7 +321,6 @@ const SelectGroup = ({
 // == COMPONENT DÀNH CHO DÂN CƯ: RESIDENTVIEWPAGE ==
 // =========================================================================
 export const ResidentViewPage = () => {
-  // <<< ĐỔI TÊN COMPONENT
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -331,20 +330,37 @@ export const ResidentViewPage = () => {
   const [viewingResident, setViewingResident] = useState(null);
 
   // --- State cho Thanh Tìm kiếm (Chỉ lọc theo ID) ---
-  const [searchTerm, setSearchTerm] = useState(""); // <<< NEW
+  const [searchTerm, setSearchTerm] = useState("");
 
   // --- READ (Đọc danh sách cư dân) ---
   const fetchResidents = async () => {
     setIsLoading(true);
     setError("");
     try {
-      // Vẫn gọi API đọc danh sách như bình thường
+      // 1. Lấy thông tin user đang đăng nhập từ localStorage
+      const userStr = localStorage.getItem("user");
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      const currentApartmentId = currentUser?.apartment_id;
+
+      // 2. Gọi API lấy toàn bộ danh sách (do Backend chưa có API filter riêng)
       const response = await fetch(`${API_BASE_URL}/residents`);
       if (!response.ok) {
         throw new Error("Không thể tải dữ liệu cư dân.");
       }
       const data = await response.json();
-      setResidents(data);
+
+      // 3. LỌC CƯ DÂN CÙNG CĂN HỘ
+      if (currentApartmentId) {
+        const myNeighbors = data.filter((resident) =>
+          // So sánh chuỗi, bỏ khoảng trắng và không phân biệt hoa thường
+          String(resident.apartment_id).trim().toLowerCase() === String(currentApartmentId).trim().toLowerCase()
+        );
+        setResidents(myNeighbors);
+      } else {
+        // Nếu user hiện tại không có apartment_id, không hiển thị gì (hoặc có thể hiển thị chính họ)
+        setResidents([]);
+      }
+
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);
@@ -357,9 +373,9 @@ export const ResidentViewPage = () => {
     fetchResidents();
   }, []);
 
-  // --- LOGIC LỌC DỮ LIỆU ---
+  // --- LOGIC LỌC DỮ LIỆU (Search bar) ---
   const filteredResidents = residents.filter((resident) => {
-    // Nếu không có searchTerm, trả về tất cả
+    // Nếu không có searchTerm, trả về tất cả (đã lọc theo căn hộ ở trên)
     if (!searchTerm.trim()) {
       return true;
     }
@@ -394,11 +410,10 @@ export const ResidentViewPage = () => {
     <div className="flex-1 p-8 bg-blue-700 min-h-screen text-white">
       {" "}
       {/* Nền xanh dương sáng */}
-      {/* --- THANH TÌM KIẾM CỤC BỘ (ĐÃ MỞ RỘNG) --- */}
+      {/* --- THANH TÌM KIẾM CỤC BỘ --- */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           {" "}
-          {/* <<< SỬA: w-full max-w-full */}
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -420,7 +435,7 @@ export const ResidentViewPage = () => {
             placeholder="Tìm theo ID cư dân..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" // <<< SỬA py-2.5
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
@@ -428,7 +443,7 @@ export const ResidentViewPage = () => {
       <h1 className="text-3xl font-bold mb-6">Thông tin cư dân</h1>
       {/* Header: KHÔNG CÓ NÚT THÊM/XÓA CƯ DÂN */}
       <div className="flex justify-end gap-4 mb-8">
-        {/* Block này trống, hoặc bạn có thể xóa nó nếu không cần khoảng trống */}
+        {/* Block này trống */}
       </div>
       {/* Danh sách thẻ cư dân */}
       <div className="space-y-4">
@@ -532,7 +547,6 @@ export const ResidentViewPage = () => {
               <div className="ml-auto flex-shrink-0 w-20">
                 {" "}
                 {/* Giữ chỗ trống */}
-                {/* Nút Chỉnh sửa đã bị xóa */}
               </div>
               {/* Trạng thái "Đã xóa" */}
               {resident.state === "inactive" && (
