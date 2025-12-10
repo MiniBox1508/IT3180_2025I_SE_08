@@ -44,8 +44,11 @@ export const NewWelcomeScreen = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
-      // Lưu user vào localStorage
+      // Lưu user và token vào localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
       // Đăng nhập thành công, chuyển hướng theo role
       if (selectedRole === "Cư dân") navigate("/resident");
       else if (selectedRole === "Ban quản trị") navigate("/management");
