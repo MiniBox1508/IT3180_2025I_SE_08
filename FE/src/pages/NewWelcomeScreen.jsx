@@ -44,6 +44,11 @@ export const NewWelcomeScreen = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
+      // Kiểm tra trạng thái tài khoản
+      if (data.user && data.user.state === "inactive") {
+        setError("Tài khoản đã bị xoá");
+        return;
+      }
       // Lưu user và token vào localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
       if (data.token) {
