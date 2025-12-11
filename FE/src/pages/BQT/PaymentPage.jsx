@@ -159,7 +159,7 @@ const PaymentFormModal = ({
 };
 
 // --- COMPONENT CHÍNH: PAYMENT PAGE ---
-export default function PaymentPage() {
+export const PaymentPage = () => {
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
