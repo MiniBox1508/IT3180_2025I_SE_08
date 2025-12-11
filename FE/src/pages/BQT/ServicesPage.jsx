@@ -313,7 +313,7 @@ const ServicesPage = () => {
                 </div>
                 {/* Confirm Delete Modal */}
                 {showConfirmModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
                     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
                       <div className="mb-4">
                         <svg
@@ -354,7 +354,7 @@ const ServicesPage = () => {
 
                 {/* Success Modal */}
                 {showSuccessModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
                     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -393,7 +393,7 @@ const ServicesPage = () => {
 
                 {/* Error Modal */}
                 {showErrorModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
                     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

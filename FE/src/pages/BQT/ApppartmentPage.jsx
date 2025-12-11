@@ -29,7 +29,7 @@ const ApartmentDetailModal = ({ isOpen, onClose, apartmentData }) => {
   if (!isOpen || !apartmentData) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-3xl p-8 relative shadow-2xl max-h-[80vh] overflow-y-auto">
         {/* Header Modal */}
         <div className="flex justify-between items-center mb-6 border-b pb-4">
