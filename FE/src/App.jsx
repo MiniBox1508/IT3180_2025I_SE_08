@@ -17,7 +17,7 @@ import { QRCodePayment } from "./pages/QRCodePayment.jsx"; //QR Layout
 import { SecuritySharedLayout as SLayout } from "./layouts/SecuritySharedLayout.jsx";
 
 // import BQT pages
-import PaymentPage from "./pages/BQT/PaymentPage.jsx";
+import { PaymentPage } from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";

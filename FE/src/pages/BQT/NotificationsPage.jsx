@@ -6,6 +6,9 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
+// --- VALIDATION & TOKEN HELPERS ---
+const getToken = () => localStorage.getItem('token');
+
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,23 +19,28 @@ export const NotificationsPage = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]); // State lưu các ID được chọn để xóa
+  
+  // Status Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null); // 'success' hoặc 'failure'
   const [statusMessage, setStatusMessage] = useState("");
 
-  // --- STATE MỚI CHO XÓA HÀNG LOẠT ---
-  const [selectedIds, setSelectedIds] = useState([]);
-
+  // --- FETCH DATA ---
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications`);
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        headers: { "Authorization": `Bearer ${getToken()}` } // Gửi kèm Token
+      });
+      
       if (!response.ok) throw new Error("Failed to fetch notifications");
+      
       const data = await response.json();
       // Sắp xếp theo thời gian mới nhất
-      const sortedData = data.sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
+      const sortedData = Array.isArray(data) 
+        ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) 
+        : [];
       setNotifications(sortedData);
     } catch (err) {
       setError(err.message);
@@ -45,6 +53,7 @@ export const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
+  // --- FILTER ---
   const filteredNotifications = notifications.filter((note) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
@@ -90,7 +99,7 @@ export const NotificationsPage = () => {
     setStatusMessage("");
   };
 
-  // --- HÀM CONFIRM DELETE ĐÃ ĐƯỢC NÂNG CẤP ---
+  // --- HÀM CONFIRM DELETE (ĐÃ CÓ LOGIC XÓA NHIỀU + TOKEN) ---
   const confirmDelete = async () => {
     // Xác định danh sách cần xóa: là danh sách chọn (nếu có) HOẶC là mục đơn lẻ
     const idsToDelete = selectedIds.length > 0
@@ -105,14 +114,21 @@ export const NotificationsPage = () => {
     setIsConfirmModalOpen(false); // Đóng modal xác nhận
 
     try {
+      const token = getToken();
+      
       // Sử dụng Promise.all để gửi nhiều request xóa cùng lúc
       await Promise.all(
           idsToDelete.map(id =>
-              fetch(`${API_BASE_URL}/notifications/${id}`, { method: "DELETE" })
-                  .then(res => {
-                      if (!res.ok) throw new Error(`Failed to delete notification ${id}`);
-                      return res;
-                  })
+              fetch(`${API_BASE_URL}/notifications/${id}`, { 
+                  method: "DELETE",
+                  headers: { 
+                      "Authorization": `Bearer ${token}` 
+                  }
+              })
+              .then(res => {
+                  if (!res.ok) throw new Error(`Failed to delete notification ${id}`);
+                  return res;
+              })
           )
       );
 
@@ -147,8 +163,8 @@ export const NotificationsPage = () => {
     );
   };
 
-  if (isLoading) return <div className="p-8 text-white">Loading...</div>;
-  if (error) return <div className="p-8 text-red-500">Error: {error}</div>;
+  if (isLoading) return <div className="p-8 text-white text-lg bg-blue-700 min-h-screen">Đang tải thông báo...</div>;
+  if (error) return <div className="p-8 text-red-100 text-lg bg-blue-700 min-h-screen">Lỗi: {error}</div>;
 
   return (
     <div className="flex-1 p-8 bg-blue-700 min-h-screen text-white">
@@ -172,7 +188,7 @@ export const NotificationsPage = () => {
 
       <h1 className="text-3xl font-bold mb-6">Thông báo</h1>
 
-      {/* Actions Buttons - CẬP NHẬT GIAO DIỆN NÚT BẤM */}
+      {/* Actions Buttons */}
       <div className="flex justify-end gap-4 mb-6">
         {!isDeleteMode ? (
             // Nút mặc định
@@ -209,7 +225,7 @@ export const NotificationsPage = () => {
       {/* Notification List */}
       <div className="space-y-4">
         {filteredNotifications.map((note) => (
-          <div key={note.id} className="bg-white p-4 rounded-lg shadow flex items-start gap-4 text-gray-900">
+          <div key={note.id} className="bg-white p-4 rounded-lg shadow flex items-start gap-4 text-gray-900 relative">
             {/* --- CHECKBOX CHO CHẾ ĐỘ XÓA --- */}
             {isDeleteMode && (
                 <div className="flex items-center h-full pt-1">
@@ -224,24 +240,24 @@ export const NotificationsPage = () => {
 
             <div className="flex-1">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg">{note.title}</h3>
+                <h3 className="font-bold text-lg">{note.title || "Thông báo"}</h3>
                 <span className="text-sm text-gray-500">
-                  {new Date(note.created_at).toLocaleDateString("vi-VN")}
+                  {note.created_at ? new Date(note.created_at).toLocaleDateString("vi-VN") : "--/--/----"}
                 </span>
               </div>
-              <p className="text-gray-700">{note.message}</p>
+              <p className="text-gray-700">{note.content || note.message}</p>
               {note.apartment_id && (
                 <p className="text-sm text-blue-600 mt-2 font-medium">
-                  Căn hộ: {note.apartment_id}
+                  Gửi tới căn hộ: {note.apartment_id}
                 </p>
               )}
             </div>
 
-            {/* Nút xóa lẻ (vẫn giữ nhưng chỉ hiện khi ở delete mode) */}
+            {/* Nút xóa lẻ (chỉ hiện ở delete mode để tiện tay xóa 1 cái) */}
             {isDeleteMode && (
               <button
                 onClick={() => handleDeleteClick(note)}
-                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                className="text-gray-400 hover:text-red-500 transition-colors p-2"
                 title="Xóa thông báo này"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -252,7 +268,9 @@ export const NotificationsPage = () => {
           </div>
         ))}
         {filteredNotifications.length === 0 && (
-          <p className="text-center text-gray-200 mt-8">Không tìm thấy thông báo nào.</p>
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">
+            Không tìm thấy thông báo nào.
+          </div>
         )}
       </div>
 
@@ -262,11 +280,10 @@ export const NotificationsPage = () => {
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={confirmDelete}
         title="Xác nhận Xóa"
-        // Thông báo thay đổi tùy theo xóa lẻ hay xóa nhiều
         message={
             selectedIds.length > 0
                 ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} thông báo đã chọn không?`
-                : (notificationToDelete ? `Bạn có chắc chắn muốn xóa thông báo "${notificationToDelete.title}" không?` : "")
+                : (notificationToDelete ? "Bạn có chắc chắn muốn xóa thông báo này không?" : "")
         }
       />
 
