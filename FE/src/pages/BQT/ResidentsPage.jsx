@@ -245,7 +245,7 @@ export const ResidentsPage = () => {
   useEffect(() => { fetchResidents(); }, []);
 
   const filteredResidents = residents.filter((resident) => {
-    if (resident.state === 'inactive') return false;
+    if (resident.state === 'inactive') return true;
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
