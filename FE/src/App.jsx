@@ -21,6 +21,7 @@ import PaymentPage from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
 import { ResidentsPage } from "./pages/BQT/ResidentsPage.jsx";
 import { NotificationsPage } from "./pages/BQT/NotificationsPage.jsx";
+import { ApartmentPage } from "./pages/BQT/ApppartmentPage.jsx";
 import { Report } from "./pages/BQT/ReportPage.jsx";
 import ServicesPage from "./pages/BQT/ServicesPage.jsx";
 // import Resident pages
@@ -72,6 +73,7 @@ export default function App() {
           <Route index element={<ProfilePage />} />
           <Route path="residents" element={<ResidentsPage />} />
           <Route path="services" element={<ServicesPage />} />
+          <Route path="apartments" element={<ApartmentPage />} />
           <Route path="reports" element={<Report />} />
           <Route path="payments">
             <Route index element={<PaymentPage />} />
