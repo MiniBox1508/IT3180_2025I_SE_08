@@ -1,521 +1,139 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-// === Import Layout
-import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-// === Import Icons Components
-import { FiCheckCircle, FiXCircle } from "react-icons/fi";
-// === Import Icon Images
+import { StatusModal } from "../../layouts/StatusModal";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
-// === Khai báo API Base URL
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
-const getToken = () => {
-  return localStorage.getItem("token");
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
 };
 
-// ====================================================
-
-// === COMPONENT: PAYMENT FORM MODAL ===
-const PaymentFormModal = ({
-  isOpen, // Boolean xác định đóng/mở modal
-  onClose, // Hàm gọi khi đóng modal
-  onSave, // Hàm gọi khi tạo thanh toán thành công
-  residentOptions, // Mảng chứa danh sách cư dân để hiển thị trong select
-  error, // state lỗi từ component cha
-  setError, // hàm cập nhật state lỗi từ component cha
-}) => {
-  // Tạo state form dữ liệu
-  const [formData, setFormData] = useState({
-    resident_id: residentOptions[0]?.id || "", // Mặc định chọn resident_id đầu tiên, nếu danh sách rỗng thì để chuỗi rỗng
-    amount: "", // Khởi tạo thuộc tính số tiền rỗng
-    feetype: "", // Khởi tạo thuộc tính loại phí rỗng
-    payment_form: "Chuyển khoản QR", // Khởi tạo hình thức thanh toán với mặc định là Chuyển khoản QR
-  });
-
-  useEffect(() => {
-    //Kiểm tra đồng thời modal được mở, có ít nhất 1 cư dân trong residentOptions và resident_id chưa được set
-    if (isOpen && residentOptions.length > 0 && !formData.resident_id) {
-      // Tạo 1 bản sao của formData cũ và cập nhật resident_id thành ID của cư dân đầu tiên trong danh sách
-      setFormData((prev) => ({ ...prev, resident_id: residentOptions[0].id }));
-    }
-  }, [isOpen, residentOptions, formData.resident_id]); //useEffect sẽ chạy lại mảng phụ thuộc gồm isOpen, residentOptions và formData.resident_id thay đổi
-
-  const handleChange = (e) => {
-    // Hàm xử lý thay đổi trong form
-    const { name, value } = e.target; // Lấy tên và giá trị của trường thay đổi target (input/select)
-    setFormData((prev) => ({ ...prev, [name]: value })); //Cập nhật state formData với giá trị mới
-  };
-
-  // Hàm xử lý khi submit form
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Ngăn chặn hành vi mặc định của form (reload trang) do dùng SPA
-    setError(""); // Xoá các thông báo lỗi cũ, chỉ để hiển thị thông báo lỗi mới nhất
-
-    // Định dạng dữ liệu gửi lên API
-    const dataToSend = {
-      resident_id: parseInt(formData.resident_id), // Chuyển resident_id từ chuỗi sang kiểu số nguyên
-      amount: parseFloat(formData.amount), // Chuyển amount từ chuỗi sang kiểu số thực
-      feetype: formData.feetype, // Loại phí giữ nguyên kiểu chuỗi
-      payment_form: formData.payment_form, // Hình thức thanh toán giữ nguyên kiểu chuỗi
-    };
-
-    // Kiểm tra tính đúng đắn của trường dữ liệu trước khi gửi lên API
-    if (
-      !dataToSend.resident_id ||
-      isNaN(dataToSend.amount) || // Kiểm tra amount có phải số không
-      dataToSend.amount <= 0 ||
-      !dataToSend.feetype
-    ) {
-      setError("Vui lòng điền đủ ID Cư dân, Số tiền hợp lệ (> 0) và Loại phí.");
-      return;
-    }
-
-    // Gửi dữ liệu lên API
-    try {
-      // Gọi API POST /payment
-      const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/payments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(dataToSend),
-      });
-
-      // Đọc phản hồi (Response) từ API và chuyển đổi nó thành đối tượng JSON
-      const result = await response.json();
-
-      // Kiểm tra nếu phản hồi không thành công
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({})); // Đọc phản hồi lỗi từ API, nếu không đọc được thì trả về đối tượng rỗng
-        throw new Error(result.error || "Lỗi khi tạo giao dịch thanh toán."); // Ném lỗi dạng thông báo từ API hoặc thông báo mặc định
-      }
-
-      // Mặc định là Chưa thanh toán (state = 0) ở BE, nên chỉ cần onSave để refresh danh sách
-      onSave(); // Gọi hàm onSave từ component cha để thông báo tạo thành công
-      onClose(); // Đóng modal tạo sau khi tạo thành công
-    } catch (err) {
-      // Bắt lỗi nếu có lỗi xảy ra trong quá trình gọi API
-      console.error("API Error:", err); // In lỗi ra console để debug
-      setError(err.message); // Cập nhật state lỗi để hiển thị thông báo lỗi cho người dùng
-    }
-  };
-
-  if (!isOpen) return null; // Nếu modal không mở, không render gì cả
-
-  return (
-    // Overlay nền mờ
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      {/* Modal chính */}
-      <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
-        {/* Hiển thị tiêu đề modal tạo thanh toán mới*/}
-        <h2 className="text-lg font-bold mb-4">Tạo thanh toán mới</h2>
-        {error && ( // Hiển thị giao diện dưới khi biến error có giá trị (khác rỗng)
-          <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
-            {" "}
-            {/* Hộp thông báo lỗi với nền đỏ nhạt */}
-            {error}
-          </div>
-        )}
-
-        {/* Form nhập dữ liệu */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 1. Resident ID */}
-          <div>
-            {/* Thẻ cho trường Resident ID */}
-            <label className="mb-1 text-sm font-medium text-gray-700 block">
-              Cư dân (ID)
-            </label>
-            <select // Thẻ chọn thả xuống cho danh sách cư dân
-              name="resident_id"
-              value={formData.resident_id}
-              onChange={handleChange}
-              className="p-2 border border-gray-300 rounded text-sm w-full bg-white text-gray-900 focus:border-blue-500"
-              required // Bắt buộc người dùng chọn cư dân
-            >
-              {residentOptions.map(
-                (
-                  res // Lặp qua danh sách cư dân để tạo các thẻ chọn
-                ) => (
-                  <option
-                    key={res.id} // Sử dụng ID cư dân làm khóa duy nhất
-                    value={res.id} // Giá trị của thẻ chọn (được lưu vào state) là ID cư dân
-                  >{`${res.full_name} (ID: ${res.id})`}</option> // Nội dung văn bản hiển thị cho người dùng là tên cư dân và ID
-                )
-              )}
-            </select>
-          </div>
-
-          {/* 2. Amount */}
-          <div>
-            {/* Thẻ cho trường Số tiền */}
-            <label className="mb-1 text-sm font-medium text-gray-700 block">
-              Số tiền (VND)
-            </label>
-            <input
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange} // Hàm cập nhật state formData khi người dùng nhập số tiền mới
-              placeholder="Ví dụ: 350000"
-              className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
-              required // Bắt buộc người dùng nhập số tiền
-              min="1"
-            />
-          </div>
-
-          {/* 3. Fee Type */}
-          <div>
-            {/* Thẻ cho trường Loại phí */}
-            <label className="mb-1 text-sm font-medium text-gray-700 block">
-              Loại phí
-            </label>
-            <input
-              type="text"
-              name="feetype"
-              value={formData.feetype}
-              onChange={handleChange} // Hàm cập nhật state formData khi người dùng nhập loại phí mới
-              placeholder="Ví dụ: Phí quản lý tháng 12"
-              className="p-2 border border-gray-300 rounded text-sm w-full text-gray-900 focus:border-blue-500"
-              required // Bắt buộc người dùng nhập loại phí
-            />
-          </div>
-
-          {/* 4. Payment Form (chỉ để hiển thị cho API) */}
-          <div>
-            {/* Thẻ cho trường Hình thức TT dự kiến */}
-            <label className="mb-1 text-sm font-medium text-gray-700 block">
-              Hình thức TT dự kiến (Mặc định)
-            </label>
-            <select
-              name="payment_form"
-              value={formData.payment_form}
-              onChange={handleChange} // Hàm cập nhật state formData khi người dùng chọn hình thức thanh toán mới
-              className="p-2 border border-gray-300 rounded text-sm w-full bg-gray-100 text-gray-600 cursor-default"
-              disabled // Chỉ để hiển thị, không cho phép người dùng thay đổi
-            >
-              {/* Các tùy chọn hình thức thanh toán khác */}
-              <option value="Chuyển khoản QR">Chuyển khoản QR</option>
-              <option value="Tiền mặt">Tiền mặt</option>
-              <option value="Chưa xác định">Chưa xác định</option>
-            </select>
-            {/* Thông báo cho người dùng thanh toán mới luôn có trạng thái Chưa thanh toán */}
-            <p className="text-xs text-gray-500 mt-1">
-              Giao dịch mới luôn có trạng thái: **Chưa thanh toán**.
-            </p>
-          </div>
-          {/* Nút Hủy và Tạo Giao Dịch */}
-          <div className="flex justify-end space-x-4 pt-4">
-            {" "}
-            {/* Khung chứa hai nút trên cùng một hàng */}
-            {/* Nút Hủy */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors"
-            >
-              Hủy
-            </button>
-            {/* Nút Tạo Giao Dịch */}
-            <button
-              type="submit"
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors"
-            >
-              Tạo Giao Dịch
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// ====================================================
-
-// === COMPONENT: CHANGE STATUS MODAL ===
-const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
-  const [newStatus, setNewStatus] = useState(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      // Reset status when modal opens
-      setNewStatus(null);
-    }
-  }, [isOpen]);
-
-  if (!isOpen || !payment) return null;
-
-  const currentStatusIsPaid = payment.status_text === "Đã thanh toán";
-
-  const handleConfirm = () => {
-    if (newStatus !== null) {
-      onConfirm(newStatus);
-    }
-  };
-
-  // Remove overlay: just show modal as absolutely positioned, no background
-  return (
-    <div className="fixed left-0 right-0 top-0 bottom-0 flex justify-center items-center z-50 pointer-events-none">
-      <div className="bg-white p-6 rounded-lg w-full max-w-lg text-gray-900 pointer-events-auto shadow-xl">
-        <h2 className="text-lg font-bold mb-6 text-center">
-          Thay đổi trạng thái thanh toán {payment.id}
-        </h2>
-
-        {/* Buttons on one row, spaced apart */}
-        <div className="flex flex-row justify-center gap-8 mb-6">
-          <button
-            onClick={() => setNewStatus(true)}
-            className={`py-2 px-8 rounded-md font-semibold transition-colors ${
-              newStatus === true
-                ? "bg-green-600 text-white ring-2 ring-green-400"
-                : "bg-green-100 text-green-800 hover:bg-green-200"
-            }`}
-          >
-            Đã thanh toán
-          </button>
-          <button
-            onClick={() => setNewStatus(false)}
-            className={`py-2 px-8 rounded-md font-semibold transition-colors ${
-              newStatus === false
-                ? "bg-red-600 text-white ring-2 ring-red-400"
-                : "bg-red-100 text-red-800 hover:bg-red-200"
-            }`}
-          >
-            Chưa thanh toán
-          </button>
-        </div>
-
-        <div className="flex justify-end space-x-4 pt-4 border-t">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors"
-          >
-            Hủy
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={newStatus === null || newStatus === currentStatusIsPaid}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
-          >
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ===================================================
-
-// === COMPONENT: PAYMENT ITEM (ĐÃ SỬA) ===
-const PaymentItem = ({ item, onStatusClick, isDeleteMode, onDeleteClick }) => {
-  // <<< THÊM: isDeleteMode, onDeleteClick
-  const navigate = useNavigate();
-  const isPaid = item.status_text === "Đã thanh toán";
-
-  const formattedPaymentDate = item.payment_date
-    ? new Date(item.payment_date).toLocaleDateString("vi-VN")
-    : "---";
-
-  return (
-    // <<< SỬA: Thêm style đỏ khi ở chế độ Xóa
-    <div
-      className={`bg-white rounded-2xl shadow-md p-5 flex items-center space-x-6 relative overflow-hidden mb-4 ${
-        isDeleteMode ? "ring-2 ring-red-500" : ""
-      }`}
-    >
-      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-      <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Thanh toán ID</p>
-          <p className="font-semibold text-gray-800">{item.id}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
-          <p className="font-medium text-gray-700">
-            {item.apartment_id || "N/A"}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Loại phí</p>
-          <p className="font-medium text-gray-700">{item.feetype}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-          <p className="text-gray-600">{formattedPaymentDate}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Hình thức thanh toán</p>
-          <p className="text-gray-600">{item.payment_form || "---"}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-          {/* <<< SỬA: Thay đổi hành vi và nội dung của nút này */}
-          <p
-            className={`font-semibold mb-2 cursor-pointer ${
-              isDeleteMode
-                ? "text-red-600 hover:underline"
-                : isPaid
-                ? "text-green-600 hover:underline"
-                : "text-red-600 hover:underline"
-            }`}
-            onClick={() => {
-              if (isDeleteMode) {
-                onDeleteClick(item.id); // Gọi hàm xóa
-              } else {
-                onStatusClick(item); // Gọi hàm sửa status
-              }
-            }}
-          >
-            {isDeleteMode ? "Xóa thanh toán" : item.status_text}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ====================================================
-// === COMPONENT: TRANG THANH TOÁN CHÍNH (ĐÃ SỬA) ===
-const PaymentPage = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const userName = user?.full_name || "Ban quản trị";
+export const PaymentPage = () => {
   const [payments, setPayments] = useState([]);
-  const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // States cho Modal và chế độ xóa
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [addModalError, setAddModalError] = useState("");
 
-  const [isChangeStatusModalOpen, setIsChangeStatusModalOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  // --- STATE MỚI CHO XÓA HÀNG LOẠT ---
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  // <<< THÊM: State cho chế độ Xóa
-  const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState(null);
-  // ---------------------------------
-
-  // Hàm Fetch dữ liệu Thanh toán (Giữ nguyên)
   const fetchPayments = async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/payments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Lỗi không xác định khi tải dữ liệu." }));
-        throw new Error(errorData.error || "Không thể tải dữ liệu thanh toán.");
-      }
+      const response = await fetch(`${API_BASE_URL}/payments`);
+      if (!response.ok) throw new Error("Failed to fetch payments");
       const data = await response.json();
-      setPayments(data);
+      const sortedData = data.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setPayments(sortedData);
     } catch (err) {
-      console.error("Fetch Error:", err);
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Hàm Fetch dữ liệu Cư dân (Giữ nguyên)
-  const fetchResidents = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/residents`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Không thể tải danh sách cư dân.");
-      }
-      const data = await response.json();
-      setResidents(data.filter((r) => r.state === "active"));
-    } catch (err) {
-      console.error("Fetch Residents Error:", err);
-    }
-  };
-  // -----------------------------------------------------
-
-  // Gọi API khi component mount (Giữ nguyên)
   useEffect(() => {
     fetchPayments();
-    fetchResidents();
   }, []);
 
-  // Logic Lọc và Sắp xếp dữ liệu (Giữ nguyên)
-  const filteredPayments = payments
-    .filter((payment) => {
-      if (!searchTerm.trim()) {
-        return true;
+  const filteredPayments = payments.filter((payment) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      payment.title?.toLowerCase().includes(term) ||
+      String(payment.apartment_id)?.toLowerCase().includes(term)
+    );
+  });
+
+  // --- HANDLERS ---
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+    setPaymentToDelete(null);
+    setSelectedIds([]); // Reset selection
+  };
+
+  // Xử lý khi tick vào checkbox
+  const handleSelect = (id) => {
+    setSelectedIds((prev) =>
+        prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteClick = (payment) => {
+    setPaymentToDelete(payment);
+    setIsConfirmModalOpen(true);
+  };
+
+  // Click nút "Xóa các mục đã chọn" (xóa nhiều)
+  const handleDeleteSelectedClick = () => {
+      if (selectedIds.length > 0) {
+          setIsConfirmModalOpen(true);
       }
-      const searchLower = searchTerm.trim().toLowerCase();
-      const idMatch = String(payment.id).toLowerCase().includes(searchLower);
-      return idMatch;
-    })
-    .sort((a, b) => {
-      const isAPaid = a.status_text === "Đã thanh toán" ? 1 : 0;
-      const isBPaid = b.status_text === "Đã thanh toán" ? 1 : 0;
+  }
 
-      if (isAPaid !== isBPaid) {
-        return isAPaid - isBPaid;
-      }
-
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-  // ----------------------------
-
-  // --- HÀM XỬ LÝ MODAL TRẠNG THÁI (ĐÃ SỬA) ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
 
+  // --- HÀM CONFIRM DELETE ĐÃ ĐƯỢC NÂNG CẤP ---
+  const confirmDelete = async () => {
+    const idsToDelete = selectedIds.length > 0
+        ? selectedIds
+        : (paymentToDelete ? [paymentToDelete.id] : []);
+
+    if (idsToDelete.length === 0) {
+        setIsConfirmModalOpen(false);
+        return;
+    }
+
+    setIsConfirmModalOpen(false);
+
+    try {
+      // Sử dụng Promise.all để xóa nhiều
+      await Promise.all(
+          idsToDelete.map(id =>
+              fetch(`${API_BASE_URL}/payments/${id}`, { method: "DELETE" })
+                  .then(res => {
+                      if (!res.ok) throw new Error(`Failed to delete payment ${id}`);
+                      return res;
+                  })
+          )
+      );
+
+      fetchPayments();
+      setModalStatus("success");
+      setStatusMessage(idsToDelete.length > 1 ? `Đã xóa ${idsToDelete.length} khoản phí.` : "Xóa khoản phí thành công.");
+
+    } catch (err) {
+      console.error("Delete Error:", err);
+      setModalStatus("failure");
+      setStatusMessage("Có lỗi xảy ra khi xóa. Vui lòng thử lại.");
+    } finally {
+      setPaymentToDelete(null);
+      setSelectedIds([]);
+      setIsStatusModalOpen(true);
+    }
+  };
+
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
-
-    // <<< SỬA: Dùng statusMessage thay vì text cứng
-    // Áp dụng cho cả Sửa Trạng thái và Xóa
-    if (modalStatus === "update_success" || modalStatus === "update_failure") {
-      const isSuccess = modalStatus === "update_success";
-      const icon = isSuccess ? (
-        <FiCheckCircle className="text-blue-500 text-6xl mb-4" />
-      ) : (
-        <FiXCircle className="text-red-500 text-6xl mb-4" />
-      );
-      return (
-        <div className="flex flex-col items-center">
-          {icon}
-          <p className="text-xl font-semibold text-center text-gray-800">
-            {/* Sử dụng statusMessage đã set */}
-            {statusMessage || (isSuccess ? "Thành công!" : "Thất bại!")}
-          </p>
-        </div>
-      );
-    }
-    // -----------------------------------------
-
-    // Giữ nguyên logic cho Thêm mới
     const isSuccess = modalStatus === "success";
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
@@ -528,258 +146,152 @@ const PaymentPage = () => {
     );
   };
 
-  // --- HÀM GỌI KHI LƯU FORM ADD (Giữ nguyên) ---
-  const handleAddPaymentSuccess = () => {
-    fetchPayments(); // Refresh danh sách
-    setModalStatus("success");
-    setStatusMessage(
-      "Đã tạo giao dịch thanh toán mới thành công! (Trạng thái: Chưa thanh toán)"
-    );
-    setIsStatusModalOpen(true);
-  };
-
-  // --- HÀM XỬ LÝ KHI ĐÓNG MODAL ADD (Giữ nguyên) ---
-  const handleCloseAddModal = () => {
-    setIsAddModalOpen(false);
-    setAddModalError(""); // Clear lỗi form
-  };
-
-  // --- HANDLERS FOR CHANGE STATUS MODAL (Giữ nguyên) ---
-  const handleOpenChangeStatusModal = (payment) => {
-    setSelectedPayment(payment);
-    setIsChangeStatusModalOpen(true);
-  };
-
-  const handleCloseChangeStatusModal = () => {
-    setSelectedPayment(null);
-    setIsChangeStatusModalOpen(false);
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    if (!selectedPayment) return;
-
-    const newStateValue = newStatus ? 1 : 0; // Convert boolean to 0 or 1
-
-    try {
-      const token = getToken();
-      const response = await fetch(
-        `${API_BASE_URL}/payments/${selectedPayment.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ state: newStateValue }),
-        }
-      );
-
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "Lỗi khi cập nhật trạng thái.");
-      }
-
-      handleCloseChangeStatusModal();
-      setModalStatus("update_success");
-      setStatusMessage("Thay đổi trạng thái thành công!");
-      setIsStatusModalOpen(true);
-      fetchPayments();
-    } catch (err) {
-      console.error("Update Status Error:", err);
-      handleCloseChangeStatusModal();
-      setModalStatus("update_failure");
-      setStatusMessage(err.message);
-      setIsStatusModalOpen(true);
-    }
-  };
-
-  // <<< THÊM: CÁC HÀM XỬ LÝ XÓA
-  const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
-
-  const handleDeleteClick = (id) => {
-    setItemToDeleteId(id);
-    setShowConfirmModal(true);
-  };
-
-  const handleCancelDelete = () => {
-    setShowConfirmModal(false);
-    setItemToDeleteId(null);
-  };
-
-  const handleConfirmDelete = async () => {
-    setShowConfirmModal(false);
-    if (!itemToDeleteId) return;
-
-    try {
-      const token = getToken();
-      const response = await fetch(
-        `${API_BASE_URL}/payments/${itemToDeleteId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(result.error || "Lỗi khi xóa thanh toán.");
-      }
-
-      // Thành công
-      fetchPayments(); // Refresh list
-      setModalStatus("update_success"); // Dùng style icon FiCheckCircle
-      setStatusMessage("Đã xóa thanh toán thành công!"); // Set message
-      setIsStatusModalOpen(true);
-    } catch (err) {
-      console.error("Delete Error:", err);
-      setModalStatus("update_failure"); // Dùng style icon FiXCircle
-      setStatusMessage(err.message); // Set message
-      setIsStatusModalOpen(true);
-    } finally {
-      setItemToDeleteId(null);
-      setIsDeleteMode(false); // Tắt chế độ xóa sau khi thực hiện
-    }
-  };
-  // ---------------------------------
-
-  // Xử lý Loading State (Giữ nguyên)
-  if (isLoading) {
-    return (
-      <div className="text-white text-lg p-4">
-        Đang tải danh sách thanh toán...
-      </div>
-    );
-  }
-
-  // Xử lý Error State (Giữ nguyên)
-  if (error) {
-    return (
-      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
-    );
-  }
-
-  // Hiển thị nội dung (ĐÃ SỬA)
-  const renderContent = () => {
-    if (filteredPayments.length === 0) {
-      return (
-        <div className="bg-white p-6 rounded-lg text-center text-gray-500 shadow-md">
-          Không có hóa đơn thanh toán nào phù hợp với tìm kiếm.
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {filteredPayments.map((item) => (
-          <PaymentItem
-            key={item.id}
-            item={item}
-            onStatusClick={handleOpenChangeStatusModal}
-            isDeleteMode={isDeleteMode} // <<< THÊM
-            onDeleteClick={handleDeleteClick} // <<< THÊM
-          />
-        ))}
-      </div>
-    );
-  };
+  if (isLoading) return <div className="p-8 text-white">Loading...</div>;
+  if (error) return <div className="p-8 text-red-500">Error: {error}</div>;
 
   return (
-    <>
-      {/* Thanh Tìm kiếm Full Width (Giữ nguyên) */}
+    <div className="flex-1 p-8 bg-blue-700 min-h-screen text-white">
+      {/* Search Bar */}
       <div className="flex justify-start items-center mb-6">
-        <div className="relative w-full max-w-full">
+        <div className="relative w-full max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thanh toán..."
+            placeholder="Tìm kiếm khoản phí..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
           />
         </div>
       </div>
 
-      {/* <<< SỬA: Header và Nút Thêm/Xóa Thanh Toán */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Danh sách Thanh toán</h1>
-        <div className="flex space-x-4">
-          {/* Nút Xóa / Hoàn tất */}
-          <button
-            onClick={toggleDeleteMode} // Bật/tắt chế độ xóa
-            className={`${
-              isDeleteMode
-                ? "bg-gray-500 hover:bg-gray-600" // Style khi đang xóa
-                : "bg-red-500 hover:bg-red-700" // Style mặc định
-            } text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm`}
-          >
-            {isDeleteMode ? "Hoàn tất" : "Xóa Thanh Toán"}
-          </button>
+      <h1 className="text-3xl font-bold mb-6">Quản lý các khoản phí</h1>
 
-          {/* Chỉ hiển thị nút Thêm khi KHÔNG ở chế độ xóa */}
-          {!isDeleteMode && (
+      {/* Actions Buttons - CẬP NHẬT GIAO DIỆN */}
+      <div className="flex justify-end gap-4 mb-6">
+        <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+          Thêm khoản phí
+        </button>
+        {!isDeleteMode ? (
             <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center text-sm"
+                onClick={toggleDeleteMode}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
             >
-              + Tạo Thanh Toán
+                Xóa khoản phí
             </button>
-          )}
-        </div>
+        ) : (
+            <>
+                <button
+                    onClick={handleDeleteSelectedClick}
+                    disabled={selectedIds.length === 0}
+                    className={`font-bold py-2 px-6 rounded-lg transition-colors ${
+                        selectedIds.length === 0
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-red-500 hover:bg-red-600 text-white"
+                    }`}
+                >
+                    Xóa các mục đã chọn ({selectedIds.length})
+                </button>
+                <button
+                    onClick={toggleDeleteMode}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                >
+                    Hủy
+                </button>
+            </>
+        )}
       </div>
-      {/* ------------------------------------------- */}
 
-      {renderContent()}
+      {/* Payment List */}
+      <div className="space-y-4">
+        {filteredPayments.map((payment) => (
+          <div key={payment.id} className="bg-white p-4 rounded-lg shadow flex items-center gap-4 text-gray-900">
+             {/* --- CHECKBOX CHO CHẾ ĐỘ XÓA --- */}
+             {isDeleteMode && (
+                <div className="flex items-center h-full">
+                    <input
+                        type="checkbox"
+                        checked={selectedIds.includes(payment.id)}
+                        onChange={() => handleSelect(payment.id)}
+                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    />
+                </div>
+            )}
+            {/* Icon */}
+            <div className="bg-blue-100 p-3 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
 
-      {/* Modal Thêm Thanh Toán (Giữ nguyên) */}
-      <PaymentFormModal
-        isOpen={isAddModalOpen}
-        onClose={handleCloseAddModal}
-        onSave={handleAddPaymentSuccess}
-        residentOptions={residents}
-        error={addModalError}
-        setError={setAddModalError}
-      />
+            {/* Info */}
+            <div className="flex-1 grid grid-cols-3 gap-4 items-center">
+              <div>
+                <h3 className="font-bold text-lg">{payment.title}</h3>
+                <p className="text-sm text-gray-500">
+                  Căn hộ: {payment.apartment_id}
+                </p>
+              </div>
+              <div className="text-center">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    payment.state === 1
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {payment.state === 1 ? "Đã thanh toán" : "Chưa thanh toán"}
+                </span>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-blue-600">
+                  {formatCurrency(payment.amount)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Hạn: {new Date(payment.due_date).toLocaleDateString("vi-VN")}
+                </p>
+              </div>
+            </div>
 
-      {/* Change Status Modal (Giữ nguyên) */}
-      <ChangeStatusModal
-        isOpen={isChangeStatusModalOpen}
-        onClose={handleCloseChangeStatusModal}
-        payment={selectedPayment}
-        onConfirm={handleStatusUpdate}
-      />
+            {/* Delete Button (lẻ) */}
+            {isDeleteMode && (
+              <button
+                onClick={() => handleDeleteClick(payment)}
+                className="text-gray-400 hover:text-red-500 transition-colors p-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ))}
+        {filteredPayments.length === 0 && (
+          <p className="text-center text-gray-200 mt-8">
+            Không tìm thấy khoản phí nào.
+          </p>
+        )}
+      </div>
 
-      {/* <<< THÊM: Confirmation Modal (Xóa) */}
+      {/* Modals */}
       <ConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        title="Xác nhận Xóa Thanh Toán"
-        message="Bạn có chắc chắn muốn xóa vĩnh viễn thanh toán này không?"
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Xác nhận Xóa"
+        message={
+            selectedIds.length > 0
+                ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} khoản phí đã chọn không?`
+                : (paymentToDelete ? `Bạn có chắc chắn muốn xóa khoản phí "${paymentToDelete.title}" không?` : "")
+        }
       />
 
-      {/* Status Modal (Thông báo kết quả) (Giữ nguyên) */}
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
-    </>
+    </div>
   );
 };
-
-export default PaymentPage;
