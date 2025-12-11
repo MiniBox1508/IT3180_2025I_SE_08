@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-// Bỏ import Link nếu không dùng
-// import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom"; // Bỏ nếu không dùng
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+// --- HÀM LẤY TOKEN ---
 const getToken = () => {
   return localStorage.getItem("token");
 };
@@ -13,21 +12,18 @@ const getToken = () => {
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
-// --- Component hiển thị một mục thông báo (ĐÃ SỬA) ---
+// --- Component hiển thị Item (ĐÃ SỬA VỊ TRÍ CHECKBOX) ---
 const NotificationItem = ({
   item,
   isDeleteMode,
-  onDeleteClick,
   onEditClick,
-  isSelected,        // prop mới
-  onToggleSelect     // prop mới
+  isSelected,
+  onToggleSelect
 }) => {
 
-  const handleActionClick = () => {
-    if (isDeleteMode) {
-      onDeleteClick(item.id); // Xóa lẻ
-    } else {
-      onEditClick(item); // Sửa
+  const handleEditClick = () => {
+    if (!isDeleteMode) {
+      onEditClick(item);
     }
   };
 
@@ -43,20 +39,8 @@ const NotificationItem = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      {/* --- CHECKBOX (Chỉ hiện khi ở chế độ xóa) --- */}
-      {isDeleteMode && (
-        <div className="pl-2 pr-4 border-r border-gray-100 mr-4">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-          />
-        </div>
-      )}
-
-      {/* Thanh màu bên trái */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 ${isDeleteMode ? 'left-[50px]' : 'left-4 rounded-full top-3 bottom-3'}`}></div>
+      {/* Thanh màu bên trái (luôn cố định) */}
+      <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
 
       {/* Nội dung thông báo */}
       <div className="flex-1 grid grid-cols-4 gap-4 items-center pl-8 pr-4 text-gray-800">
@@ -91,18 +75,27 @@ const NotificationItem = ({
         </div>
       </div>
 
-      {/* --- Nút hành động (Sửa/Xóa lẻ) --- */}
-      <div className="ml-auto flex-shrink-0 pr-2">
-        <button
-          onClick={handleActionClick}
-          className={`${
-            isDeleteMode
-              ? "text-red-600 hover:text-red-800"
-              : "text-blue-600 hover:text-blue-800"
-          } hover:underline text-sm font-medium`}
-        >
-          {isDeleteMode ? "Xóa" : "Chỉnh sửa"}
-        </button>
+      {/* --- KHU VỰC HÀNH ĐỘNG (BÊN PHẢI) --- */}
+      <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
+        {isDeleteMode ? (
+          /* TRƯỜNG HỢP XÓA: HIỆN CHECKBOX THAY VÌ NÚT EDIT/DELETE */
+          <div className="flex items-center justify-center h-full">
+             <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleSelect(item.id)}
+                className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+          </div>
+        ) : (
+          /* TRƯỜNG HỢP THƯỜNG: HIỆN NÚT CHỈNH SỬA */
+          <button
+            onClick={handleEditClick}
+            className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
+          >
+            Chỉnh sửa
+          </button>
+        )}
       </div>
     </div>
   );
@@ -131,7 +124,6 @@ export const NotificationsPage = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); // Danh sách ID đã chọn
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState(null); // ID khi xóa lẻ
 
   // --- FETCH DATA ---
   const fetchNotifications = async () => {
@@ -144,7 +136,6 @@ export const NotificationsPage = () => {
       });
       if (!response.ok) throw new Error("Không thể tải dữ liệu thông báo.");
       const data = await response.json();
-      // Sắp xếp mới nhất
       const sortedData = Array.isArray(data) 
         ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) 
         : [];
@@ -259,7 +250,6 @@ export const NotificationsPage = () => {
   // --- HANDLERS: DELETE (SINGLE & BULK) ---
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
-    setItemToDeleteId(null);
     setSelectedIds([]); // Reset chọn
   };
 
@@ -267,12 +257,6 @@ export const NotificationsPage = () => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
-  };
-
-  // Xóa lẻ (nút thùng rác/xóa trên dòng)
-  const handleDeleteItemClick = (id) => {
-    setItemToDeleteId(id);
-    setShowConfirmModal(true);
   };
 
   // Xóa nhiều (nút trên header)
@@ -284,17 +268,11 @@ export const NotificationsPage = () => {
 
   const handleCancelDelete = () => {
     setShowConfirmModal(false);
-    setItemToDeleteId(null);
   };
 
-  // Hàm xác nhận xóa chung cho cả 2 trường hợp
+  // Hàm xác nhận xóa
   const handleConfirmDelete = async () => {
-    // Xác định danh sách cần xóa: là danh sách chọn (nếu có) HOẶC là mục đơn lẻ
-    const idsToDelete = selectedIds.length > 0
-        ? selectedIds
-        : (itemToDeleteId ? [itemToDeleteId] : []);
-
-    if (idsToDelete.length === 0) {
+    if (selectedIds.length === 0) {
         setShowConfirmModal(false);
         return;
     }
@@ -307,7 +285,7 @@ export const NotificationsPage = () => {
       
       // Sử dụng Promise.all để gửi nhiều request xóa cùng lúc
       await Promise.all(
-          idsToDelete.map(id =>
+          selectedIds.map(id =>
               fetch(`${API_BASE_URL}/notifications/${id}`, { 
                   method: "DELETE",
                   headers: { 
@@ -323,13 +301,12 @@ export const NotificationsPage = () => {
 
       fetchNotifications();
       setModalStatus("deleteSuccess");
-      setStatusMessage(idsToDelete.length > 1 ? `Đã xóa ${idsToDelete.length} thông báo thành công!` : "Đã xóa thông báo thành công!");
+      setStatusMessage(`Đã xóa ${selectedIds.length} thông báo thành công!`);
     } catch (err) {
       console.error("API Error:", err);
       setModalStatus("deleteFailure");
       setStatusMessage("Có lỗi xảy ra khi xóa. Vui lòng thử lại.");
     } finally {
-      setItemToDeleteId(null);
       setSelectedIds([]);
       setIsStatusModalOpen(true);
     }
@@ -435,7 +412,7 @@ export const NotificationsPage = () => {
               key={item.id}
               item={item}
               isDeleteMode={isDeleteMode}
-              onDeleteClick={handleDeleteItemClick}
+              // onDeleteClick={handleDeleteItemClick} // Không cần nữa vì đã có checkbox
               onEditClick={handleOpenEditModal}
               isSelected={selectedIds.includes(item.id)} // Truyền trạng thái chọn
               onToggleSelect={handleSelect} // Truyền hàm xử lý chọn
@@ -540,7 +517,7 @@ export const NotificationsPage = () => {
         message={
             selectedIds.length > 0 
             ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} thông báo đã chọn không?` 
-            : "Bạn có chắc chắn muốn xóa thông báo này không?"
+            : "Vui lòng chọn ít nhất một thông báo để xóa."
         }
       />
 
