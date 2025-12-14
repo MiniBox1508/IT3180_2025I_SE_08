@@ -27,6 +27,7 @@ const formatCurrency = (amount) => {
 
 // --- HELPER: Xóa dấu tiếng Việt (để xuất PDF không lỗi font) ---
 const removeVietnameseTones = (str) => {
+    if (!str) return "";
     str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
     str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
     str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
@@ -48,7 +49,6 @@ const removeVietnameseTones = (str) => {
 const ReportCard = ({ title, stats, chartData }) => {
   return (
     <div className="bg-white rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between min-h-[280px]">
-      {/* Phần Text thông tin */}
       <div className="w-full md:w-1/2 pr-4 space-y-4">
         <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">
           {title}
@@ -65,7 +65,6 @@ const ReportCard = ({ title, stats, chartData }) => {
         </div>
       </div>
 
-      {/* Phần Biểu đồ */}
       <div className="w-full md:w-1/2 flex justify-center items-center h-64 relative mt-4 md:mt-0">
         <div className="w-full h-full max-w-[220px] max-h-[220px]">
           <Pie 
@@ -99,8 +98,8 @@ export const AccountReport = () => {
 
   // States cho Export PDF
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1); // Tháng hiện tại
-  const [selectedYear, setSelectedYear] = useState(dayjs().year());       // Năm hiện tại
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [selectedMonth, setSelectedMonth] = useState(""); // Để trống ban đầu
 
   // --- 1. FETCH DATA ---
   useEffect(() => {
@@ -128,13 +127,11 @@ export const AccountReport = () => {
 
   // --- 2. TÍNH TOÁN SỐ LIỆU (STATISTICS) ---
   const statistics = useMemo(() => {
-    // A. Thống kê Cư dân & Căn hộ
     const residentStats = {
       totalApartments: 0,
       cuTru: 0,
       tamTru: 0,
     };
-
     const apartmentSet = new Set();
 
     residents.forEach(r => {
@@ -148,10 +145,8 @@ export const AccountReport = () => {
         residentStats.cuTru++;
       }
     });
-
     residentStats.totalApartments = apartmentSet.size;
 
-    // B. Thống kê Thanh toán
     const paymentStats = {
       totalCount: 0,
       paidCount: 0,
@@ -163,7 +158,6 @@ export const AccountReport = () => {
     payments.forEach(p => {
       paymentStats.totalCount++;
       paymentStats.totalAmount += Number(p.amount || 0);
-
       const isPaid = p.state === 1;
       if (isPaid) {
         paymentStats.paidCount++;
@@ -183,38 +177,62 @@ export const AccountReport = () => {
   // --- 3. LẤY DANH SÁCH NĂM CÓ DỮ LIỆU ---
   const availableYears = useMemo(() => {
     const years = new Set();
-    // Thêm năm hiện tại
-    years.add(dayjs().year());
-    // Thêm năm từ dữ liệu
+    years.add(dayjs().year()); // Luôn hiện năm hiện tại
     payments.forEach(p => {
         if(p.created_at) years.add(dayjs(p.created_at).year());
     });
-    return Array.from(years).sort((a, b) => b - a); // Sắp xếp giảm dần
+    return Array.from(years).sort((a, b) => b - a);
   }, [payments]);
 
-  // --- 4. XỬ LÝ XUẤT PDF ---
+  // --- 4. [MỚI] LẤY DANH SÁCH THÁNG CÓ DỮ LIỆU TRONG NĂM ĐÃ CHỌN ---
+  const availableMonths = useMemo(() => {
+    const months = new Set();
+    payments.forEach(p => {
+        const date = dayjs(p.created_at);
+        // Chỉ lấy tháng nếu năm khớp với năm đang chọn
+        if (date.year() === parseInt(selectedYear)) {
+            months.add(date.month() + 1); // dayjs month là 0-11
+        }
+    });
+    return Array.from(months).sort((a, b) => a - b); // Sắp xếp tăng dần
+  }, [payments, selectedYear]);
+
+  // --- 5. [MỚI] TỰ ĐỘNG CHỌN THÁNG HỢP LỆ ---
+  useEffect(() => {
+    if (availableMonths.length > 0) {
+        // Nếu tháng hiện tại không nằm trong danh sách khả dụng, chọn tháng đầu tiên có dữ liệu
+        if (!availableMonths.includes(parseInt(selectedMonth))) {
+            setSelectedMonth(availableMonths[availableMonths.length - 1]); // Chọn tháng mới nhất có dữ liệu
+        }
+    } else {
+        setSelectedMonth(""); // Không có dữ liệu
+    }
+  }, [availableMonths, selectedMonth]);
+
+  // --- 6. XỬ LÝ XUẤT PDF ---
   const handleExportPDF = () => {
+    if (!selectedMonth) {
+        alert("Không có dữ liệu trong năm này để xuất báo cáo!");
+        return;
+    }
+
     const doc = new jsPDF();
 
-    // Lọc dữ liệu theo tháng/năm đã chọn
     const filteredPayments = payments.filter(p => {
         const date = dayjs(p.created_at);
         return date.month() + 1 === parseInt(selectedMonth) && date.year() === parseInt(selectedYear);
     });
 
-    // Tính toán lại tổng cho báo cáo này
     const totalRevenue = filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0);
     const paidCount = filteredPayments.filter(p => p.state === 1).length;
     const unpaidCount = filteredPayments.length - paidCount;
 
-    // --- Header PDF ---
     doc.setFontSize(18);
     doc.text(`BAO CAO TAI CHINH - THANG ${selectedMonth}/${selectedYear}`, 105, 20, { align: "center" });
     
     doc.setFontSize(12);
     doc.text(`Ngay xuat bao cao: ${dayjs().format("DD/MM/YYYY HH:mm")}`, 105, 30, { align: "center" });
 
-    // --- Summary Section ---
     doc.text("TONG QUAN:", 14, 45);
     doc.setFontSize(10);
     doc.text(`- Tong so hoa don: ${filteredPayments.length}`, 20, 52);
@@ -222,7 +240,6 @@ export const AccountReport = () => {
     doc.text(`- Chua thanh toan: ${unpaidCount}`, 20, 64);
     doc.text(`- Tong doanh thu du kien: ${new Intl.NumberFormat('vi-VN').format(totalRevenue)} VND`, 20, 70);
 
-    // --- Table Section ---
     const tableColumn = ["ID", "Can Ho", "Loai Phi", "So Tien (VND)", "Trang Thai", "Ngay Tao"];
     const tableRows = [];
 
@@ -244,14 +261,13 @@ export const AccountReport = () => {
         body: tableRows,
         theme: 'grid',
         styles: { fontSize: 9 },
-        headStyles: { fillColor: [59, 130, 246] }, // Blue color header
+        headStyles: { fillColor: [59, 130, 246] },
     });
 
     doc.save(`Bao_cao_thang_${selectedMonth}_${selectedYear}.pdf`);
     setIsExportModalOpen(false);
   };
 
-  // --- CẤU HÌNH BIỂU ĐỒ ---
   const residentChartData = {
     labels: ['Dân cư trú', 'Dân tạm trú'],
     datasets: [{
@@ -275,20 +291,16 @@ export const AccountReport = () => {
     }],
   };
 
-  if (isLoading) {
-    return <div className="text-white text-center mt-10 text-xl">Đang tổng hợp báo cáo...</div>;
-  }
+  if (isLoading) return <div className="text-white text-center mt-10 text-xl">Đang tổng hợp báo cáo...</div>;
 
   return (
     <div className="w-full min-h-screen bg-blue-700 p-4 md:p-8">
-      {/* Header với Nút Xuất Báo Cáo */}
       <div className="mb-8 flex justify-between items-start">
         <div>
             <h1 className="text-3xl font-bold text-white mb-2">Báo cáo Kế toán</h1>
             <p className="text-blue-200">Tổng hợp số liệu về Cư dân và Tình hình tài chính</p>
         </div>
         
-        {/* Nút Xuất Báo Cáo */}
         <button
             onClick={() => setIsExportModalOpen(true)}
             className="bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 px-6 rounded-lg shadow-lg flex items-center transition-all"
@@ -300,7 +312,6 @@ export const AccountReport = () => {
         </button>
       </div>
 
-      {/* Grid Layout */}
       <div className="grid grid-cols-1 gap-8 max-w-6xl mx-auto">
         <ReportCard 
           title="Chi tiết về số lượng cư dân"
@@ -325,38 +336,43 @@ export const AccountReport = () => {
         />
       </div>
 
-      {/* --- MODAL CHỌN THÁNG/NĂM ĐỂ XUẤT BÁO CÁO --- */}
+      {/* --- MODAL CHỌN THÁNG/NĂM --- */}
       {isExportModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Báo cáo định kỳ</h3>
                 
                 <div className="space-y-4">
-                    {/* Chọn Tháng */}
+                    {/* Chọn Năm (Chọn trước để lọc tháng) */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tháng</label>
-                        <select 
-                            value={selectedMonth} 
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                <option key={m} value={m}>Tháng {m}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Chọn Năm */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Năm</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Năm báo cáo</label>
                         <select 
                             value={selectedYear} 
                             onChange={(e) => setSelectedYear(e.target.value)}
                             className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                         >
                             {availableYears.map(y => (
-                                <option key={y} value={y}>{y}</option>
+                                <option key={y} value={y}>Năm {y}</option>
                             ))}
+                        </select>
+                    </div>
+
+                    {/* Chọn Tháng (Chỉ hiện tháng có dữ liệu) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tháng báo cáo</label>
+                        <select 
+                            value={selectedMonth} 
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className={`w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none ${availableMonths.length === 0 ? "bg-gray-100 text-gray-400" : ""}`}
+                            disabled={availableMonths.length === 0}
+                        >
+                            {availableMonths.length > 0 ? (
+                                availableMonths.map(m => (
+                                    <option key={m} value={m}>Tháng {m}</option>
+                                ))
+                            ) : (
+                                <option>Không có dữ liệu</option>
+                            )}
                         </select>
                     </div>
                 </div>
@@ -370,7 +386,8 @@ export const AccountReport = () => {
                     </button>
                     <button 
                         onClick={handleExportPDF}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors shadow-md"
+                        disabled={!selectedMonth}
+                        className={`px-4 py-2 text-white rounded-lg font-bold transition-colors shadow-md ${!selectedMonth ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
                     >
                         Xác nhận
                     </button>
