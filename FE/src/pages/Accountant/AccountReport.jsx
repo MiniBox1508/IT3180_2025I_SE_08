@@ -219,7 +219,7 @@ export const AccountReport = () => {
     const doc = new jsPDF();
 
     const filteredPayments = payments.filter(p => {
-        const date = dayjs(p.created_at);
+        const date = dayjs(p.payment_date || p.created_at);
         return date.month() + 1 === parseInt(selectedMonth) && date.year() === parseInt(selectedYear);
     });
 
@@ -338,7 +338,7 @@ export const AccountReport = () => {
 
       {/* --- MODAL CHỌN THÁNG/NĂM --- */}
       {isExportModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Báo cáo định kỳ</h3>
                 
