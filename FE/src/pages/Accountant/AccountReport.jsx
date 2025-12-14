@@ -188,7 +188,7 @@ export const AccountReport = () => {
   const availableMonths = useMemo(() => {
     const months = new Set();
     payments.forEach(p => {
-        const date = dayjs(p.created_at);
+        const date = dayjs(p.payment_date || p.created_at);
         // Chỉ lấy tháng nếu năm khớp với năm đang chọn
         if (date.year() === parseInt(selectedYear)) {
             months.add(date.month() + 1); // dayjs month là 0-11
