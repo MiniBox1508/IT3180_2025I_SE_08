@@ -10,6 +10,10 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
+// --- IMPORTS CHO PDF ---
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 // Đăng ký các thành phần của Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
@@ -20,6 +24,25 @@ const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
+
+// --- HELPER: Xóa dấu tiếng Việt (để xuất PDF không lỗi font) ---
+const removeVietnameseTones = (str) => {
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
+    str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
+    str = str.replace(/đ/g,"d");
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+    str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+    str = str.replace(/Đ/g, "D");
+    return str;
+}
 
 // --- COMPONENT CON: THẺ BÁO CÁO (Card) ---
 const ReportCard = ({ title, stats, chartData }) => {
@@ -74,6 +97,11 @@ export const AccountReport = () => {
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // States cho Export PDF
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1); // Tháng hiện tại
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());       // Năm hiện tại
+
   // --- 1. FETCH DATA ---
   useEffect(() => {
     const fetchData = async () => {
@@ -81,14 +109,10 @@ export const AccountReport = () => {
         const token = localStorage.getItem("token");
         const [resResidents, resPayments] = await Promise.all([
           axios.get(`${API_BASE_URL}/residents`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${API_BASE_URL}/payments`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
         setResidents(resResidents.data);
@@ -106,35 +130,28 @@ export const AccountReport = () => {
   const statistics = useMemo(() => {
     // A. Thống kê Cư dân & Căn hộ
     const residentStats = {
-      totalApartments: 0, // Tổng số căn hộ (đếm unique apartment_id)
-      cuTru: 0,           // Dân thường trú (Chủ hộ, thành viên)
-      tamTru: 0,          // Dân tạm trú (Khách thuê, khách tạm trú)
+      totalApartments: 0,
+      cuTru: 0,
+      tamTru: 0,
     };
 
     const apartmentSet = new Set();
 
     residents.forEach(r => {
-      if (r.state === 'inactive') return; // Bỏ qua người đã xóa
+      if (r.state === 'inactive') return;
+      if (r.apartment_id) apartmentSet.add(r.apartment_id.trim().toLowerCase());
 
-      // Đếm căn hộ
-      if (r.apartment_id) {
-        apartmentSet.add(r.apartment_id.trim().toLowerCase());
-      }
-
-      // Phân loại cư dân
       const status = r.residency_status ? r.residency_status.toLowerCase() : "";
-      
       if (status.includes("tạm trú") || status === "khách tạm trú" || status === "người thuê") {
         residentStats.tamTru++;
       } else {
-        // Mặc định còn lại là cư trú lâu dài (Chủ hộ, thành viên gia đình)
         residentStats.cuTru++;
       }
     });
 
     residentStats.totalApartments = apartmentSet.size;
 
-    // B. Thống kê Thanh toán & Công nợ
+    // B. Thống kê Thanh toán
     const paymentStats = {
       totalCount: 0,
       paidCount: 0,
@@ -148,13 +165,10 @@ export const AccountReport = () => {
       paymentStats.totalAmount += Number(p.amount || 0);
 
       const isPaid = p.state === 1;
-      
       if (isPaid) {
         paymentStats.paidCount++;
       } else {
         paymentStats.unpaidCount++;
-        
-        // Logic Quá hạn: Chưa thanh toán VÀ ngày tạo > 30 ngày so với hiện tại
         const createdDate = dayjs(p.created_at);
         const now = dayjs();
         if (now.diff(createdDate, 'day') > 30) {
@@ -166,37 +180,99 @@ export const AccountReport = () => {
     return { residentStats, paymentStats };
   }, [residents, payments]);
 
-  // --- 3. CẤU HÌNH BIỂU ĐỒ (CHARTS) ---
+  // --- 3. LẤY DANH SÁCH NĂM CÓ DỮ LIỆU ---
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    // Thêm năm hiện tại
+    years.add(dayjs().year());
+    // Thêm năm từ dữ liệu
+    payments.forEach(p => {
+        if(p.created_at) years.add(dayjs(p.created_at).year());
+    });
+    return Array.from(years).sort((a, b) => b - a); // Sắp xếp giảm dần
+  }, [payments]);
 
-  // Chart 1: Tỉ lệ Cư dân (Cư trú vs Tạm trú)
-  const residentChartData = {
-    labels: ['Dân cư trú', 'Dân tạm trú'],
-    datasets: [
-      {
-        data: [statistics.residentStats.cuTru, statistics.residentStats.tamTru],
-        backgroundColor: ['#3B82F6', '#F59E0B'], // Blue, Orange
-        borderWidth: 1,
-      },
-    ],
+  // --- 4. XỬ LÝ XUẤT PDF ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    // Lọc dữ liệu theo tháng/năm đã chọn
+    const filteredPayments = payments.filter(p => {
+        const date = dayjs(p.created_at);
+        return date.month() + 1 === parseInt(selectedMonth) && date.year() === parseInt(selectedYear);
+    });
+
+    // Tính toán lại tổng cho báo cáo này
+    const totalRevenue = filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const paidCount = filteredPayments.filter(p => p.state === 1).length;
+    const unpaidCount = filteredPayments.length - paidCount;
+
+    // --- Header PDF ---
+    doc.setFontSize(18);
+    doc.text(`BAO CAO TAI CHINH - THANG ${selectedMonth}/${selectedYear}`, 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text(`Ngay xuat bao cao: ${dayjs().format("DD/MM/YYYY HH:mm")}`, 105, 30, { align: "center" });
+
+    // --- Summary Section ---
+    doc.text("TONG QUAN:", 14, 45);
+    doc.setFontSize(10);
+    doc.text(`- Tong so hoa don: ${filteredPayments.length}`, 20, 52);
+    doc.text(`- Da thanh toan: ${paidCount}`, 20, 58);
+    doc.text(`- Chua thanh toan: ${unpaidCount}`, 20, 64);
+    doc.text(`- Tong doanh thu du kien: ${new Intl.NumberFormat('vi-VN').format(totalRevenue)} VND`, 20, 70);
+
+    // --- Table Section ---
+    const tableColumn = ["ID", "Can Ho", "Loai Phi", "So Tien (VND)", "Trang Thai", "Ngay Tao"];
+    const tableRows = [];
+
+    filteredPayments.forEach(p => {
+      const paymentData = [
+        p.id,
+        p.apartment_id,
+        removeVietnameseTones(p.feetype || ""),
+        new Intl.NumberFormat('vi-VN').format(p.amount),
+        p.state === 1 ? "Da TT" : "Chua TT",
+        dayjs(p.created_at).format("DD/MM/YYYY")
+      ];
+      tableRows.push(paymentData);
+    });
+
+    autoTable(doc, {
+        startY: 80,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] }, // Blue color header
+    });
+
+    doc.save(`Bao_cao_thang_${selectedMonth}_${selectedYear}.pdf`);
+    setIsExportModalOpen(false);
   };
 
-  // Chart 2: Tình trạng Thanh toán (Đã TT, Trong hạn, Quá hạn)
-  // Lưu ý: Để biểu đồ tròn hiển thị đúng tỉ lệ, ta tách "Chưa thanh toán" thành "Trong hạn" và "Quá hạn"
+  // --- CẤU HÌNH BIỂU ĐỒ ---
+  const residentChartData = {
+    labels: ['Dân cư trú', 'Dân tạm trú'],
+    datasets: [{
+        data: [statistics.residentStats.cuTru, statistics.residentStats.tamTru],
+        backgroundColor: ['#3B82F6', '#F59E0B'],
+        borderWidth: 1,
+    }],
+  };
+
   const unpaidInTerm = statistics.paymentStats.unpaidCount - statistics.paymentStats.overdueCount;
-  
   const paymentChartData = {
     labels: ['Đã thanh toán', 'Chưa TT (Trong hạn)', 'Chưa TT (Quá hạn)'],
-    datasets: [
-      {
+    datasets: [{
         data: [
           statistics.paymentStats.paidCount, 
           unpaidInTerm > 0 ? unpaidInTerm : 0, 
           statistics.paymentStats.overdueCount
         ],
-        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'], // Green, Orange, Red
+        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
         borderWidth: 1,
-      },
-    ],
+    }],
   };
 
   if (isLoading) {
@@ -205,16 +281,27 @@ export const AccountReport = () => {
 
   return (
     <div className="w-full min-h-screen bg-blue-700 p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Báo cáo Kế toán</h1>
-        <p className="text-blue-200">Tổng hợp số liệu về Cư dân và Tình hình tài chính</p>
+      {/* Header với Nút Xuất Báo Cáo */}
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Báo cáo Kế toán</h1>
+            <p className="text-blue-200">Tổng hợp số liệu về Cư dân và Tình hình tài chính</p>
+        </div>
+        
+        {/* Nút Xuất Báo Cáo */}
+        <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 px-6 rounded-lg shadow-lg flex items-center transition-all"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Xuất báo cáo
+        </button>
       </div>
 
-      {/* Grid Layout chứa 2 Card lớn */}
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 gap-8 max-w-6xl mx-auto">
-        
-        {/* CARD 1: Chi tiết số lượng cư dân */}
         <ReportCard 
           title="Chi tiết về số lượng cư dân"
           stats={[
@@ -225,7 +312,6 @@ export const AccountReport = () => {
           chartData={residentChartData}
         />
 
-        {/* CARD 2: Chi tiết thanh toán */}
         <ReportCard 
           title="Chi tiết thanh toán & Công nợ"
           stats={[
@@ -237,8 +323,61 @@ export const AccountReport = () => {
           ]}
           chartData={paymentChartData}
         />
-
       </div>
+
+      {/* --- MODAL CHỌN THÁNG/NĂM ĐỂ XUẤT BÁO CÁO --- */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Báo cáo định kỳ</h3>
+                
+                <div className="space-y-4">
+                    {/* Chọn Tháng */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tháng</label>
+                        <select 
+                            value={selectedMonth} 
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                                <option key={m} value={m}>Tháng {m}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Chọn Năm */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Năm</label>
+                        <select 
+                            value={selectedYear} 
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            {availableYears.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
+                    <button 
+                        onClick={() => setIsExportModalOpen(false)}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button 
+                        onClick={handleExportPDF}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors shadow-md"
+                    >
+                        Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
