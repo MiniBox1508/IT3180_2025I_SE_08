@@ -240,7 +240,7 @@ export const AccountReport = () => {
     doc.text(`- Chua thanh toan: ${unpaidCount}`, 20, 64);
     doc.text(`- Tong doanh thu du kien: ${new Intl.NumberFormat('vi-VN').format(totalRevenue)} VND`, 20, 70);
 
-    const tableColumn = ["ID", "Can Ho", "Loai Phi", "So Tien (VND)", "Trang Thai", "Ngay Tao"];
+    const tableColumn = ["ID", "Can Ho", "Loai Phi", "So Tien (VND)", "Trang Thai", "Ngay Thanh Toan"];
     const tableRows = [];
 
     filteredPayments.forEach(p => {
@@ -250,7 +250,7 @@ export const AccountReport = () => {
         removeVietnameseTones(p.feetype || ""),
         new Intl.NumberFormat('vi-VN').format(p.amount),
         p.state === 1 ? "Da TT" : "Chua TT",
-        dayjs(p.created_at).format("DD/MM/YYYY")
+        p.payment_date ? dayjs(p.payment_date).format("DD/MM/YYYY") : "Chua TT",
       ];
       tableRows.push(paymentData);
     });
