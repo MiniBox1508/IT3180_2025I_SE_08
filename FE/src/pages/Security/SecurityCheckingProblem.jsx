@@ -45,7 +45,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-// --- COMPONENT: MODAL CHI TIẾT (Giống ảnh "Chi tiết sự cố - success.jpg") ---
+// --- COMPONENT: MODAL CHI TIẾT ---
 const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
@@ -63,7 +63,7 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
           </button>
         </div>
 
-        {/* Content Form - Layout Grid giống ảnh */}
+        {/* Content Form */}
         <div className="space-y-6">
           {/* Row 1: ID - Căn hộ - Ngày gửi */}
           <div className="grid grid-cols-3 gap-4">
@@ -147,42 +147,14 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
 
 // --- MAIN PAGE ---
 export const SecurityProblem = () => {
-    // Hàm lấy JWT token từ localStorage
-    const getToken = () => {
-      return localStorage.getItem("token");
-    };
-  // --- MOCK DATA (Để khớp với ảnh demo vì chưa có API thật sự cố) ---
-  const [incidents, setIncidents] = useState([
-    {
-      id: 1,
-      content: "Mất điện",
-      apartment_id: "A",
-      date_sent: "20/12/2005",
-      status: "Đã xử lý",
-      date_processed: "22/12/2005",
-      note: "Đã sửa xong cầu dao",
-    },
-    {
-      id: 2,
-      content: "Mất nước",
-      apartment_id: "B",
-      date_sent: "20/12/2005",
-      status: "Chưa xử lý",
-      date_processed: "",
-      note: "",
-    },
-    {
-      id: 3,
-      content: "Mất điện",
-      apartment_id: "A",
-      date_sent: "20/12/2005",
-      status: "Đã xử lý",
-      date_processed: "22/12/2005",
-      note: "Đã kiểm tra",
-    },
-  ]);
+  // Hàm lấy JWT token
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
 
-  const [isLoading, setIsLoading] = useState(false);
+  // State dữ liệu chính
+  const [incidents, setIncidents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   // States cho Modal Chi tiết
@@ -200,6 +172,54 @@ export const SecurityProblem = () => {
     message: "",
   });
 
+  // --- FETCH DATA TỪ API ---
+  const fetchIncidents = async () => {
+    setIsLoading(true);
+    try {
+      const token = getToken();
+      // Gọi API lấy danh sách services (sự cố/khiếu nại)
+      const response = await axios.get(`${API_BASE_URL}/services`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const rawData = response.data;
+
+      // Map dữ liệu từ Backend sang format của UI
+      // Backend: created_at, servicestatus, handle_date
+      // UI: date_sent, status, date_processed
+      const mappedData = Array.isArray(rawData)
+        ? rawData.map((item) => ({
+            id: item.id,
+            content: item.content,
+            apartment_id: item.apartment_id,
+            // Format ngày gửi
+            date_sent: item.created_at
+              ? dayjs(item.created_at).format("DD/MM/YYYY")
+              : "",
+            status: item.servicestatus || "Đã ghi nhận",
+            // Format ngày xử lý
+            date_processed: item.handle_date
+              ? dayjs(item.handle_date).format("DD/MM/YYYY")
+              : "",
+            note: item.note,
+          }))
+        : [];
+
+      // Sắp xếp mới nhất lên đầu
+      const sortedData = mappedData.sort((a, b) => b.id - a.id);
+      setIncidents(sortedData);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách sự cố:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gọi API khi component mount
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
   // --- HANDLERS ---
 
   // Mở chi tiết
@@ -211,18 +231,14 @@ export const SecurityProblem = () => {
   // Toggle chế độ hàng loạt
   const toggleBatchMode = () => {
     if (isBatchMode) {
-      // Tắt chế độ -> Reset
       setIsBatchMode(false);
       setSelectedIds([]);
     } else {
-      // Bật chế độ
       setIsBatchMode(true);
-
-      // --- Pre-select những item đang là "Đã xử lý" ---
+      // Pre-select những item đã xử lý (logic cũ của bạn, có thể giữ hoặc bỏ)
       const processedIds = incidents
         .filter((item) => item.status === "Đã xử lý")
         .map((item) => item.id);
-
       setSelectedIds(processedIds);
     }
   };
@@ -236,43 +252,51 @@ export const SecurityProblem = () => {
     }
   };
 
-  // Xử lý hàng loạt (Ví dụ: Đánh dấu đã xử lý)
-  const handleBatchProcess = () => {
-    // Giả lập xử lý API
-    const updatedIncidents = incidents.map((item) => {
-      const isSelected = selectedIds.includes(item.id);
-      if (isSelected) {
-        return {
-          ...item,
-          status: "Đã xử lý",
-          date_processed: dayjs().format("DD/MM/YYYY"),
-        };
-      } else {
-        // TRƯỜNG HỢP KHÔNG ĐƯỢC CHỌN (Bỏ tích) -> Cập nhật thành "Chưa xử lý"
-        return {
-          ...item,
-          status: "Chưa xử lý", // Reset trạng thái
-          date_processed: "", // Xóa ngày xử lý
-        };
-      }
-    });
+  // Xử lý hàng loạt (GỌI API THỰC TẾ)
+  const handleBatchProcess = async () => {
+    if (selectedIds.length === 0) return;
 
-    setIncidents(updatedIncidents);
-    setStatusModal({
-      open: true,
-      type: "success",
-      message: "Đã xử lý các sự cố được chọn!",
-    });
-    setIsBatchMode(false);
-    setSelectedIds([]);
+    try {
+      const token = getToken();
+      
+      // Gửi nhiều request cập nhật song song
+      await Promise.all(
+        selectedIds.map((id) =>
+          axios.patch(
+            `${API_BASE_URL}/services/${id}`,
+            { servicestatus: "Đã xử lý" }, // Cập nhật trạng thái
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        )
+      );
+
+      setStatusModal({
+        open: true,
+        type: "success",
+        message: "Đã cập nhật trạng thái thành công!",
+      });
+      
+      // Reload lại dữ liệu sau khi cập nhật
+      fetchIncidents();
+      
+      setIsBatchMode(false);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error("Lỗi cập nhật hàng loạt:", error);
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Có lỗi xảy ra khi cập nhật!",
+      });
+    }
   };
 
   // Filter
   const filteredList = incidents.filter(
     (item) =>
-      item.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.content && item.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
       String(item.id).includes(searchTerm) ||
-      item.apartment_id.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.apartment_id && item.apartment_id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -330,120 +354,126 @@ export const SecurityProblem = () => {
 
       {/* 3. DANH SÁCH SỰ CỐ */}
       <div className="space-y-4 pb-10">
-        {filteredList.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
-          >
-            {/* Thanh xanh bên trái */}
-            <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
+        {isLoading ? (
+          <div className="text-white text-center">Đang tải dữ liệu...</div>
+        ) : filteredList.length === 0 ? (
+          <div className="text-white text-center">Không tìm thấy sự cố nào.</div>
+        ) : (
+          filteredList.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
+            >
+              {/* Thanh xanh bên trái */}
+              <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
 
-            {/* Grid Content */}
-            <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-              {/* ID */}
-              <div className="col-span-1">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                  Sự cố ID
-                </p>
-                <p className="text-xl font-bold text-gray-900">{item.id}</p>
-              </div>
+              {/* Grid Content */}
+              <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
+                {/* ID */}
+                <div className="col-span-1">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Sự cố ID
+                  </p>
+                  <p className="text-xl font-bold text-gray-900">{item.id}</p>
+                </div>
 
-              {/* Nội dung */}
-              <div className="col-span-3">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                  Nội dung
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {item.content}
-                </p>
-              </div>
+                {/* Nội dung */}
+                <div className="col-span-3">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Nội dung
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {item.content}
+                  </p>
+                </div>
 
-              {/* Số căn hộ */}
-              <div className="col-span-2">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                  Số căn hộ
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {item.apartment_id}
-                </p>
-              </div>
+                {/* Số căn hộ */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Số căn hộ
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {item.apartment_id}
+                  </p>
+                </div>
 
-              {/* Ngày gửi */}
-              <div className="col-span-2">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                  Ngày gửi
-                </p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {item.date_sent}
-                </p>
-              </div>
+                {/* Ngày gửi */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Ngày gửi
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {item.date_sent}
+                  </p>
+                </div>
 
-              {/* Trạng thái */}
-              <div className="col-span-2">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                  Trạng thái
-                </p>
-                <p
-                  className={`text-sm font-bold ${
-                    item.status === "Đã xử lý"
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {item.status}
-                </p>
-              </div>
-
-              {/* Ngày xử lý / Action */}
-              <div className="col-span-2 flex justify-end items-center">
-                {/* Nếu ở chế độ Batch: Hiện Checkbox */}
-                {isBatchMode ? (
-                  <div
-                    onClick={() => handleSelect(item.id)}
-                    className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
-                      selectedIds.includes(item.id)
-                        ? "bg-blue-500 shadow-blue-500/50"
-                        : "bg-gray-200 hover:bg-gray-300"
+                {/* Trạng thái */}
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Trạng thái
+                  </p>
+                  <p
+                    className={`text-sm font-bold ${
+                      item.status === "Đã xử lý"
+                        ? "text-green-500"
+                        : "text-red-500"
                     }`}
                   >
-                    {selectedIds.includes(item.id) && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                ) : (
-                  // Chế độ thường: Hiện nút Xem chi tiết hoặc Ngày xử lý
-                  <div className="flex flex-col items-end">
-                    <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                      Ngày xử lý
-                    </p>
-                    <p className="text-sm font-semibold text-gray-900 mb-1">
-                      {item.date_processed || "--/--/----"}
-                    </p>
-                    <button
-                      onClick={() => handleViewDetail(item)}
-                      className="text-blue-500 text-xs hover:underline font-bold"
+                    {item.status}
+                  </p>
+                </div>
+
+                {/* Ngày xử lý / Action */}
+                <div className="col-span-2 flex justify-end items-center">
+                  {/* Nếu ở chế độ Batch: Hiện Checkbox */}
+                  {isBatchMode ? (
+                    <div
+                      onClick={() => handleSelect(item.id)}
+                      className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                        selectedIds.includes(item.id)
+                          ? "bg-blue-500 shadow-blue-500/50"
+                          : "bg-gray-200 hover:bg-gray-300"
+                      }`}
                     >
-                      Xem thêm chi tiết
-                    </button>
-                  </div>
-                )}
+                      {selectedIds.includes(item.id) && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  ) : (
+                    // Chế độ thường: Hiện nút Xem chi tiết hoặc Ngày xử lý
+                    <div className="flex flex-col items-end">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                        Ngày xử lý
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900 mb-1">
+                        {item.date_processed || "--/--/----"}
+                      </p>
+                      <button
+                        onClick={() => handleViewDetail(item)}
+                        className="text-blue-500 text-xs hover:underline font-bold"
+                      >
+                        Xem thêm chi tiết
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* --- MODAL SECTIONS --- */}
@@ -461,7 +491,11 @@ export const SecurityProblem = () => {
         onClose={() => setStatusModal({ ...statusModal, open: false })}
       >
         <div className="flex flex-col items-center justify-center p-4">
-          <img src={acceptIcon} alt="Success" className="w-20 h-20 mb-4" />
+          <img
+            src={statusModal.type === "success" ? acceptIcon : notAcceptIcon}
+            alt="Status"
+            className="w-20 h-20 mb-4"
+          />
           <h3 className="text-xl font-bold text-gray-800 text-center">
             {statusModal.message}
           </h3>
