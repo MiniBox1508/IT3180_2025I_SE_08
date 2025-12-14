@@ -2,12 +2,22 @@ import React, { useState, useEffect } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // Import Icons
-import { FiPlus, FiX } from "react-icons/fi"; // Icon dấu + và x
-import { FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
+
+// --- HÀM LẤY TOKEN ---
+const getToken = () => localStorage.getItem("token");
+
+// --- FORMAT TIỀN TỆ ---
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+};
 
 // =========================================================================
 // === INVOICE FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
@@ -23,7 +33,6 @@ const InvoiceFormModal = ({
 }) => {
   const isEditing = !!invoiceData;
 
-  // Lấy danh sách căn hộ duy nhất
   const uniqueApartments = React.useMemo(() => {
     if (!residents) return [];
     const apartments = residents
@@ -32,7 +41,6 @@ const InvoiceFormModal = ({
     return [...new Set(apartments)].sort();
   }, [residents]);
 
-  // --- STATE CHO FORM SỬA (SINGLE) ---
   const [singleFormData, setSingleFormData] = useState({
     apartment_id: "",
     feetype: "",
@@ -41,16 +49,13 @@ const InvoiceFormModal = ({
     state: 0,
   });
 
-  // --- STATE CHO FORM THÊM (BULK TABLE) ---
   const [rows, setRows] = useState([
     { id: Date.now(), apartment_id: "", feetype: "", amount: "", payment_date: "" }
   ]);
 
-  // Reset form khi mở modal
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
-        // Chế độ Edit: Fill dữ liệu cũ
         const paymentDate = invoiceData.payment_date
           ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
@@ -62,20 +67,17 @@ const InvoiceFormModal = ({
           state: invoiceData.state !== undefined ? invoiceData.state : 0,
         });
       } else {
-        // Chế độ Add: Reset về 1 dòng trắng
         setRows([{ id: Date.now(), apartment_id: "", feetype: "", amount: "", payment_date: "" }]);
       }
       setError("");
     }
   }, [isOpen, invoiceData, setError]);
 
-  // --- HANDLERS CHO EDIT (SINGLE) ---
   const handleSingleChange = (e) => {
     const { name, value } = e.target;
     setSingleFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- HANDLERS CHO ADD (BULK TABLE) ---
   const handleRowChange = (id, field, value) => {
     setRows((prevRows) =>
       prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
@@ -95,13 +97,11 @@ const InvoiceFormModal = ({
     }
   };
 
-  // --- SUBMIT ---
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
 
     if (isEditing) {
-      // --- Xử lý Submit EDIT (Giữ nguyên logic cũ) ---
       if (!singleFormData.apartment_id || !singleFormData.feetype || !singleFormData.amount) {
         setError("Vui lòng điền đủ thông tin.");
         return;
@@ -114,10 +114,7 @@ const InvoiceFormModal = ({
         state: parseInt(singleFormData.state),
       };
       onSave(dataToSend, invoiceData.id);
-
     } else {
-      // --- Xử lý Submit ADD (Gửi mảng rows) ---
-      // Validate từng dòng
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.apartment_id || !row.feetype || !row.amount) {
@@ -129,119 +126,56 @@ const InvoiceFormModal = ({
           return;
         }
       }
-
-      // Chuẩn hóa dữ liệu
       const dataToSend = rows.map(row => ({
         apartment_id: row.apartment_id,
         feetype: row.feetype,
         amount: parseFloat(row.amount),
         payment_date: row.payment_date || null,
-        state: 0 // Mặc định chưa thanh toán
+        state: 0
       }));
-
-      onSave(dataToSend, null); // null ID -> Create Mode
+      onSave(dataToSend, null);
     }
   };
 
   if (!isOpen) return null;
 
-  // --- RENDER GIAO DIỆN ---
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`}>
-        
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-5xl'}`} style={{ maxHeight: '90vh' }}>
         <h2 className="text-xl font-bold mb-4 text-gray-800">
           {isEditing ? "Chỉnh sửa hóa đơn" : "Thêm hóa đơn mới"}
         </h2>
+        {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* ============ TRƯỜNG HỢP 1: ADD (TABLE LAYOUT) ============ */}
         {!isEditing && (
-          <div className="overflow-hidden">
-            <div className="max-h-[60vh] overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg">
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-50 sticky top-0 z-10">
+                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="p-3 text-xs font-bold text-gray-500 uppercase border-b">Số căn hộ</th>
-                    <th className="p-3 text-xs font-bold text-gray-500 uppercase border-b">Loại phí</th>
-                    <th className="p-3 text-xs font-bold text-gray-500 uppercase border-b">Số tiền (VNĐ)</th>
-                    <th className="p-3 text-xs font-bold text-gray-500 uppercase border-b">Hạn đóng</th>
-                    <th className="p-3 text-xs font-bold text-gray-500 uppercase border-b w-10 text-center">
-                      <button 
-                        type="button" 
-                        onClick={addRow}
-                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto"
-                        title="Thêm dòng"
-                      >
-                        <FiPlus size={14} />
-                      </button>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-1/4">Số căn hộ</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-1/4">Loại phí</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-1/5">Số tiền (VNĐ)</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-1/5">Hạn đóng</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-12 text-center">
+                      <button type="button" onClick={addRow} className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto shadow-md"><FiPlus size={16} /></button>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {rows.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                      {/* Cột 1: Căn hộ */}
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-blue-50 transition-colors group">
                       <td className="p-2">
-                        <div className="relative">
-                          <select
-                            value={row.apartment_id}
-                            onChange={(e) => handleRowChange(row.id, "apartment_id", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 bg-white"
-                          >
-                            <option value="">Chọn...</option>
-                            {uniqueApartments.map((apt) => (
-                              <option key={apt} value={apt}>{apt}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <select value={row.apartment_id} onChange={(e) => handleRowChange(row.id, "apartment_id", e.target.value)} className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                          <option value="">-- Chọn --</option>
+                          {uniqueApartments.map((apt) => (<option key={apt} value={apt}>{apt}</option>))}
+                        </select>
                       </td>
-                      {/* Cột 2: Loại phí */}
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          value={row.feetype}
-                          onChange={(e) => handleRowChange(row.id, "feetype", e.target.value)}
-                          placeholder="VD: Phí QL T10"
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                        />
-                      </td>
-                      {/* Cột 3: Số tiền */}
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          value={row.amount}
-                          onChange={(e) => handleRowChange(row.id, "amount", e.target.value)}
-                          placeholder="0"
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                        />
-                      </td>
-                      {/* Cột 4: Hạn đóng */}
-                      <td className="p-2">
-                        <input
-                          type="date"
-                          value={row.payment_date}
-                          onChange={(e) => handleRowChange(row.id, "payment_date", e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 text-gray-500"
-                        />
-                      </td>
-                      {/* Cột 5: Xóa */}
+                      <td className="p-2"><input type="text" value={row.feetype} onChange={(e) => handleRowChange(row.id, "feetype", e.target.value)} placeholder="VD: Phí QL T12" className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></td>
+                      <td className="p-2"><input type="number" value={row.amount} onChange={(e) => handleRowChange(row.id, "amount", e.target.value)} placeholder="0" className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0" /></td>
+                      <td className="p-2"><input type="date" value={row.payment_date} onChange={(e) => handleRowChange(row.id, "payment_date", e.target.value)} className="w-full p-2 border border-gray-300 rounded text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></td>
                       <td className="p-2 text-center">
-                        {rows.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeRow(row.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
-                            title="Xóa dòng"
-                          >
-                            <FiX size={18} />
-                          </button>
-                        )}
+                        {rows.length > 1 && (<button type="button" onClick={() => removeRow(row.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"><FiX size={20} /></button>)}
                       </td>
                     </tr>
                   ))}
@@ -251,81 +185,34 @@ const InvoiceFormModal = ({
           </div>
         )}
 
-        {/* ============ TRƯỜNG HỢP 2: EDIT (SINGLE FORM - GIỮ NGUYÊN) ============ */}
         {isEditing && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Hóa đơn ID</label>
-              <div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700">{invoiceData.id}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số căn hộ</label>
-              <input type="text" value={singleFormData.apartment_id} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Loại phí</label>
-              <input type="text" name="feetype" value={singleFormData.feetype} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền (VND)</label>
-              <input type="number" name="amount" value={singleFormData.amount} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ngày thanh toán</label>
-              <input type="date" name="payment_date" value={singleFormData.payment_date} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-              <select name="state" value={singleFormData.state} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none">
-                <option value={0}>Chưa thanh toán</option>
-                <option value={1}>Đã thanh toán</option>
-              </select>
-            </div>
+            <div><label className="block text-sm font-medium text-gray-500 mb-1">Hóa đơn ID</label><div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700 font-mono text-sm">{invoiceData.id}</div></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Số căn hộ</label><input type="text" value={singleFormData.apartment_id} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 focus:outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Loại phí</label><input type="text" name="feetype" value={singleFormData.feetype} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Số tiền (VND)</label><input type="number" name="amount" value={singleFormData.amount} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Ngày thanh toán</label><input type="date" name="payment_date" value={singleFormData.payment_date} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label><select name="state" value={singleFormData.state} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none"><option value={0}>Chưa thanh toán</option><option value={1}>Đã thanh toán</option></select></div>
           </div>
         )}
 
-        {/* --- FOOTER BUTTONS --- */}
         <div className="flex justify-end space-x-3 pt-6 border-t mt-4 border-gray-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-          >
-            Hoàn tác
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-blue-500/30"
-          >
-            Xác nhận
-          </button>
+          <button type="button" onClick={onClose} className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Hủy</button>
+          <button type="button" onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-blue-500/30">Xác nhận</button>
         </div>
-
       </div>
     </div>
   );
 };
 
 // =========================================================================
-// === INVOICE ITEM COMPONENT ===
+// === INVOICE ITEM COMPONENT (ĐÃ SỬA: CHECKBOX THAY NÚT) ===
 // =========================================================================
-const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
-  const handleActionClick = () => {
-    if (isDeleteMode) {
-      onDeleteClick(item.id);
-    } else {
-      onEditClick(item);
-    }
-  };
-
+const InvoiceItem = ({ item, isDeleteMode, onEditClick, isSelected, onToggleSelect }) => {
+  
   const formattedDate = item.payment_date
     ? new Date(item.payment_date).toLocaleDateString("vi-VN")
     : "---";
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-  };
 
   const isPaid = item.state === 1;
   const statusText = isPaid ? "Đã thanh toán" : "Chưa thanh toán";
@@ -333,8 +220,10 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
+      {/* Thanh màu trạng thái bên trái */}
       <div className={`absolute left-4 top-3 bottom-3 w-1.5 rounded-full ${isPaid ? 'bg-green-500' : 'bg-orange-500'}`}></div>
 
+      {/* Grid thông tin */}
       <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8 pr-4 text-gray-800">
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p>
@@ -362,15 +251,27 @@ const InvoiceItem = ({ item, isDeleteMode, onDeleteClick, onEditClick }) => {
         </div>
       </div>
 
-      <div className="ml-auto flex-shrink-0 pr-2">
-        <button
-          onClick={handleActionClick}
-          className={`${
-            isDeleteMode ? "text-red-600 hover:text-red-800" : "text-blue-600 hover:text-blue-800"
-          } hover:underline text-sm font-medium`}
-        >
-          {isDeleteMode ? "Xóa hóa đơn" : "Chỉnh sửa"}
-        </button>
+      {/* Action Section (Right) */}
+      <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
+        {isDeleteMode ? (
+          /* TRƯỜNG HỢP XÓA: Hiện Checkbox thay vì nút */
+          <div className="flex items-center justify-center h-full">
+             <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleSelect(item.id)}
+                className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+          </div>
+        ) : (
+          /* TRƯỜNG HỢP THƯỜNG: Hiện nút Chỉnh sửa */
+          <button
+            onClick={() => onEditClick(item)}
+            className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
+          >
+            Chỉnh sửa
+          </button>
+        )}
       </div>
     </div>
   );
@@ -396,14 +297,14 @@ export const AccountPayment = () => {
   const [statusMessage, setStatusMessage] = useState("");
 
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
       const [paymentsRes, residentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/payments`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE_URL}/residents`, { headers: { Authorization: `Bearer ${token}` } })
@@ -435,53 +336,52 @@ export const AccountPayment = () => {
   const handleAddClick = () => { setIsAddModalOpen(true); setFormError(""); };
   const handleEditClick = (invoice) => { setEditingInvoice(invoice); setIsEditModalOpen(true); setFormError(""); };
 
+  // --- HÀM LƯU DỮ LIỆU ---
   const handleSave = async (data, invoiceId) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
       if (invoiceId) {
-        // --- LOGIC CŨ: SỬA 1 HÓA ĐƠN ---
+        // Edit 1 hóa đơn
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(data),
         });
         if (!response.ok) throw new Error("Lỗi khi cập nhật hóa đơn.");
+        
         setModalStatus("success");
         setStatusMessage("Chỉnh sửa hóa đơn thành công!");
         setIsEditModalOpen(false);
 
       } else {
-        // --- LOGIC MỚI: THÊM HÀNG LOẠT (data là Array) ---
-        // data lúc này là mảng các dòng từ bảng
+        // Bulk Add (Thêm nhiều hóa đơn)
         const itemsToCreate = Array.isArray(data) ? data : [data];
         
-        // Sử dụng Promise.all để gửi nhiều request
         await Promise.all(itemsToCreate.map(async (item) => {
-          // Tìm resident_id từ apartment_id
           const foundResident = residents.find(
             r => r.apartment_id && r.apartment_id.toLowerCase() === item.apartment_id.trim().toLowerCase()
           );
           
           if (!foundResident) {
-            throw new Error(`Không tìm thấy cư dân cho căn hộ ${item.apartment_id}`);
+            throw new Error(`Không tìm thấy dữ liệu cư dân cho căn hộ ${item.apartment_id}`);
           }
 
-          const payload = {
+          const createPayload = {
             resident_id: foundResident.id,
             amount: item.amount,
             feetype: item.feetype,
             payment_form: "Tiền mặt",
-            payment_date: item.payment_date // Gửi kèm nếu có
+            payment_date: item.payment_date 
           };
 
           const res = await fetch(`${API_BASE_URL}/payments`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(createPayload),
           });
 
-          if (!res.ok) throw new Error(`Lỗi khi tạo hóa đơn cho căn hộ ${item.apartment_id}`);
+          if (!res.ok) throw new Error(`Lỗi khi tạo hóa đơn cho ${item.apartment_id}`);
         }));
 
         setModalStatus("success");
@@ -489,7 +389,7 @@ export const AccountPayment = () => {
         setIsAddModalOpen(false);
       }
 
-      fetchData();
+      fetchData(); 
       setIsStatusModalOpen(true);
     } catch (err) {
       console.error("Save Error:", err);
@@ -499,29 +399,59 @@ export const AccountPayment = () => {
     }
   };
 
-  const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
-  const handleDeleteClick = (id) => { setItemToDeleteId(id); setShowConfirmModal(true); };
+  // --- DELETE HANDLERS ---
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+    setSelectedIds([]); 
+  };
+
+  const handleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelectedClick = () => {
+    if (selectedIds.length > 0) {
+      setShowConfirmModal(true); 
+    }
+  };
 
   const handleConfirmDelete = async () => {
     setShowConfirmModal(false);
+    if (selectedIds.length === 0) return;
+
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/payments/${itemToDeleteId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Lỗi khi xóa hóa đơn.");
+      const token = getToken();
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch(`${API_BASE_URL}/payments/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((res) => {
+            if (!res.ok) throw new Error(`Xóa thất bại ID: ${id}`);
+            return res;
+          })
+        )
+      );
+
       fetchData();
       setModalStatus("success");
-      setStatusMessage("Đã xóa hóa đơn thành công!");
+      setStatusMessage(`Đã xóa ${selectedIds.length} hóa đơn thành công!`);
       setIsStatusModalOpen(true);
+      
+      setIsDeleteMode(false);
+      setSelectedIds([]);
+
     } catch (err) {
       setModalStatus("failure");
       setStatusMessage(err.message);
       setIsStatusModalOpen(true);
-    } finally {
-      setItemToDeleteId(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowConfirmModal(false);
   };
 
   const handleCloseStatusModal = () => { setIsStatusModalOpen(false); setModalStatus(null); setStatusMessage(""); };
@@ -557,29 +487,48 @@ export const AccountPayment = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
         <div className="flex space-x-4">
-          {!isDeleteMode && (
-            <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
-              <span>+ Thêm hóa đơn</span>
-            </button>
+          {!isDeleteMode ? (
+            <>
+              <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
+                <span>+ Thêm hóa đơn</span>
+              </button>
+              <button onClick={toggleDeleteMode} className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Xóa hóa đơn
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleDeleteSelectedClick} disabled={selectedIds.length === 0} className={`font-semibold py-2 px-4 rounded-md transition-colors duration-200 ${selectedIds.length === 0 ? "bg-gray-400 cursor-not-allowed text-white" : "bg-red-500 hover:bg-red-600 text-white"}`}>
+                Xóa các mục đã chọn ({selectedIds.length})
+              </button>
+              <button onClick={toggleDeleteMode} className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Hủy
+              </button>
+            </>
           )}
-          <button onClick={toggleDeleteMode} className={`${isDeleteMode ? "bg-gray-500 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600"} text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200`}>
-            {isDeleteMode ? "Hoàn tất" : "Xóa hóa đơn"}
-          </button>
         </div>
       </div>
 
-      {/* LIST */}
+      {/* INVOICE LIST */}
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
-          <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không có hóa đơn nào phù hợp.</div>
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không có hóa đơn nào phù hợp với tìm kiếm.</div>
         ) : (
           filteredInvoices.map((item) => (
-            <InvoiceItem key={item.id} item={item} isDeleteMode={isDeleteMode} onDeleteClick={handleDeleteClick} onEditClick={handleEditClick} />
+            <InvoiceItem 
+              key={item.id} 
+              item={item} 
+              isDeleteMode={isDeleteMode} 
+              // Ẩn nút Edit ở chế độ Delete, nên không cần onDeleteClick ở đây
+              onEditClick={handleEditClick}
+              isSelected={selectedIds.includes(item.id)}
+              onToggleSelect={handleSelect}
+            />
           ))
         )}
       </div>
 
-      {/* ADD MODAL (TABLE) / EDIT MODAL (SINGLE) */}
+      {/* --- MODALS --- */}
       <InvoiceFormModal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
@@ -590,7 +539,7 @@ export const AccountPayment = () => {
         setError={setFormError}
       />
 
-      <ConfirmationModal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} onConfirm={handleConfirmDelete} title="Chú ý: Xóa hóa đơn!!!" message="Bạn có chắc chắn muốn xóa hóa đơn này không?" />
+      <ConfirmationModal isOpen={showConfirmModal} onClose={handleCancelDelete} onConfirm={handleConfirmDelete} title="Chú ý: Xóa hóa đơn!!!" message={`Bạn có chắc chắn muốn xóa ${selectedIds.length} hóa đơn đã chọn không?`} />
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>{renderStatusModalContent()}</StatusModal>
     </div>
   );

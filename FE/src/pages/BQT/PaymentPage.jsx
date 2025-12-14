@@ -147,7 +147,7 @@ const PaymentFormModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col" style={{ maxHeight: '90vh' }}>
         
         <h2 className="text-xl font-bold mb-4 text-gray-800">Thêm hóa đơn mới</h2>
