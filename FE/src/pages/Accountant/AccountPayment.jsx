@@ -147,7 +147,7 @@ const InvoiceFormModal = ({
 
   // --- RENDER GIAO DIỆN ---
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className={`bg-white p-6 rounded-2xl shadow-2xl relative ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`}>
         
         <h2 className="text-xl font-bold mb-4 text-gray-800">
