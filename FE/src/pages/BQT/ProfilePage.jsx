@@ -1,164 +1,385 @@
-import React, { useState } from "react";
-// --- 1. IMPORT MODAL VÀ ICONS ---
-import { StatusModal } from "../../layouts/StatusModal"; // Đảm bảo đường dẫn đúng
-import EditButtonImage from "../../images/edit_button.svg";
-import acceptIcon from "../../images/accept_icon.png"; // Icon thành công
-// ...existing code...
-import notAcceptIcon from "../../images/not_accept_icon.png"; // Icon thất bại
+import React, { useState, useEffect } from "react";
+import { ConfirmationModal } from "../../layouts/ConfirmationModal";
+import { StatusModal } from "../../layouts/StatusModal";
+import acceptIcon from "../../images/accept_icon.png";
+import notAcceptIcon from "../../images/not_accept_icon.png";
+// --- THÊM ICON ĐỂ HIỂN THỊ MẬT KHẨU ---
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-// --- Icons ---
-const UserIcon = () => (
-  // ... (SVG code giữ nguyên)
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={1.5}
-    stroke="currentColor"
-    className="w-10 h-10"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-    />
-  </svg>
-);
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
+// --- VALIDATION HELPERS ---
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
-// --- EditableField Component (giữ nguyên) ---
-const EditableField = ({ label, value, isEditing, onChange, name }) => (
-  // ... (JSX code giữ nguyên)
-   <div>
-    <label
-      htmlFor={name}
-      className="block text-sm font-medium text-gray-500 mb-1"
-    >
-      {label}
-    </label>
-    {isEditing ? (
-      <input
-        type="text"
-        id={name}
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 min-h-[46px] focus:border-blue-500 focus:ring-blue-500"
-      />
-    ) : (
-      <div className="w-full bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-gray-900 min-h-[46px]">
-        {value}
+const isValidPhone = (phone) => {
+  return /^\d{10,11}$/.test(phone);
+};
+
+// --- COMPONENT MODAL FORM ---
+const ResidentFormModal = ({
+  isOpen,
+  onClose,
+  residentData,
+  onSave,
+  isViewing = false,
+}) => {
+  const isEditing = !!residentData && !isViewing;
+  
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    apartment_id: "",
+    email: "",
+    role: "Cư dân",
+    residency_status: "chủ hộ",
+    cccd: "",
+    birth_date: "",
+    state: "active",
+    password: "",
+    ...(residentData || {}),
+  });
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (residentData) {
+      setFormData({
+        ...residentData,
+        birth_date: residentData.birth_date
+          ? new Date(residentData.birth_date).toISOString().split("T")[0]
+          : "",
+        password: "", // Luôn để trống khi bắt đầu sửa
+      });
+    } else {
+      setFormData({
+        first_name: "",
+        last_name: "",
+        phone: "",
+        apartment_id: "",
+        email: "",
+        role: "Cư dân",
+        residency_status: "người thuê",
+        cccd: "",
+        birth_date: "",
+        state: "active",
+        password: "",
+      });
+    }
+    setError("");
+  }, [residentData, isOpen, isViewing]);
+
+  const handleChange = (e) => {
+    if (isViewing) return;
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isViewing) return;
+    setError("");
+
+    // Validate
+    if (
+      !formData.first_name ||
+      !formData.last_name ||
+      !formData.phone ||
+      !formData.apartment_id
+    ) {
+      setError("Vui lòng điền đủ Họ, Tên, Số điện thoại và Mã căn hộ.");
+      return;
+    }
+    if (!isValidPhone(formData.phone)) {
+      setError("Số điện thoại không hợp lệ (Phải là 10-11 chữ số).");
+      return;
+    }
+    if (formData.email && !isValidEmail(formData.email)) {
+      setError("Định dạng Email không hợp lệ.");
+      return;
+    }
+
+    const url = isEditing
+      ? `${API_BASE_URL}/residents/${formData.id}`
+      : `${API_BASE_URL}/residents`;
+    const method = isEditing ? "PUT" : "POST";
+
+    let submitData = { ...formData };
+    
+    // Nếu đang sửa và ô mật khẩu trống -> Xóa trường password để giữ pass cũ
+    if (isEditing && !formData.password) {
+      delete submitData.password;
+    }
+
+    try {
+      const token = localStorage.getItem('token'); 
+      const response = await fetch(url, {
+        method: method,
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || `Lỗi ${isEditing ? "cập nhật" : "thêm mới"} cư dân.`
+        );
+      }
+
+      onSave(result);
+      onClose();
+    } catch (err) {
+      console.error("API Error:", err);
+      setError(err.message);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const modalTitle = isViewing
+    ? "Chi tiết Cư dân"
+    : isEditing
+    ? "Chỉnh sửa Cư dân"
+    : "Thêm Cư dân mới";
+
+  return (
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg w-full max-w-2xl text-gray-900">
+        <h2 className="text-xl font-bold mb-4">{modalTitle}</h2>
+        {error && !isViewing && (
+          <div className="bg-red-100 border border-red-400 text-red-700 p-2 rounded mb-4">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+          <InputGroup label="Tên (First Name)" name="first_name" value={formData.first_name} onChange={handleChange} required readOnly={isViewing} />
+          <InputGroup label="Họ (Last Name)" name="last_name" value={formData.last_name} onChange={handleChange} required readOnly={isViewing} />
+          <InputGroup label="Số điện thoại" name="phone" type="tel" value={formData.phone} onChange={handleChange} required readOnly={isViewing} />
+          <InputGroup label="Mã căn hộ" name="apartment_id" value={formData.apartment_id} onChange={handleChange} required readOnly={isViewing} />
+          <InputGroup label="Email" name="email" type="email" value={formData.email} onChange={handleChange} readOnly={isViewing} />
+          <InputGroup label="CCCD" name="cccd" value={formData.cccd} onChange={handleChange} readOnly={isViewing} />
+          <InputGroup label="Ngày sinh" name="birth_date" type="date" value={formData.birth_date} onChange={handleChange} readOnly={isViewing} />
+          <SelectGroup label="Trạng thái cư trú" name="residency_status" value={formData.residency_status} onChange={handleChange} options={["chủ hộ", "người thuê", "khách tạm trú"]} disabled={isViewing} />
+          <SelectGroup label="Vai trò" name="role" value={formData.role} onChange={handleChange} options={["Quản lý", "Cư dân", "Kế toán", "Công an"]} disabled={isViewing} />
+          <SelectGroup label="Trạng thái" name="state" value={formData.state} onChange={handleChange} options={["active", "inactive"]} disabled={isViewing || !isEditing} />
+          
+          {/* Ô MẬT KHẨU */}
+          {!isViewing && (
+            <InputGroup 
+              label="Mật khẩu" 
+              name="password" 
+              type="password" 
+              value={formData.password} 
+              onChange={handleChange} 
+              required={!isEditing} 
+              readOnly={false} 
+              placeholder={isEditing ? "Để trống nếu giữ mật khẩu cũ" : "Nhập mật khẩu..."}
+            />
+          )}
+          
+          <div className="col-span-2 flex justify-end space-x-4 mt-6">
+            <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors">
+              {isViewing ? "Đóng" : "Hủy"}
+            </button>
+            {!isViewing && (
+              <button type="submit" className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors">
+                {isEditing ? "Lưu Thay Đổi" : "Thêm Mới"}
+              </button>
+            )}
+          </div>
+        </form>
       </div>
-    )}
+    </div>
+  );
+};
+
+// --- COMPONENT INPUT GROUP ---
+const InputGroup = ({ label, name, value, onChange, type = "text", required = false, readOnly = false, placeholder = "" }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordField = name === "password";
+
+  return (
+    <div className="flex flex-col relative">
+      <label className="mb-1 text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type={isPasswordField && showPassword ? "text" : type}
+          name={name}
+          value={value || ""}
+          onChange={onChange}
+          required={required && !readOnly}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          className={`w-full p-2 border border-gray-300 rounded text-sm focus:outline-none ${
+            readOnly ? "bg-gray-100 text-gray-600 cursor-default" : "bg-white text-gray-900 focus:border-blue-500"
+          } ${isPasswordField ? "pr-10" : ""}`}
+        />
+        
+        {isPasswordField && !readOnly && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+          >
+            {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SelectGroup = ({ label, name, value, onChange, options, disabled = false }) => (
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">{label}</label>
+    <select name={name} value={value || ""} onChange={onChange} disabled={disabled} className={`p-2 border border-gray-300 rounded text-sm focus:outline-none ${disabled ? "bg-gray-100 text-gray-600 cursor-default" : "bg-white text-gray-900 focus:border-blue-500"}`}>
+      {options.map((option) => (<option key={option} value={option}>{option}</option>))}
+    </select>
   </div>
 );
 
-// --- Dữ liệu mẫu ban đầu (giữ nguyên) ---
-const initialUserData = {
-  name: "Trị Quan Ban",
-  residentId: "0002",
-  role: "Ban quản trị",
-  apartment: "Tầng 7 - Phòng 713",
-  cccd: "077204000123",
-  dob: "30/10/1999",
-  email: "dovanb@gmail.com",
-  phone: "0938 099 203",
-  status: "người thuê",
-};
+// --- MAIN PAGE ---
+export const ResidentsPage = () => {
+  const [residents, setResidents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-// --- Main Profile Page Component ---
-export const ProfilePage = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const user = JSON.parse(localStorage.getItem("user"));
-  // Nếu không có user, dùng dữ liệu mẫu
-  const initialData = user ? {
-    name: user.full_name || "",
-    residentId: user.id || "",
-    role: user.role || "",
-    apartment: user.apartment_id || "",
-    cccd: user.cccd || "",
-    dob: user.birth_date || "",
-    email: user.email || "",
-    phone: user.phone || "",
-    status: user.residency_status || ""
-  } : initialUserData;
-  const [formData, setFormData] = useState(initialData);
-  const [originalData, setOriginalData] = useState(initialData);
-
-  // --- 2. THÊM STATE CHO STATUS MODAL ---
+  // States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingResident, setEditingResident] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingResident, setViewingResident] = useState(null);
+  
+  // Delete States
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [residentToDelete, setResidentToDelete] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]); 
+  
+  // Status Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); // 'success' or 'failure'
+  const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // Hàm xử lý khi nhấn nút Edit
-  const handleEditClick = () => {
-    setOriginalData(formData); // Lưu lại trạng thái hiện tại trước khi sửa
-    setIsEditing(true);
-  };
+  const getToken = () => localStorage.getItem('token');
 
-  // Hàm xử lý khi nhấn nút Hủy
-  const cancelEditClick = () => {
-    setFormData(originalData); // Khôi phục dữ liệu gốc
-    setIsEditing(false);
-  };
-
-  // Hàm xử lý khi thay đổi input (giữ nguyên)
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  // --- 3. CẬP NHẬT handleSubmit ---
-  // --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
-
-  // --- CẬP NHẬT handleSubmit GỌI API VÀ GỬI TOKEN ---
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Dữ liệu gửi đi:", formData);
-
+  const fetchResidents = async () => {
+    setIsLoading(true);
+    setError("");
     try {
-      const token = getToken();
-      // Gọi API cập nhật thông tin cá nhân
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
+      const response = await fetch(`${API_BASE_URL}/residents`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
-      if (response.ok) {
-        // Thành công
-        setModalStatus("success");
-        setStatusMessage("Đã sửa thông tin cá nhân thành công!");
-        setIsEditing(false);
-        setOriginalData(formData);
-      } else {
-        // Thất bại
-        setModalStatus("failure");
-        setStatusMessage("Sửa thông tin cá nhân không thành công!");
-      }
+      if (!response.ok) throw new Error("Failed to fetch residents");
+      const data = await response.json();
+      setResidents(data);
     } catch (err) {
-      setModalStatus("failure");
-      setStatusMessage("Sửa thông tin cá nhân không thành công!");
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    setIsStatusModalOpen(true);
   };
 
-  // --- HÀM ĐÓNG STATUS MODAL ---
+  useEffect(() => { fetchResidents(); }, []);
+
+  const filteredResidents = residents.filter((resident) => {
+    // Nếu bạn muốn hiện cả user inactive thì giữ nguyên, nếu muốn ẩn thì dùng: if (resident.state === 'inactive') return false;
+    if (resident.state === 'inactive') return true; 
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      resident.full_name?.toLowerCase().includes(term) ||
+      resident.apartment_id?.toLowerCase().includes(term) ||
+      String(resident.id).includes(term)
+    );
+  });
+
+  // Handlers
+  const handleAddClick = () => { setEditingResident(null); setIsModalOpen(true); };
+  const handleEditClick = (resident) => { setEditingResident(resident); setIsModalOpen(true); };
+  const handleSave = () => { fetchResidents(); };
+  const handleViewClick = (resident) => { setViewingResident(resident); setIsViewModalOpen(true); };
+  
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+    setResidentToDelete(null);
+    setSelectedIds([]); 
+  };
+
+  const handleSelect = (id) => {
+    setSelectedIds((prev) => 
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteClick = (resident) => {
+    setResidentToDelete(resident);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleDeleteSelectedClick = () => {
+    if (selectedIds.length > 0) setIsConfirmModalOpen(true);
+  };
+
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
 
-  // --- HÀM RENDER NỘI DUNG CHO STATUS MODAL ---
+  const confirmDelete = async () => {
+    const idsToDelete = selectedIds.length > 0 
+        ? selectedIds 
+        : (residentToDelete ? [residentToDelete.id] : []);
+
+    if (idsToDelete.length === 0) {
+        setIsConfirmModalOpen(false);
+        return;
+    }
+    
+    setIsConfirmModalOpen(false);
+
+    try {
+      const token = getToken();
+      
+      await Promise.all(
+          idsToDelete.map(id => 
+              fetch(`${API_BASE_URL}/residents/${id}`, { 
+                  method: "DELETE",
+                  headers: { 
+                      "Authorization": `Bearer ${token}`
+                  }
+              })
+              .then(res => {
+                  if (!res.ok) throw new Error(`Failed to delete resident ${id}`);
+                  return res;
+              })
+          )
+      );
+
+      fetchResidents();
+      setModalStatus("success");
+      setStatusMessage(idsToDelete.length > 1 ? `Đã xóa ${idsToDelete.length} cư dân.` : "Xóa cư dân thành công.");
+
+    } catch (err) {
+      console.error("Delete Error:", err);
+      setModalStatus("failure");
+      setStatusMessage("Xóa thất bại. Vui lòng kiểm tra quyền hạn.");
+    } finally {
+      setResidentToDelete(null);
+      setSelectedIds([]);
+      setIsStatusModalOpen(true);
+    }
+  };
+
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus === "success";
@@ -166,155 +387,92 @@ export const ProfilePage = () => {
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">
-          {statusMessage}
-        </p>
+        <p className="text-xl font-semibold text-center text-gray-800">{statusMessage}</p>
       </div>
     );
   };
 
+  if (isLoading) return <div className="p-8 text-white text-lg bg-blue-700 min-h-screen">Đang tải...</div>;
+  if (error) return <div className="p-8 text-red-100 text-lg bg-blue-700 min-h-screen">Lỗi: {error}</div>;
+
   return (
-    <>
-      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
-      {/* ... (phần header và avatar giữ nguyên) ... */}
-       {/* Card Header: Title + Edit Button */}
-       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-           Thông tin cá nhân
-         </h1>
-         {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
-         {!isEditing && (
-           <button
-             onClick={handleEditClick} // Thêm onClick handler
-             className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-             aria-label="Chỉnh sửa thông tin"
-           >
-             <img src={EditButtonImage} alt="Edit" className="w-8 h-8" />
-           </button>
-         )}
-       </div>
+    <div className="flex-1 p-8 bg-blue-700 min-h-screen text-white">
+      <div className="flex justify-start items-center mb-6">
+        <div className="relative w-full max-w-md">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></span>
+          <input type="search" placeholder="Tìm kiếm cư dân..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none" />
+        </div>
+      </div>
 
-       {/* Profile Header: Avatar + Name */}
-       <div className="flex items-center space-x-4 mb-8">
-         <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 flex-shrink-0">
-           <UserIcon />
-         </div>
-         <div>
-           {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
-           <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
-           <p className="text-sm text-gray-600">
-             ID Cư dân: {formData.residentId}
-           </p>
-         </div>
-       </div>
+      <h1 className="text-3xl font-bold mb-6">Thông tin người dùng</h1>
 
-      <form className="space-y-8" onSubmit={handleSubmit}>
-        {/* ... (các section thông tin giữ nguyên) ... */}
-        {/* Section 1: Thông tin cá nhân */}
-         <div>
-           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-             Thông tin cá nhân
-           </h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-             {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
-             <EditableField
-               label="Vai trò"
-               name="role"
-               value={formData.role}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-             <EditableField
-               label="Số căn hộ"
-               name="apartment"
-               value={formData.apartment}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-             <EditableField
-               label="Số CCCD"
-               name="cccd"
-               value={formData.cccd}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-             <EditableField
-               label="Ngày sinh"
-               name="dob"
-               value={formData.dob}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-           </div>
-         </div>
-
-         {/* Section 2: Thông tin liên hệ */}
-         <div>
-           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-             Thông tin liên hệ
-           </h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-             <EditableField
-               label="Email"
-               name="email"
-               value={formData.email}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-             <EditableField
-               label="Điện thoại"
-               name="phone"
-               value={formData.phone}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-           </div>
-         </div>
-
-         {/* Section 3: Tình trạng cư trú */}
-         <div>
-           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-             Tình trạng cư trú
-           </h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-             <EditableField
-               label="Tình trạng cư trú"
-               name="status"
-               value={formData.status}
-               isEditing={isEditing}
-               onChange={handleChange}
-             />
-           </div>
-         </div>
-        {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
-        {isEditing && (
-          <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
-            <button
-              type="button"
-              onClick={cancelEditClick}
-              className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-8 rounded-lg transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-8 rounded-lg transition-colors"
-            >
-              Confirm
-            </button>
-          </div>
+      <div className="flex justify-end gap-4 mb-8">
+        {!isDeleteMode ? (
+          <>
+            <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">Thêm cư dân</button>
+            <button onClick={toggleDeleteMode} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">Xóa cư dân</button>
+          </>
+        ) : (
+          <>
+            <button onClick={handleDeleteSelectedClick} disabled={selectedIds.length === 0} className={`font-bold py-2 px-6 rounded-lg transition-colors ${selectedIds.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600 text-white"}`}>Xóa các mục đã chọn ({selectedIds.length})</button>
+            <button onClick={toggleDeleteMode} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">Hủy</button>
+          </>
         )}
-      </form>
+      </div>
 
-      {/* --- 4. THÊM STATUS MODAL --- */}
-      <StatusModal
-        isOpen={isStatusModalOpen}
-        onClose={handleCloseStatusModal}
-        // Bỏ title đi để nút X tự căn giữa phải
-      >
-        {renderStatusModalContent()}
-      </StatusModal>
+      <div className="space-y-4">
+        {filteredResidents.length === 0 ? (
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không tìm thấy cư dân nào.</div>
+        ) : (
+          filteredResidents.map((resident) => (
+            <div key={resident.id} className="bg-white p-4 rounded-lg shadow-md flex items-center gap-4 text-gray-900 relative">
+              {isDeleteMode && (
+                <div className="flex items-center h-full">
+                    <input type="checkbox" checked={selectedIds.includes(resident.id)} onChange={() => handleSelect(resident.id)} className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" />
+                </div>
+              )}
+              <div className="bg-gray-100 p-3 rounded-full flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
+              <div className="flex-grow grid grid-cols-5 gap-x-4 items-center text-sm">
+                <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Họ và tên</span><span className="font-semibold truncate" title={resident.full_name}>{resident.full_name}</span></div>
+                <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">ID</span><span className="font-semibold">{resident.id}</span></div>
+                <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Ngày sinh</span><span className="font-semibold">{resident.birth_date ? new Date(resident.birth_date).toLocaleDateString("vi-VN") : "--/--/----"}</span></div>
+                
+                {/* --- THAY ĐỔI CỘT Ở ĐÂY: TỪ "CĂN HỘ" SANG "TRẠNG THÁI" --- */}
+                <div className="flex flex-col">
+                    <span className="text-gray-500 text-xs mb-1">Trạng thái</span>
+                    <span className={`font-semibold ${resident.state === 'active' ? 'text-green-600' : 'text-red-500'}`}>
+                        {resident.state === 'active' ? 'Hoạt động' : 'Vô hiệu hóa'}
+                    </span>
+                </div>
+                {/* ------------------------------------------------------------ */}
+
+                <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Chi tiết</span><button onClick={() => handleViewClick(resident)} className={`text-blue-500 hover:underline text-left font-semibold ${isDeleteMode ? "opacity-50 pointer-events-none" : ""}`}>Xem thêm</button></div>
+              </div>
+              
+              {isDeleteMode ? (
+                 <button onClick={() => handleDeleteClick(resident)} className="text-gray-400 hover:text-red-500 p-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+              ) : (
+                 <button onClick={() => handleEditClick(resident)} className="text-blue-500 hover:text-blue-700 font-semibold text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition-colors">Chỉnh sửa</button>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <ResidentFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} residentData={editingResident} onSave={handleSave} isViewing={false} />
+      <ResidentFormModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} residentData={viewingResident} onSave={() => {}} isViewing={true} />
+      
+      <ConfirmationModal 
+        isOpen={isConfirmModalOpen} 
+        onClose={() => setIsConfirmModalOpen(false)} 
+        onConfirm={confirmDelete} 
+        title="Xác nhận Xóa" 
+        message={selectedIds.length > 0 ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} cư dân đã chọn?` : (residentToDelete ? `Bạn có chắc chắn muốn xóa cư dân "${residentToDelete.full_name}"?` : "")} 
+      />
+      
+      <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>{renderStatusModalContent()}</StatusModal>
     </div>
-    </>
   );
 };

@@ -14,7 +14,7 @@ import iconLogout from "../images/logout.svg";
 // --- Nav Items ---
 const navItems = [
   { name: "Trang chủ", to: "/management", icon: iconTrangChu },
-  { name: "Dân cư", to: "/management/residents", icon: iconDanCu },
+  { name: "Người dùng", to: "/management/residents", icon: iconDanCu },
   { name: "Căn hộ", to: "/management/apartments", icon: iconDanCu }, // Đã thêm icon căn hộ
   { name: "Dịch vụ", to: "/management/services", icon: iconDichVu },
   { name: "Báo cáo", to: "/management/reports", icon: iconThanhToan },
