@@ -27,14 +27,13 @@ const NotificationFormModal = ({
   // --- STATE CHO CHẾ ĐỘ SỬA (SINGLE FORM) ---
   const [singleFormData, setSingleFormData] = useState({
     apartment_id: "",
-    title: "",
     content: "",
   });
 
   // --- STATE CHO CHẾ ĐỘ THÊM (BULK TABLE) ---
-  // Mặc định 1 dòng, gồm 3 ô: Người nhận, Tiêu đề, Nội dung
+  // ĐÃ SỬA: Bỏ trường "title", chỉ còn apartment_id và content
   const [rows, setRows] = useState([
-    { id: Date.now(), apartment_id: "", title: "", content: "" }
+    { id: Date.now(), apartment_id: "", content: "" }
   ]);
 
   // --- EFFECT: RESET DATA KHI MỞ MODAL ---
@@ -44,12 +43,11 @@ const NotificationFormModal = ({
         // Chế độ Edit: Fill dữ liệu cũ
         setSingleFormData({
           apartment_id: notificationData.apartment_id || notificationData.recipient || "",
-          title: notificationData.title || "",
           content: notificationData.content || "",
         });
       } else {
         // Chế độ Add: Reset về 1 dòng trắng
-        setRows([{ id: Date.now(), apartment_id: "", title: "", content: "" }]);
+        setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
       }
       setError("");
     }
@@ -71,7 +69,7 @@ const NotificationFormModal = ({
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: Date.now(), apartment_id: "", title: "", content: "" },
+      { id: Date.now(), apartment_id: "", content: "" },
     ]);
   };
 
@@ -94,7 +92,6 @@ const NotificationFormModal = ({
       }
       const dataToSend = {
         apartment_id: singleFormData.apartment_id,
-        title: singleFormData.title,
         content: singleFormData.content,
       };
       onSave(dataToSend, notificationData.id);
@@ -110,10 +107,9 @@ const NotificationFormModal = ({
         }
       }
 
-      // 2. Chuẩn hóa dữ liệu gửi đi (Array)
+      // 2. Chuẩn hóa dữ liệu gửi đi (Array) - Đã bỏ title
       const dataToSend = rows.map(row => ({
         apartment_id: row.apartment_id,
-        title: row.title,
         content: row.content,
       }));
 
@@ -125,8 +121,8 @@ const NotificationFormModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      {/* Điều chỉnh độ rộng Modal: Edit nhỏ, Add rộng */}
-      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-5xl'}`} style={{ maxHeight: '90vh' }}>
+      {/* Điều chỉnh độ rộng Modal */}
+      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`} style={{ maxHeight: '90vh' }}>
         
         <h2 className="text-xl font-bold mb-4 text-gray-800">
           {isEditing ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
@@ -138,16 +134,16 @@ const NotificationFormModal = ({
           </div>
         )}
 
-        {/* ============ GIAO DIỆN 1: THÊM MỚI (DẠNG BẢNG - 3 CỘT) ============ */}
+        {/* ============ GIAO DIỆN 1: THÊM MỚI (DẠNG BẢNG - 2 CỘT NHẬP LIỆU) ============ */}
         {!isEditing && (
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">Người nhận</th>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[25%]">Tiêu đề</th>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[45%]">Nội dung</th>
+                    {/* Điều chỉnh width để cân đối */}
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[30%]">Người nhận</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[60%]">Nội dung</th>
                     <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[10%] text-center">
                       <button 
                         type="button" 
@@ -173,17 +169,8 @@ const NotificationFormModal = ({
                           className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </td>
-                      {/* Cột 2: Tiêu đề */}
-                      <td className="p-2 align-top">
-                        <input
-                          type="text"
-                          value={row.title}
-                          onChange={(e) => handleRowChange(row.id, "title", e.target.value)}
-                          placeholder="Tiêu đề thông báo"
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </td>
-                      {/* Cột 3: Nội dung */}
+                      
+                      {/* Cột 2: Nội dung */}
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
@@ -198,7 +185,8 @@ const NotificationFormModal = ({
                           }}
                         />
                       </td>
-                      {/* Cột 4: Xóa */}
+                      
+                      {/* Cột 3: Xóa */}
                       <td className="p-2 text-center align-top pt-3">
                         {rows.length > 1 && (
                           <button
@@ -219,7 +207,7 @@ const NotificationFormModal = ({
           </div>
         )}
 
-        {/* ============ GIAO DIỆN 2: CHỈNH SỬA (FORM ĐƠN) ============ */}
+        {/* ============ GIAO DIỆN 2: CHỈNH SỬA (FORM ĐƠN - 3 Ô NHƯ CŨ) ============ */}
         {isEditing && (
           <div className="space-y-4">
             <div>
@@ -233,16 +221,6 @@ const NotificationFormModal = ({
                 name="apartment_id"
                 value={singleFormData.apartment_id} 
                 onChange={handleSingleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
-              <input 
-                type="text" 
-                name="title" 
-                value={singleFormData.title} 
-                onChange={handleSingleChange} 
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
               />
             </div>
@@ -324,6 +302,7 @@ const NotificationItem = ({
         <div>
           <p className="text-xs text-gray-500 mb-1">Nội dung</p>
           <div className="flex flex-col">
+             {/* Nếu API có title thì hiện, không thì thôi */}
              {item.title && <span className="font-bold text-sm text-blue-700 mb-0.5">{item.title}</span>}
              <span className="font-medium text-gray-700 text-sm" title={item.content}>
                 {truncateContent(item.content)}
@@ -478,11 +457,7 @@ export const NotificationsPage = () => {
       fetchNotifications();
       setIsStatusModalOpen(true);
     } catch (err) {
-      setFormError(err.message); // Hiển thị lỗi trong modal nếu có
-      // Hoặc hiển thị status modal thất bại
-      // setModalStatus("addFailure");
-      // setStatusMessage(err.message);
-      // setIsStatusModalOpen(true);
+      setFormError(err.message); 
     }
   };
 
@@ -529,7 +504,7 @@ export const NotificationsPage = () => {
       fetchNotifications();
       setModalStatus("deleteSuccess");
       setStatusMessage(`Đã xóa ${selectedIds.length} thông báo thành công!`);
-      setIsDeleteMode(false); // Thoát chế độ xóa sau khi thành công
+      setIsDeleteMode(false); 
       setSelectedIds([]);
     } catch (err) {
       console.error("API Error:", err);
