@@ -327,7 +327,7 @@ export const SecurityProblem = () => {
             onClick={toggleBatchMode}
             className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
           >
-            Xử lý hàng loạt
+            Xử lý
           </button>
         ) : (
           <div className="flex space-x-3">
