@@ -3,6 +3,8 @@ import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 import { StatusModal } from "../../layouts/StatusModal";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
+// --- THÊM ICON ĐỂ HIỂN THỊ MẬT KHẨU ---
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -15,7 +17,7 @@ const isValidPhone = (phone) => {
   return /^\d{10,11}$/.test(phone);
 };
 
-// --- COMPONENT MODAL FORM (Đã thêm Token vào API) ---
+// --- COMPONENT MODAL FORM ---
 const ResidentFormModal = ({
   isOpen,
   onClose,
@@ -48,7 +50,7 @@ const ResidentFormModal = ({
         birth_date: residentData.birth_date
           ? new Date(residentData.birth_date).toISOString().split("T")[0]
           : "",
-        password: "",
+        password: "", // Luôn để trống khi bắt đầu sửa
       });
     } else {
       setFormData({
@@ -104,18 +106,19 @@ const ResidentFormModal = ({
     const method = isEditing ? "PUT" : "POST";
 
     let submitData = { ...formData };
+    
+    // Nếu đang sửa và ô mật khẩu trống -> Xóa trường password để giữ pass cũ
     if (isEditing && !formData.password) {
       delete submitData.password;
     }
 
     try {
-      // --- [FIX] LẤY TOKEN VÀ GỬI KÈM HEADER ---
       const token = localStorage.getItem('token'); 
       const response = await fetch(url, {
         method: method,
         headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` // <--- QUAN TRỌNG
+            "Authorization": `Bearer ${token}` 
         },
         body: JSON.stringify(submitData),
       });
@@ -164,9 +167,21 @@ const ResidentFormModal = ({
           <SelectGroup label="Trạng thái cư trú" name="residency_status" value={formData.residency_status} onChange={handleChange} options={["chủ hộ", "người thuê", "khách tạm trú"]} disabled={isViewing} />
           <SelectGroup label="Vai trò" name="role" value={formData.role} onChange={handleChange} options={["Quản lý", "Cư dân", "Kế toán", "Công an"]} disabled={isViewing} />
           <SelectGroup label="Trạng thái" name="state" value={formData.state} onChange={handleChange} options={["active", "inactive"]} disabled={isViewing || !isEditing} />
+          
+          {/* Ô MẬT KHẨU */}
           {!isViewing && (
-            <InputGroup label="Mật khẩu" name="password" type="password" value={formData.password || ""} onChange={handleChange} required={!isEditing} readOnly={false} />
+            <InputGroup 
+              label="Mật khẩu" 
+              name="password" 
+              type="password" 
+              value={formData.password} 
+              onChange={handleChange} 
+              required={!isEditing} 
+              readOnly={false} 
+              placeholder={isEditing ? "Để trống nếu giữ mật khẩu cũ" : "Nhập mật khẩu..."}
+            />
           )}
+          
           <div className="col-span-2 flex justify-end space-x-4 mt-6">
             <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors">
               {isViewing ? "Đóng" : "Hủy"}
@@ -183,12 +198,43 @@ const ResidentFormModal = ({
   );
 };
 
-const InputGroup = ({ label, name, value, onChange, type = "text", required = false, readOnly = false }) => (
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">{label} {required && <span className="text-red-500">*</span>}</label>
-    <input type={type} name={name} value={value || ""} onChange={onChange} required={required && !readOnly} readOnly={readOnly} className={`p-2 border border-gray-300 rounded text-sm focus:outline-none ${readOnly ? "bg-gray-100 text-gray-600 cursor-default" : "bg-white text-gray-900 focus:border-blue-500"}`} />
-  </div>
-);
+// --- COMPONENT INPUT GROUP ---
+const InputGroup = ({ label, name, value, onChange, type = "text", required = false, readOnly = false, placeholder = "" }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordField = name === "password";
+
+  return (
+    <div className="flex flex-col relative">
+      <label className="mb-1 text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type={isPasswordField && showPassword ? "text" : type}
+          name={name}
+          value={value || ""}
+          onChange={onChange}
+          required={required && !readOnly}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          className={`w-full p-2 border border-gray-300 rounded text-sm focus:outline-none ${
+            readOnly ? "bg-gray-100 text-gray-600 cursor-default" : "bg-white text-gray-900 focus:border-blue-500"
+          } ${isPasswordField ? "pr-10" : ""}`}
+        />
+        
+        {isPasswordField && !readOnly && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+          >
+            {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const SelectGroup = ({ label, name, value, onChange, options, disabled = false }) => (
   <div className="flex flex-col">
@@ -216,7 +262,7 @@ export const ResidentsPage = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [residentToDelete, setResidentToDelete] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]); // Array ID chọn xóa
+  const [selectedIds, setSelectedIds] = useState([]); 
   
   // Status Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -245,7 +291,8 @@ export const ResidentsPage = () => {
   useEffect(() => { fetchResidents(); }, []);
 
   const filteredResidents = residents.filter((resident) => {
-    if (resident.state === 'inactive') return true;
+    // Nếu bạn muốn hiện cả user inactive thì giữ nguyên, nếu muốn ẩn thì dùng: if (resident.state === 'inactive') return false;
+    if (resident.state === 'inactive') return true; 
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -264,7 +311,7 @@ export const ResidentsPage = () => {
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
     setResidentToDelete(null);
-    setSelectedIds([]); // Reset
+    setSelectedIds([]); 
   };
 
   const handleSelect = (id) => {
@@ -288,7 +335,6 @@ export const ResidentsPage = () => {
     setStatusMessage("");
   };
 
-  // --- CONFIRM DELETE (Đã fix Token) ---
   const confirmDelete = async () => {
     const idsToDelete = selectedIds.length > 0 
         ? selectedIds 
@@ -302,14 +348,14 @@ export const ResidentsPage = () => {
     setIsConfirmModalOpen(false);
 
     try {
-      const token = getToken(); // Lấy Token
+      const token = getToken();
       
       await Promise.all(
           idsToDelete.map(id => 
               fetch(`${API_BASE_URL}/residents/${id}`, { 
                   method: "DELETE",
                   headers: { 
-                      "Authorization": `Bearer ${token}` // <--- THÊM TOKEN VÀO ĐÂY
+                      "Authorization": `Bearer ${token}`
                   }
               })
               .then(res => {
@@ -392,7 +438,16 @@ export const ResidentsPage = () => {
                 <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Họ và tên</span><span className="font-semibold truncate" title={resident.full_name}>{resident.full_name}</span></div>
                 <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">ID</span><span className="font-semibold">{resident.id}</span></div>
                 <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Ngày sinh</span><span className="font-semibold">{resident.birth_date ? new Date(resident.birth_date).toLocaleDateString("vi-VN") : "--/--/----"}</span></div>
-                <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Căn hộ</span><span className="font-semibold">{resident.apartment_id}</span></div>
+                
+                {/* --- THAY ĐỔI CỘT Ở ĐÂY: TỪ "CĂN HỘ" SANG "TRẠNG THÁI" --- */}
+                <div className="flex flex-col">
+                    <span className="text-gray-500 text-xs mb-1">Trạng thái</span>
+                    <span className={`font-semibold ${resident.state === 'active' ? 'text-green-600' : 'text-red-500'}`}>
+                        {resident.state === 'active' ? 'Hoạt động' : 'Vô hiệu hóa'}
+                    </span>
+                </div>
+                {/* ------------------------------------------------------------ */}
+
                 <div className="flex flex-col"><span className="text-gray-500 text-xs mb-1">Chi tiết</span><button onClick={() => handleViewClick(resident)} className={`text-blue-500 hover:underline text-left font-semibold ${isDeleteMode ? "opacity-50 pointer-events-none" : ""}`}>Xem thêm</button></div>
               </div>
               
