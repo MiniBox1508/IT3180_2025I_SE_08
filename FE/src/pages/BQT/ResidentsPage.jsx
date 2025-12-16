@@ -403,6 +403,28 @@ export const ResidentsPage = () => {
     fetchResidents();
   }, []);
 
+  // Tạo mapping role -> prefix
+  const rolePrefix = {
+    "Cư dân": "R",
+    "Quản lý": "M",
+    "Kế toán": "A",
+    "Công an": "P",
+  };
+
+  // Tính số thứ tự cho mỗi tài khoản theo role
+  const getRoleCode = (resident, residentsList) => {
+    const prefix = rolePrefix[resident.role] || "U";
+    // Lọc danh sách cùng role, sắp xếp theo id tăng dần
+    const sameRole = residentsList
+      .filter((r) => r.role === resident.role)
+      .sort((a, b) => a.id - b.id);
+    // Tìm vị trí (index) của resident này trong danh sách cùng role
+    const index = sameRole.findIndex((r) => r.id === resident.id);
+    // Số thứ tự bắt đầu từ 1
+    const number = (index + 1).toString().padStart(4, "0");
+    return `${prefix}-${number}`;
+  };
+
   const filteredResidents = residents.filter((resident) => {
     // Nếu bạn muốn hiện cả user inactive thì giữ nguyên, nếu muốn ẩn thì dùng: if (resident.state === 'inactive') return false;
     if (resident.state === "inactive") return true;
@@ -656,7 +678,9 @@ export const ResidentsPage = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs mb-1">ID</span>
-                  <span className="font-semibold">{resident.id}</span>
+                  <span className="font-semibold">
+                    {getRoleCode(resident, residents)}
+                  </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs mb-1">Ngày sinh</span>
