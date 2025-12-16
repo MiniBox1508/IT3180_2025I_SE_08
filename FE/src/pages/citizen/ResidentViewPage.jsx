@@ -360,11 +360,12 @@ export const ResidentViewPage = () => {
       }
       const data = await response.json();
 
-      // 3. LỌC CƯ DÂN CÙNG CĂN HỘ
+      // 3. LỌC CƯ DÂN CÙNG CĂN HỘ VÀ KHÔNG INACTIVE
       if (currentApartmentId) {
         const myNeighbors = data.filter((resident) =>
           // So sánh chuỗi, bỏ khoảng trắng và không phân biệt hoa thường
-          String(resident.apartment_id).trim().toLowerCase() === String(currentApartmentId).trim().toLowerCase()
+          String(resident.apartment_id).trim().toLowerCase() === String(currentApartmentId).trim().toLowerCase() &&
+          resident.state !== "inactive" // <--- THÊM ĐIỀU KIỆN LỌC TẠI ĐÂY
         );
         setResidents(myNeighbors);
       } else {
@@ -559,7 +560,8 @@ export const ResidentViewPage = () => {
                 {" "}
                 {/* Giữ chỗ trống */}
               </div>
-              {/* Trạng thái "Đã xóa" */}
+              {/* Đoạn code hiển thị badge "Đã xóa" vẫn giữ lại để tương thích logic, 
+                  nhưng thực tế sẽ không bao giờ render do đã lọc ở trên */}
               {resident.state === "inactive" && (
                 <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-300">
                   Đã xóa

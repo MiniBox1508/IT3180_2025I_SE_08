@@ -1,18 +1,266 @@
 import React, { useState, useEffect } from "react";
-// import { Link } from "react-router-dom"; // Bỏ nếu không dùng
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
-
-// --- HÀM LẤY TOKEN ---
-const getToken = () => {
-  return localStorage.getItem("token");
-};
-
+// --- IMPORT ICONS CHO MODAL ---
+import { FiPlus, FiX } from "react-icons/fi"; 
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
-// --- Component hiển thị Item (ĐÃ SỬA VỊ TRÍ CHECKBOX) ---
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
+
+// --- HÀM LẤY TOKEN ---
+const getToken = () => localStorage.getItem("token");
+
+// =========================================================================
+// === NOTIFICATION FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
+// =========================================================================
+const NotificationFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  notificationData,
+  error,
+  setError,
+}) => {
+  const isEditing = !!notificationData;
+
+  // --- STATE CHO CHẾ ĐỘ SỬA (SINGLE FORM) ---
+  const [singleFormData, setSingleFormData] = useState({
+    apartment_id: "",
+    content: "",
+  });
+
+  // --- STATE CHO CHẾ ĐỘ THÊM (BULK TABLE) ---
+  // ĐÃ SỬA: Bỏ trường "title", chỉ còn apartment_id và content
+  const [rows, setRows] = useState([
+    { id: Date.now(), apartment_id: "", content: "" }
+  ]);
+
+  // --- EFFECT: RESET DATA KHI MỞ MODAL ---
+  useEffect(() => {
+    if (isOpen) {
+      if (notificationData) {
+        // Chế độ Edit: Fill dữ liệu cũ
+        setSingleFormData({
+          apartment_id: notificationData.apartment_id || notificationData.recipient || "",
+          content: notificationData.content || "",
+        });
+      } else {
+        // Chế độ Add: Reset về 1 dòng trắng
+        setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
+      }
+      setError("");
+    }
+  }, [isOpen, notificationData, setError]);
+
+  // --- HANDLERS CHO EDIT (SINGLE) ---
+  const handleSingleChange = (e) => {
+    const { name, value } = e.target;
+    setSingleFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // --- HANDLERS CHO ADD (BULK TABLE) ---
+  const handleRowChange = (id, field, value) => {
+    setRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const addRow = () => {
+    setRows((prev) => [
+      ...prev,
+      { id: Date.now(), apartment_id: "", content: "" },
+    ]);
+  };
+
+  const removeRow = (id) => {
+    if (rows.length > 1) {
+      setRows((prev) => prev.filter((row) => row.id !== id));
+    }
+  };
+
+  // --- SUBMIT HANDLER ---
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (isEditing) {
+      // === LOGIC SỬA ===
+      if (!singleFormData.apartment_id || !singleFormData.content) {
+        setError("Vui lòng điền đủ Người nhận và Nội dung.");
+        return;
+      }
+      const dataToSend = {
+        apartment_id: singleFormData.apartment_id,
+        content: singleFormData.content,
+      };
+      onSave(dataToSend, notificationData.id);
+
+    } else {
+      // === LOGIC THÊM NHIỀU DÒNG ===
+      // 1. Validate từng dòng
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row.apartment_id || !row.content) {
+          setError(`Dòng ${i + 1}: Vui lòng điền đủ Người nhận và Nội dung.`);
+          return;
+        }
+      }
+
+      // 2. Chuẩn hóa dữ liệu gửi đi (Array) - Đã bỏ title
+      const dataToSend = rows.map(row => ({
+        apartment_id: row.apartment_id,
+        content: row.content,
+      }));
+
+      onSave(dataToSend, null); // null ID -> Create Mode
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      {/* Điều chỉnh độ rộng Modal */}
+      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`} style={{ maxHeight: '90vh' }}>
+        
+        <h2 className="text-xl font-bold mb-4 text-gray-800">
+          {isEditing ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
+        </h2>
+
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* ============ GIAO DIỆN 1: THÊM MỚI (DẠNG BẢNG - 2 CỘT NHẬP LIỆU) ============ */}
+        {!isEditing && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    {/* Điều chỉnh width để cân đối */}
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[30%]">Người nhận</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[60%]">Nội dung</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[10%] text-center">
+                      <button 
+                        type="button" 
+                        onClick={addRow}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto shadow-md"
+                        title="Thêm dòng mới"
+                      >
+                        <FiPlus size={16} />
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-blue-50 transition-colors group">
+                      {/* Cột 1: Người nhận */}
+                      <td className="p-2 align-top">
+                        <input
+                          type="text"
+                          value={row.apartment_id}
+                          onChange={(e) => handleRowChange(row.id, "apartment_id", e.target.value)}
+                          placeholder="VD: P.101 hoặc All"
+                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>
+                      
+                      {/* Cột 2: Nội dung */}
+                      <td className="p-2 align-top">
+                        <textarea
+                          rows={1}
+                          value={row.content}
+                          onChange={(e) => handleRowChange(row.id, "content", e.target.value)}
+                          placeholder="Nội dung..."
+                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
+                          style={{ minHeight: "38px" }}
+                          onInput={(e) => {
+                            e.target.style.height = "auto";
+                            e.target.style.height = e.target.scrollHeight + "px";
+                          }}
+                        />
+                      </td>
+                      
+                      {/* Cột 3: Xóa */}
+                      <td className="p-2 text-center align-top pt-3">
+                        {rows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRow(row.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
+                            title="Xóa dòng này"
+                          >
+                            <FiX size={20} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ============ GIAO DIỆN 2: CHỈNH SỬA (FORM ĐƠN - 3 Ô NHƯ CŨ) ============ */}
+        {isEditing && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Thông báo ID</label>
+              <div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700 font-mono text-sm">{notificationData.id}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Người nhận</label>
+              <input 
+                type="text" 
+                name="apartment_id"
+                value={singleFormData.apartment_id} 
+                onChange={handleSingleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
+              <textarea 
+                name="content"
+                rows="4"
+                value={singleFormData.content} 
+                onChange={handleSingleChange} 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* --- FOOTER BUTTONS --- */}
+        <div className="flex justify-end space-x-3 pt-6 border-t mt-4 border-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-blue-500/30"
+          >
+            Xác nhận
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENT ITEM THÔNG BÁO ---
 const NotificationItem = ({
   item,
   isDeleteMode,
@@ -27,7 +275,6 @@ const NotificationItem = ({
     }
   };
 
-  // --- LOGIC CẮT NGẮN NỘI DUNG ---
   const truncateContent = (content, limit = 12) => {
     if (!content) return "---";
     const trimmedContent = content.trim();
@@ -39,32 +286,29 @@ const NotificationItem = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      {/* Thanh màu bên trái (luôn cố định) */}
+      {/* Thanh màu bên trái */}
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
 
       {/* Nội dung thông báo */}
       <div className="flex-1 grid grid-cols-4 gap-4 items-center pl-8 pr-4 text-gray-800">
-        {/* Cột 1: ID */}
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Thông báo ID</p>
           <p className="font-semibold">{item.id}</p>
         </div>
-
-        {/* Cột 2: Người nhận */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Người nhận</p>
           <p className="font-medium">{item.apartment_id || item.recipient}</p>
         </div>
-
-        {/* Cột 3: Nội dung */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Nội dung</p>
-          <p className="font-medium text-gray-700" title={item.content}>
-            {truncateContent(item.content)}
-          </p>
+          <div className="flex flex-col">
+             {/* Nếu API có title thì hiện, không thì thôi */}
+             {item.title && <span className="font-bold text-sm text-blue-700 mb-0.5">{item.title}</span>}
+             <span className="font-medium text-gray-700 text-sm" title={item.content}>
+                {truncateContent(item.content)}
+             </span>
+          </div>
         </div>
-
-        {/* Cột 4: Ngày gửi */}
         <div>
           <p className="text-xs text-gray-500 mb-1">Ngày gửi</p>
           <p className="text-gray-600">
@@ -75,10 +319,9 @@ const NotificationItem = ({
         </div>
       </div>
 
-      {/* --- KHU VỰC HÀNH ĐỘNG (BÊN PHẢI) --- */}
+      {/* Khu vực hành động */}
       <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
         {isDeleteMode ? (
-          /* TRƯỜNG HỢP XÓA: HIỆN CHECKBOX THAY VÌ NÚT EDIT/DELETE */
           <div className="flex items-center justify-center h-full">
              <input
                 type="checkbox"
@@ -88,7 +331,6 @@ const NotificationItem = ({
               />
           </div>
         ) : (
-          /* TRƯỜNG HỢP THƯỜNG: HIỆN NÚT CHỈNH SỬA */
           <button
             onClick={handleEditClick}
             className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
@@ -101,28 +343,25 @@ const NotificationItem = ({
   );
 };
 
+// --- MAIN PAGE COMPONENT ---
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // States Modal Add/Edit/Status
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addRecipient, setAddRecipient] = useState("");
-  const [addContent, setAddContent] = useState("");
-  
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // States Modal (Gộp chung Add/Edit)
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
-  const [editFormData, setEditFormData] = useState({ recipient: "", content: "" });
+  const [formError, setFormError] = useState("");
 
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // --- STATE MỚI CHO XÓA HÀNG LOẠT ---
+  // States Delete
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]); // Danh sách ID đã chọn
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // --- FETCH DATA ---
@@ -159,98 +398,73 @@ export const NotificationsPage = () => {
     return String(item.id).toLowerCase().includes(searchLower);
   });
 
-  // --- HANDLERS: ADD ---
-  const handleAddNotificationClick = () => setIsAddModalOpen(true);
-  const handleCloseAddModal = () => {
-    setIsAddModalOpen(false);
-    setAddRecipient("");
-    setAddContent("");
-  };
-  const handleAddFormSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (!addRecipient || !addContent) {
-      setError("Vui lòng điền đủ Người nhận và Nội dung.");
-      return;
-    }
-    handleCloseAddModal();
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/notifications`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          apartment_id: addRecipient,
-          content: addContent,
-        }),
-      });
-      if (!response.ok) throw new Error("Lỗi! Thêm thông báo mới không thành công");
-      fetchNotifications();
-      setModalStatus("addSuccess");
-      setStatusMessage("Đã thêm thông báo mới!");
-    } catch (err) {
-      setModalStatus("addFailure");
-      setStatusMessage(err.message);
-    }
-    setIsStatusModalOpen(true);
+  // --- HANDLERS ADD/EDIT ---
+  const handleAddClick = () => {
+    setEditingNotification(null); // Null = Add Mode
+    setIsModalOpen(true);
+    setFormError("");
   };
 
-  // --- HANDLERS: EDIT ---
-  const handleOpenEditModal = (notification) => {
-    setEditingNotification(notification);
-    setEditFormData({
-      recipient: notification.apartment_id || notification.recipient || "",
-      content: notification.content || "",
-    });
-    setIsEditModalOpen(true);
+  const handleEditClick = (notification) => {
+    setEditingNotification(notification); // Object = Edit Mode
+    setIsModalOpen(true);
+    setFormError("");
   };
-  const handleCloseEditModal = () => {
-    setIsEditModalOpen(false);
-    setEditingNotification(null);
-    setEditFormData({ recipient: "", content: "" });
-  };
-  const handleEditFormChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData((prev) => ({ ...prev, [name]: value }));
-  };
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    if (!editingNotification) return;
-    handleCloseEditModal();
+
+  // --- HANDLE SAVE (Dùng chung cho Add & Edit) ---
+  const handleSave = async (data, notificationId) => {
     try {
       const token = getToken();
-      const response = await fetch(
-        `${API_BASE_URL}/notifications/${editingNotification.id}`,
-        {
+
+      if (notificationId) {
+        // --- LOGIC SỬA (1 Item) ---
+        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            apartment_id: editFormData.recipient,
-            content: editFormData.content,
-          }),
-        }
-      );
-      if (!response.ok) throw new Error("Lỗi cập nhật.");
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error("Lỗi cập nhật.");
+        setModalStatus("editSuccess");
+        setStatusMessage("Chỉnh sửa thông báo thành công!");
+        setIsModalOpen(false);
+
+      } else {
+        // --- LOGIC THÊM (Bulk - Nhiều dòng) ---
+        const itemsToCreate = Array.isArray(data) ? data : [data];
+        
+        await Promise.all(itemsToCreate.map(item => 
+          fetch(`${API_BASE_URL}/notifications`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(item),
+          }).then(res => {
+             if (!res.ok) throw new Error("Lỗi tạo thông báo");
+             return res;
+          })
+        ));
+
+        setModalStatus("addSuccess");
+        setStatusMessage(`Đã thêm ${itemsToCreate.length} thông báo mới!`);
+        setIsModalOpen(false);
+      }
+
       fetchNotifications();
-      setModalStatus("editSuccess");
-      setStatusMessage("Chỉnh sửa thông báo thành công!");
+      setIsStatusModalOpen(true);
     } catch (err) {
-      setModalStatus("editFailure");
-      setStatusMessage(err.message);
+      setFormError(err.message); 
     }
-    setIsStatusModalOpen(true);
   };
 
-  // --- HANDLERS: DELETE (SINGLE & BULK) ---
+  // --- HANDLERS DELETE ---
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
-    setSelectedIds([]); // Reset chọn
+    setSelectedIds([]);
   };
 
   const handleSelect = (id) => {
@@ -259,41 +473,29 @@ export const NotificationsPage = () => {
     );
   };
 
-  // Xóa nhiều (nút trên header)
   const handleDeleteSelectedClick = () => {
     if (selectedIds.length > 0) {
       setShowConfirmModal(true);
     }
   };
 
-  const handleCancelDelete = () => {
-    setShowConfirmModal(false);
-  };
-
-  // Hàm xác nhận xóa
   const handleConfirmDelete = async () => {
     if (selectedIds.length === 0) {
         setShowConfirmModal(false);
         return;
     }
-
     setShowConfirmModal(false);
     setError(null);
 
     try {
       const token = getToken();
-      
-      // Sử dụng Promise.all để gửi nhiều request xóa cùng lúc
       await Promise.all(
           selectedIds.map(id =>
               fetch(`${API_BASE_URL}/notifications/${id}`, { 
                   method: "DELETE",
-                  headers: { 
-                      "Authorization": `Bearer ${token}` 
-                  }
-              })
-              .then(res => {
-                  if (!res.ok) throw new Error(`Failed to delete notification ${id}`);
+                  headers: { "Authorization": `Bearer ${token}` }
+              }).then(res => {
+                  if (!res.ok) throw new Error(`Failed to delete ${id}`);
                   return res;
               })
           )
@@ -302,25 +504,28 @@ export const NotificationsPage = () => {
       fetchNotifications();
       setModalStatus("deleteSuccess");
       setStatusMessage(`Đã xóa ${selectedIds.length} thông báo thành công!`);
+      setIsDeleteMode(false); 
+      setSelectedIds([]);
     } catch (err) {
       console.error("API Error:", err);
       setModalStatus("deleteFailure");
       setStatusMessage("Có lỗi xảy ra khi xóa. Vui lòng thử lại.");
     } finally {
-      setSelectedIds([]);
       setIsStatusModalOpen(true);
     }
   };
 
-  // --- RENDER HELPERS ---
+  const handleCancelDelete = () => setShowConfirmModal(false);
+
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
+
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
-    const isSuccess = modalStatus.includes("Success");
+    const isSuccess = modalStatus.toLowerCase().includes("success");
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
       <div className="flex flex-col items-center">
@@ -357,12 +562,10 @@ export const NotificationsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
         <div className="flex space-x-4">
-          
-          {/* Nút Chế độ thường: Thêm, Xóa (vào chế độ xóa) */}
           {!isDeleteMode ? (
             <>
               <button
-                onClick={handleAddNotificationClick}
+                onClick={handleAddClick}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
               >
                 <span>+ Thêm thông báo</span>
@@ -375,7 +578,6 @@ export const NotificationsPage = () => {
               </button>
             </>
           ) : (
-            /* Nút Chế độ xóa: Xóa đã chọn, Hủy */
             <>
               <button
                 onClick={handleDeleteSelectedClick}
@@ -396,7 +598,6 @@ export const NotificationsPage = () => {
               </button>
             </>
           )}
-
         </div>
       </div>
 
@@ -412,101 +613,23 @@ export const NotificationsPage = () => {
               key={item.id}
               item={item}
               isDeleteMode={isDeleteMode}
-              // onDeleteClick={handleDeleteItemClick} // Không cần nữa vì đã có checkbox
-              onEditClick={handleOpenEditModal}
-              isSelected={selectedIds.includes(item.id)} // Truyền trạng thái chọn
-              onToggleSelect={handleSelect} // Truyền hàm xử lý chọn
+              onEditClick={handleEditClick}
+              isSelected={selectedIds.includes(item.id)}
+              onToggleSelect={handleSelect}
             />
           ))
         )}
       </div>
 
-      {/* Add Notification Form Modal */}
-      <StatusModal
-        isOpen={isAddModalOpen}
-        onClose={handleCloseAddModal}
-        title="Thêm thông báo mới"
-      >
-        {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-        <form onSubmit={handleAddFormSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="add-recipient" className="block text-sm font-medium text-gray-700 mb-1">
-              Người nhận (apartment_id)
-            </label>
-            <input
-              type="text"
-              id="add-recipient"
-              value={addRecipient}
-              onChange={(e) => setAddRecipient(e.target.value)}
-              placeholder="Ví dụ: P.713 hoặc All"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="add-content" className="block text-sm font-medium text-gray-700 mb-1">
-              Nội dung
-            </label>
-            <textarea
-              id="add-content"
-              rows="4"
-              value={addContent}
-              onChange={(e) => setAddContent(e.target.value)}
-              placeholder="Enter here"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-              required
-            ></textarea>
-          </div>
-          <div className="mt-6 flex justify-end">
-            <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-md">
-              Thêm
-            </button>
-          </div>
-        </form>
-      </StatusModal>
-
-      {/* Edit Notification Modal */}
-      <StatusModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        title="Chỉnh sửa thông báo"
-      >
-        {editingNotification && (
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Thông báo ID</label>
-              <div className="w-full bg-gray-100 rounded-lg border border-gray-200 px-4 py-3 text-gray-700">{editingNotification.id}</div>
-            </div>
-            <div>
-              <label htmlFor="edit-recipient" className="block text-sm font-medium text-gray-700 mb-1">Người nhận</label>
-              <input
-                type="text"
-                id="edit-recipient"
-                name="recipient"
-                value={editFormData.recipient}
-                onChange={handleEditFormChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="edit-content" className="block text-sm font-medium text-gray-700 mb-1">Nội dung chỉnh sửa</label>
-              <textarea
-                id="edit-content"
-                name="content"
-                rows="4"
-                value={editFormData.content}
-                onChange={handleEditFormChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                required
-              ></textarea>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-md">Xác nhận</button>
-            </div>
-          </form>
-        )}
-      </StatusModal>
+      {/* Form Modal (Add & Edit) */}
+      <NotificationFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        notificationData={editingNotification}
+        error={formError}
+        setError={setFormError}
+      />
 
       {/* Confirmation Modal (Xóa) */}
       <ConfirmationModal

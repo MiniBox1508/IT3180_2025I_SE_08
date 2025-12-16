@@ -211,10 +211,10 @@ export const AccountCheckDebt = () => {
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Tổng thu</p>
                   <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
                 </div>
-                <div className="col-span-1">
+                {/* <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Đã thu</p>
                   <p className="text-sm font-bold text-gray-900">{formatCurrency(item.paid_amount)}</p>
-                </div>
+                </div> */}
 
                 <div className="col-span-2 flex flex-col items-end justify-center">
                    {isSelectionMode ? (

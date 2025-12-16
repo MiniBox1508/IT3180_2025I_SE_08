@@ -5,6 +5,9 @@ import dayjs from "dayjs";
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
 
+// --- IMPORT ICONS CHO MODAL BULK ---
+import { FiPlus, FiX } from "react-icons/fi";
+
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -58,26 +61,83 @@ const WarningIcon = () => (
   </svg>
 );
 
-// --- MODAL THÊM/SỬA (Form nhập liệu) ---
+// =========================================================================
+// === MODAL THÊM/SỬA (HỖ TRỢ BULK INSERT) ===
+// =========================================================================
 const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
+  const isEditing = !!initialData;
+
+  // --- STATE CHO CHẾ ĐỘ SỬA (SINGLE FORM) ---
   const [formData, setFormData] = useState({ apartment_id: "", content: "" });
 
+  // --- STATE CHO CHẾ ĐỘ THÊM (BULK TABLE) ---
+  const [rows, setRows] = useState([
+    { id: Date.now(), apartment_id: "", content: "" },
+  ]);
+
+  // Reset dữ liệu khi mở modal
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        apartment_id: initialData.apartment_id || "",
-        content: initialData.content || "",
-      });
-    } else {
-      setFormData({ apartment_id: "", content: "" });
+    if (isOpen) {
+      if (initialData) {
+        // Chế độ Edit: Fill dữ liệu cũ
+        setFormData({
+          apartment_id: initialData.apartment_id || "",
+          content: initialData.content || "",
+        });
+      } else {
+        // Chế độ Add: Reset về 1 dòng trắng
+        setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
+      }
     }
   }, [initialData, isOpen]);
+
+  // --- HANDLERS CHO ADD (TABLE) ---
+  const handleRowChange = (id, field, value) => {
+    setRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const addRow = () => {
+    setRows((prev) => [
+      ...prev,
+      { id: Date.now(), apartment_id: "", content: "" },
+    ]);
+  };
+
+  const removeRow = (id) => {
+    if (rows.length > 1) {
+      setRows((prev) => prev.filter((row) => row.id !== id));
+    }
+  };
+
+  // --- HANDLER SUBMIT ---
+  const handleSubmit = () => {
+    if (isEditing) {
+      // Logic Sửa: Gửi object
+      onSubmit(formData);
+    } else {
+      // Logic Thêm Nhiều: Gửi mảng rows
+      // Lọc bỏ các trường không cần thiết nếu cần
+      const validRows = rows.map(({ apartment_id, content }) => ({
+        apartment_id,
+        content,
+      }));
+      onSubmit(validRows);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl animate-fade-in-up">
+      {/* Điều chỉnh độ rộng modal tùy theo chế độ */}
+      <div
+        className={`bg-white rounded-2xl p-8 relative shadow-2xl animate-fade-in-up ${
+          isEditing ? "w-full max-w-lg" : "w-full max-w-4xl"
+        }`}
+        style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+      >
         <button
           onClick={onClose}
           className="absolute top-6 right-6 hover:bg-gray-100 rounded-full p-1 transition-colors"
@@ -86,62 +146,138 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         </button>
 
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          {initialData ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
+          {isEditing ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
         </h2>
 
-        <div className="space-y-6">
-          {/* ID (Readonly) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">
-              Thông báo ID
-            </label>
-            <input
-              type="text"
-              placeholder={initialData ? initialData.id : "Tự động tạo"}
-              disabled
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-500 focus:outline-none"
-            />
-          </div>
+        {/* --- NỘI DUNG FORM --- */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {isEditing ? (
+            // === FORM SỬA (SINGLE - 3 Ô NHƯ CŨ) ===
+            <div className="space-y-6">
+              {/* ID (Readonly) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  Thông báo ID
+                </label>
+                <input
+                  type="text"
+                  placeholder={initialData.id}
+                  disabled
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-500 focus:outline-none"
+                />
+              </div>
 
-          {/* Người nhận */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">
-              Người nhận (Mã căn hộ)
-            </label>
-            <input
-              type="text"
-              value={formData.apartment_id}
-              onChange={(e) =>
-                setFormData({ ...formData, apartment_id: e.target.value })
-              }
-              placeholder="Nhập mã căn hộ (VD: A101) hoặc 'all'"
-              className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all"
-            />
-          </div>
+              {/* Người nhận */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  Người nhận (Mã căn hộ)
+                </label>
+                <input
+                  type="text"
+                  value={formData.apartment_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, apartment_id: e.target.value })
+                  }
+                  placeholder="Nhập mã căn hộ (VD: A101) hoặc 'all'"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all"
+                />
+              </div>
 
-          {/* Nội dung */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">
-              Nội dung / Loại thông báo
-            </label>
-            <input
-              type="text"
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              placeholder="Nhập nội dung (VD: Nợ phí điện)"
-              className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all"
-            />
-          </div>
+              {/* Nội dung */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  Nội dung / Loại thông báo
+                </label>
+                <input
+                  type="text"
+                  value={formData.content}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
+                  }
+                  placeholder="Nhập nội dung (VD: Nợ phí điện)"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all"
+                />
+              </div>
+            </div>
+          ) : (
+            // === FORM THÊM (TABLE BULK - GIỐNG ACCOUNTPAYMENT) ===
+            <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[30%]">
+                      Người nhận
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[60%]">
+                      Nội dung / Loại thông báo
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[10%] text-center">
+                      <button
+                        onClick={addRow}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto shadow-md"
+                        title="Thêm dòng"
+                      >
+                        <FiPlus size={16} />
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-blue-50 transition-colors"
+                    >
+                      {/* Cột 1: Người nhận */}
+                      <td className="p-2 align-top">
+                        <input
+                          type="text"
+                          value={row.apartment_id}
+                          onChange={(e) =>
+                            handleRowChange(row.id, "apartment_id", e.target.value)
+                          }
+                          placeholder="VD: A101"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      {/* Cột 2: Nội dung */}
+                      <td className="p-2 align-top">
+                        <input
+                          type="text"
+                          value={row.content}
+                          onChange={(e) =>
+                            handleRowChange(row.id, "content", e.target.value)
+                          }
+                          placeholder="Nội dung..."
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      {/* Cột 3: Xóa */}
+                      <td className="p-2 text-center align-top pt-3">
+                        {rows.length > 1 && (
+                          <button
+                            onClick={() => removeRow(row.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                            title="Xóa dòng"
+                          >
+                            <FiX size={20} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 flex justify-end">
           <button
-            onClick={() => onSubmit(formData)}
+            onClick={handleSubmit}
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-10 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
           >
-            {initialData ? "Lưu thay đổi" : "Thêm mới"}
+            {isEditing ? "Lưu thay đổi" : "Xác nhận thêm"}
           </button>
         </div>
       </div>
@@ -149,7 +285,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   );
 };
 
-// --- MODAL XÁC NHẬN XÓA (Tam giác đỏ) ---
+// --- MODAL XÁC NHẬN XÓA ---
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -195,7 +331,7 @@ export const AccountantNotification = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  // State Status Modal (Thông báo thành công/thất bại)
+  // State Status Modal
   const [statusModal, setStatusModal] = useState({
     open: false,
     type: "success",
@@ -204,7 +340,6 @@ export const AccountantNotification = () => {
   const [acceptIconSrc, setAcceptIconSrc] = useState(null);
   const [notAcceptIconSrc, setNotAcceptIconSrc] = useState(null);
 
-  // Load icons động
   useEffect(() => {
     import("../../images/accept_icon.png").then((m) =>
       setAcceptIconSrc(m.default)
@@ -224,7 +359,6 @@ export const AccountantNotification = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      // Sắp xếp: Mới nhất lên đầu
       const sortedData = response.data.sort(
         (a, b) =>
           new Date(b.created_at || b.notification_date) -
@@ -242,7 +376,7 @@ export const AccountantNotification = () => {
     fetchNotifications();
   }, []);
 
-  // --- 2. XỬ LÝ THÊM / SỬA ---
+  // --- 2. XỬ LÝ THÊM / SỬA (UPDATED) ---
   const handleAddClick = () => {
     setEditingItem(null);
     setShowFormModal(true);
@@ -253,41 +387,41 @@ export const AccountantNotification = () => {
     setShowFormModal(true);
   };
 
-  const handleSubmitForm = async (formData) => {
+  const handleSubmitForm = async (data) => {
     setShowFormModal(false);
+    const token = localStorage.getItem("token");
+
     try {
-      if (editingItem) {
-        // Gọi API PUT để cập nhật
-        const token = localStorage.getItem("token");
+      if (Array.isArray(data)) {
+        // === XỬ LÝ THÊM NHIỀU (BULK ADD) ===
+        await Promise.all(
+          data.map((item) =>
+            axios.post(`${API_BASE_URL}/notifications`, item, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          )
+        );
+        setStatusModal({
+          open: true,
+          type: "success",
+          message: `Đã thêm ${data.length} thông báo mới!`,
+        });
+
+      } else if (editingItem) {
+        // === XỬ LÝ SỬA (SINGLE EDIT) ===
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          data,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setStatusModal({
           open: true,
           type: "success",
           message: "Cập nhật thành công!",
         });
-      } else {
-        // Gọi API POST để thêm mới
-        const token = localStorage.getItem("token");
-        await axios.post(`${API_BASE_URL}/notifications`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setStatusModal({
-          open: true,
-          type: "success",
-          message: "Thêm thông báo thành công!",
-        });
       }
-      fetchNotifications(); // Reload lại danh sách
+
+      fetchNotifications(); // Reload
     } catch (error) {
       console.error(error);
       setStatusModal({
@@ -302,7 +436,7 @@ export const AccountantNotification = () => {
   const toggleDeleteMode = () => {
     if (isDeleteMode) {
       setIsDeleteMode(false);
-      setSelectedIds([]); // Reset lựa chọn khi tắt chế độ xóa
+      setSelectedIds([]);
     } else {
       setIsDeleteMode(true);
     }
@@ -324,14 +458,11 @@ export const AccountantNotification = () => {
   const executeDelete = async () => {
     setShowConfirmDelete(false);
     try {
-      // Xóa từng item đã chọn
       const token = localStorage.getItem("token");
       await Promise.all(
         selectedIds.map((id) =>
           axios.delete(`${API_BASE_URL}/notifications/${id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           })
         )
       );
@@ -354,7 +485,7 @@ export const AccountantNotification = () => {
     }
   };
 
-  // --- 4. LỌC DỮ LIỆU (SEARCH) ---
+  // --- 4. LỌC DỮ LIỆU ---
   const filteredList = notifications.filter((item) => {
     const term = searchTerm.toLowerCase();
     const content = item.content ? item.content.toLowerCase() : "";
@@ -386,7 +517,6 @@ export const AccountantNotification = () => {
 
         <div className="flex space-x-4">
           {!isDeleteMode ? (
-            // Mode xem/sửa
             <>
               <button
                 onClick={handleAddClick}
@@ -402,7 +532,6 @@ export const AccountantNotification = () => {
               </button>
             </>
           ) : (
-            // Mode xóa
             <>
               <button
                 onClick={handleDeleteConfirmClick}
@@ -439,12 +568,10 @@ export const AccountantNotification = () => {
               key={item.id}
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
             >
-              {/* Thanh xanh bên trái */}
               <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
 
-              {/* Grid Content */}
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-                {/* Cột 1: ID */}
+                {/* ID */}
                 <div className="col-span-3 sm:col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Thông báo ID
@@ -454,7 +581,7 @@ export const AccountantNotification = () => {
                   </p>
                 </div>
 
-                {/* Cột 2: Nội dung / Loại thông báo */}
+                {/* Nội dung */}
                 <div className="col-span-5 sm:col-span-6">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Loại thông báo
@@ -467,13 +594,12 @@ export const AccountantNotification = () => {
                   </p>
                 </div>
 
-                {/* Cột 3: Ngày gửi */}
+                {/* Ngày gửi */}
                 <div className="col-span-3 sm:col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Ngày gửi
                   </p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {/* Ưu tiên sent_date, nếu không có thì lấy notification_date */}
                     {item.sent_date
                       ? dayjs(item.sent_date).format("DD/MM/YYYY")
                       : item.notification_date
@@ -482,7 +608,7 @@ export const AccountantNotification = () => {
                   </p>
                 </div>
 
-                {/* Cột 4: Action (Edit Text hoặc Checkbox) */}
+                {/* Action */}
                 <div className="col-span-1 sm:col-span-2 flex justify-end items-center">
                   {!isDeleteMode ? (
                     <button
@@ -492,7 +618,6 @@ export const AccountantNotification = () => {
                       Chỉnh sửa
                     </button>
                   ) : (
-                    // Custom Checkbox
                     <div
                       onClick={() => handleSelect(item.id)}
                       className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
@@ -527,8 +652,6 @@ export const AccountantNotification = () => {
       </div>
 
       {/* --- MODALS --- */}
-
-      {/* 1. Modal Thêm/Sửa */}
       <NotificationFormModal
         isOpen={showFormModal}
         onClose={() => setShowFormModal(false)}
@@ -536,14 +659,12 @@ export const AccountantNotification = () => {
         initialData={editingItem}
       />
 
-      {/* 2. Modal Xác nhận Xóa */}
       <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
-      {/* 3. Modal Trạng thái */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
