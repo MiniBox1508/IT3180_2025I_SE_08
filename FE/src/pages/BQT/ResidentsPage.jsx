@@ -17,6 +17,23 @@ const isValidPhone = (phone) => {
   return /^\d{10,11}$/.test(phone);
 };
 
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  return str;
+};
+
 // --- COMPONENT MODAL FORM ---
 const ResidentFormModal = ({
   isOpen,
@@ -158,7 +175,7 @@ const ResidentFormModal = ({
         )}
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
           <InputGroup
-            label="Tên (First Name)"
+            label="Tên"
             name="first_name"
             value={formData.first_name}
             onChange={handleChange}
@@ -166,7 +183,7 @@ const ResidentFormModal = ({
             readOnly={isViewing}
           />
           <InputGroup
-            label="Họ (Last Name)"
+            label="Họ"
             name="last_name"
             value={formData.last_name}
             onChange={handleChange}
@@ -403,16 +420,23 @@ export const ResidentsPage = () => {
     fetchResidents();
   }, []);
 
+  // --- LOGIC TÌM KIẾM ĐÃ SỬA: THEO ID VÀ HỌ TÊN (KHÔNG DẤU) ---
   const filteredResidents = residents.filter((resident) => {
-    // Nếu bạn muốn hiện cả user inactive thì giữ nguyên, nếu muốn ẩn thì dùng: if (resident.state === 'inactive') return false;
-    if (resident.state === "inactive") return true;
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      resident.full_name?.toLowerCase().includes(term) ||
-      resident.apartment_id?.toLowerCase().includes(term) ||
-      String(resident.id).includes(term)
-    );
+    // Nếu không nhập từ khóa, hiển thị tất cả
+    if (!searchTerm.trim()) {
+      return true;
+    }
+    
+    // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
+    const term = removeVietnameseTones(searchTerm.trim());
+    
+    // 2. Chuẩn hóa ID
+    const idMatch = String(resident.id).toLowerCase().includes(term);
+    
+    // 3. Chuẩn hóa Họ và tên
+    const nameMatch = removeVietnameseTones(resident.full_name || "").includes(term);
+
+    return idMatch || nameMatch;
   });
 
   // Handlers
@@ -558,7 +582,7 @@ export const ResidentsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm kiếm cư dân..."
+            placeholder="Tìm theo ID hoặc Họ tên..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"

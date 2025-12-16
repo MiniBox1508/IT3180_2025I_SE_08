@@ -8,6 +8,23 @@ const statusColor = {
   "Đang chờ": "text-yellow-500 font-bold",
 };
 
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  return str;
+};
+
 const ServicesPage = () => {
   const [search, setSearch] = useState("");
   const [services, setServices] = useState([]);
@@ -41,11 +58,26 @@ const ServicesPage = () => {
     fetchServices();
   }, []);
 
-  const filteredServices = services.filter(
-    (item) =>
-      (item.content?.toLowerCase() || "").includes(search.toLowerCase()) ||
-      String(item.id).includes(search)
-  );
+  // --- LOGIC TÌM KIẾM MỚI ---
+  const filteredServices = services.filter((item) => {
+    // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
+    const term = removeVietnameseTones(search).trim();
+    
+    // 2. Nếu không nhập gì thì hiện tất cả
+    if (!term) return true;
+
+    // 3. Chuẩn hóa các trường dữ liệu cần tìm
+    const idStr = String(item.id).toLowerCase();
+    const contentStr = removeVietnameseTones(item.content || "");
+    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
+
+    // 4. Kiểm tra xem từ khóa có nằm trong bất kỳ trường nào không
+    return (
+      idStr.includes(term) ||          // Tìm theo ID
+      contentStr.includes(term) ||     // Tìm theo Nội dung (không dấu)
+      apartmentStr.includes(term)      // Tìm theo Số căn hộ (không dấu)
+    );
+  });
 
   // Multi-Select Delete logic
   const handleToggleSelect = (id) => {
@@ -116,7 +148,7 @@ const ServicesPage = () => {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search"
+                placeholder="Tìm theo ID, Nội dung hoặc Số căn hộ..." // Cập nhật placeholder cho dễ hiểu
                 className="w-full bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none pl-10"
                 style={{ paddingLeft: "2.5rem" }}
               />
@@ -200,14 +232,6 @@ const ServicesPage = () => {
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Trạng thái
                   </div>
-                  {/* <div
-                    className={
-                      statusColor[item.servicestatus] ||
-                      "text-gray-800 font-bold"
-                    }
-                  >
-                    {item.servicestatus || "Đã ghi nhận"}
-                  </div> */}
                   <div className="mt-1">
                     <select
                       className="text-xs border rounded px-2 py-1"
@@ -279,9 +303,6 @@ const ServicesPage = () => {
                 {/* Action hoặc Checkbox Delete Mode */}
                 <div className="col-span-1 flex justify-end items-center">
                   {!isDeleteMode ? (
-                    // <button className="text-blue-500 font-bold text-xs underline hover:text-blue-700 transition whitespace-nowrap">
-                    //   Xem thêm chi tiết
-                    // </button>
                     <div></div>
                   ) : (
                     <div

@@ -105,14 +105,19 @@ export const ResidentNotificationsPage = () => {
     fetchNotifications();
   }, []);
 
-  // --- HÀM LỌC DỮ LIỆU (THEO SEARCH TERM ID) ---
+  // --- HÀM LỌC DỮ LIỆU (CẬP NHẬT TẠI ĐÂY) ---
   const filteredNotifications = notifications.filter((item) => {
     if (!searchTerm.trim()) {
       return true;
     }
     const searchLower = searchTerm.trim().toLowerCase();
-    // Chỉ lọc theo ID (id)
-    return String(item.id).toLowerCase().includes(searchLower);
+    
+    // Lọc theo ID
+    const idMatch = String(item.id).toLowerCase().includes(searchLower);
+    // Lọc theo Người nhận (apartment_id)
+    const apartmentMatch = String(item.apartment_id).toLowerCase().includes(searchLower);
+
+    return idMatch || apartmentMatch;
   });
   // -------------------------
 
@@ -193,7 +198,7 @@ export const ResidentNotificationsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thông báo..."
+            placeholder="Tìm theo ID thông báo hoặc Căn hộ..." // Cập nhật placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"

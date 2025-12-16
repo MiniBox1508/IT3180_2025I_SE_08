@@ -3,9 +3,6 @@ import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// import acceptIcon from "../images/accept_icon.png";
-// import notAcceptIcon from "../images/not_accept_icon.png";
-
 // Giả định bạn có component Modal để sử dụng lại cho việc Thêm/Sửa
 // Nếu chưa có, bạn có thể tự thay thế bằng một div cố định.
 const ResidentFormModal = ({
@@ -333,7 +330,7 @@ export const ResidentViewPage = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingResident, setViewingResident] = useState(null);
 
-  // --- State cho Thanh Tìm kiếm (Chỉ lọc theo ID) ---
+  // --- State cho Thanh Tìm kiếm ---
   const [searchTerm, setSearchTerm] = useState("");
 
   // --- READ (Đọc danh sách cư dân) ---
@@ -365,7 +362,7 @@ export const ResidentViewPage = () => {
         const myNeighbors = data.filter((resident) =>
           // So sánh chuỗi, bỏ khoảng trắng và không phân biệt hoa thường
           String(resident.apartment_id).trim().toLowerCase() === String(currentApartmentId).trim().toLowerCase() &&
-          resident.state !== "inactive" // <--- THÊM ĐIỀU KIỆN LỌC TẠI ĐÂY
+          resident.state !== "inactive" 
         );
         setResidents(myNeighbors);
       } else {
@@ -385,14 +382,19 @@ export const ResidentViewPage = () => {
     fetchResidents();
   }, []);
 
-  // --- LOGIC LỌC DỮ LIỆU (Search bar) ---
+  // --- LOGIC LỌC DỮ LIỆU (Search bar - ID HOẶC TÊN) ---
   const filteredResidents = residents.filter((resident) => {
-    // Nếu không có searchTerm, trả về tất cả (đã lọc theo căn hộ ở trên)
+    // Nếu không có searchTerm, trả về tất cả
     if (!searchTerm.trim()) {
       return true;
     }
-    // Lọc theo ID (Chuyển ID thành chuỗi để so sánh)
-    return String(resident.id).includes(searchTerm.trim());
+    const term = searchTerm.trim().toLowerCase();
+    
+    // Kiểm tra trùng ID hoặc trùng Tên (Full Name)
+    const matchId = String(resident.id).toLowerCase().includes(term);
+    const matchName = resident.full_name ? resident.full_name.toLowerCase().includes(term) : false;
+
+    return matchId || matchName;
   });
 
   // --- VIEW (Xem chi tiết) ---
@@ -444,7 +446,7 @@ export const ResidentViewPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID cư dân..."
+            placeholder="Tìm theo ID hoặc Tên cư dân..." // Đã cập nhật placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -465,7 +467,7 @@ export const ResidentViewPage = () => {
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
             {" "}
             {/* Nền thẻ trắng */}
-            Không có cư dân nào để hiển thị.
+            Không tìm thấy kết quả phù hợp.
           </div>
         ) : (
           filteredResidents.map((resident) => (

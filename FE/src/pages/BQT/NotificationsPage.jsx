@@ -11,6 +11,22 @@ const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 // --- HÀM LẤY TOKEN ---
 const getToken = () => localStorage.getItem("token");
 
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  return str;
+};
+
 // =========================================================================
 // === NOTIFICATION FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
 // =========================================================================
@@ -31,7 +47,6 @@ const NotificationFormModal = ({
   });
 
   // --- STATE CHO CHẾ ĐỘ THÊM (BULK TABLE) ---
-  // ĐÃ SỬA: Bỏ trường "title", chỉ còn apartment_id và content
   const [rows, setRows] = useState([
     { id: Date.now(), apartment_id: "", content: "" }
   ]);
@@ -107,7 +122,7 @@ const NotificationFormModal = ({
         }
       }
 
-      // 2. Chuẩn hóa dữ liệu gửi đi (Array) - Đã bỏ title
+      // 2. Chuẩn hóa dữ liệu gửi đi (Array)
       const dataToSend = rows.map(row => ({
         apartment_id: row.apartment_id,
         content: row.content,
@@ -120,7 +135,7 @@ const NotificationFormModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       {/* Điều chỉnh độ rộng Modal */}
       <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`} style={{ maxHeight: '90vh' }}>
         
@@ -391,11 +406,17 @@ export const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
-  // --- FILTER ---
+  // --- FILTER (LOGIC TÌM KIẾM MỚI) ---
   const filteredNotifications = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
-    const searchLower = searchTerm.trim().toLowerCase();
-    return String(item.id).toLowerCase().includes(searchLower);
+    const term = removeVietnameseTones(searchTerm.trim());
+    
+    // Tìm theo ID
+    const idMatch = String(item.id).toLowerCase().includes(term);
+    // Tìm theo Người nhận (Căn hộ)
+    const recipientMatch = removeVietnameseTones(item.apartment_id || item.recipient || "").includes(term);
+
+    return idMatch || recipientMatch;
   });
 
   // --- HANDLERS ADD/EDIT ---
@@ -550,7 +571,7 @@ export const NotificationsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thông báo..."
+            placeholder="Tìm theo ID thông báo hoặc Người nhận..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
