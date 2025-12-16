@@ -100,13 +100,13 @@ export const ResidentPaymentPage = () => {
     setError(null);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
-      const resident_id = user?.id;
+      const apartment_id = user?.apartment_id;
       console.log("User từ Storage:", user);
-      console.log("Resident ID:", resident_id);
-      if (!resident_id) throw new Error("Không tìm thấy thông tin người dùng.");
+      console.log("Apartment ID:", apartment_id);
+      if (!apartment_id) throw new Error("Không tìm thấy thông tin căn hộ.");
       const token = getToken();
       const response = await fetch(
-        `${API_BASE_URL}/payments/by-resident/${resident_id}`,
+        `${API_BASE_URL}/payments/by-apartment/${apartment_id}`,
         {
           method: "GET",
           headers: {
