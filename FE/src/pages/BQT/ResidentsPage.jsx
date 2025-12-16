@@ -422,8 +422,10 @@ export const ResidentsPage = () => {
 
   // --- LOGIC TÌM KIẾM ĐÃ SỬA: THEO ID VÀ HỌ TÊN (KHÔNG DẤU) ---
   const filteredResidents = residents.filter((resident) => {
-    if (resident.state === "inactive") return true; // Giữ nguyên logic hiển thị user inactive
-    if (!searchTerm.trim()) return true;
+    // Nếu không nhập từ khóa, hiển thị tất cả
+    if (!searchTerm.trim()) {
+      return true;
+    }
     
     // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
     const term = removeVietnameseTones(searchTerm.trim());
@@ -580,7 +582,7 @@ export const ResidentsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Họ tên..." // Cập nhật placeholder
+            placeholder="Tìm theo ID hoặc Họ tên..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
