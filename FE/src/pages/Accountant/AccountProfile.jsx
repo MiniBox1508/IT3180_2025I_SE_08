@@ -69,12 +69,19 @@ export const AccountantProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   // Lấy user từ localStorage để lấy mã chuẩn hóa nếu có
   const user = JSON.parse(localStorage.getItem("user"));
-  // Gán residentId là mã chuẩn hóa nếu có
+  // Lấy đúng mã ID mới nếu có
+  let residentId = initialUserData.residentId;
+  if (user) {
+    if (user.resident_code) {
+      residentId = user.resident_code;
+    } else if (user.id) {
+      residentId = user.id;
+    }
+  }
   const initialData = {
     ...initialUserData,
     ...(user ? {
-      residentId: user.resident_code || user.residentId || initialUserData.residentId,
-      // các trường khác nếu muốn đồng bộ
+      residentId,
       name: user.full_name || initialUserData.name,
       role: user.role || initialUserData.role,
       apartment: user.apartment_id || initialUserData.apartment,
