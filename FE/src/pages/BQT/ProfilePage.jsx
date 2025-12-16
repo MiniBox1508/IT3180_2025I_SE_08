@@ -73,7 +73,7 @@ export const ProfilePage = () => {
   const initialData = user
     ? {
         name: user.full_name || "",
-        residentId: user.id || "",
+        residentId: user.resident_code || user.id || "",
         role: user.role || "",
         apartment: user.apartment_id || "",
         cccd: user.cccd || "",

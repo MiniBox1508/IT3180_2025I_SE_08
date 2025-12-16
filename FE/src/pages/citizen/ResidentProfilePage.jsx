@@ -101,7 +101,7 @@ export const ResidentProfilePage = () => {
 
         const mappedData = {
           name: data.full_name || "",
-          residentId: String(data.id).padStart(4, '0'),
+          residentId: data.resident_code || String(data.id).padStart(4, '0'),
           role: data.role || "Cư dân",
           apartment: data.apartment_id || "",
           cccd: data.cccd || "",

@@ -134,7 +134,7 @@ export const SecurityProfilePage = () => {
         // Map dữ liệu từ DB
         const mappedData = {
           name: data.full_name || "",
-          securityId: String(data.id).padStart(4, "0"),
+          securityId: data.resident_code || String(data.id).padStart(4, "0"),
           role: data.role || "Công an",
           unit: data.apartment_id || "",
           badgeNumber: data.cccd || "",
