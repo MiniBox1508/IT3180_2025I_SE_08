@@ -18,6 +18,22 @@ const formatCurrency = (amount) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
 
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  return str;
+};
+
 export const AccountCheckDebt = () => {
   const navigate = useNavigate(); 
   
@@ -107,14 +123,21 @@ export const AccountCheckDebt = () => {
     navigate('/accountant/print_invoice', { state: { data: selectedInvoices } });
   };
 
-  // --- FILTER ---
+  // --- FILTER (LOGIC MỚI CÓ HỖ TRỢ TIẾNG VIỆT KHÔNG DẤU) ---
   const filteredList = debts.filter(item => {
-    const term = searchTerm.toLowerCase();
-    return (
-      String(item.id).includes(term) ||
-      (item.apartment_id && item.apartment_id.toLowerCase().includes(term)) ||
-      (item.feetype && item.feetype.toLowerCase().includes(term))
-    );
+    if (!searchTerm.trim()) return true;
+    const term = removeVietnameseTones(searchTerm.trim());
+    
+    // 1. Tìm theo ID
+    const idMatch = String(item.id).toLowerCase().includes(term);
+    
+    // 2. Tìm theo Căn hộ (có xử lý dấu)
+    const apartmentMatch = removeVietnameseTones(item.apartment_id || "").includes(term);
+    
+    // 3. Tìm theo Loại phí (có xử lý dấu)
+    const feetypeMatch = removeVietnameseTones(item.feetype || "").includes(term);
+
+    return idMatch || apartmentMatch || feetypeMatch;
   });
 
   return (
@@ -172,7 +195,7 @@ export const AccountCheckDebt = () => {
         {isLoading ? (
           <p className="text-white text-center">Đang tải dữ liệu...</p>
         ) : filteredList.length === 0 ? (
-          <p className="text-white text-center">Không tìm thấy dữ liệu công nợ.</p>
+          <p className="text-white text-center">Không tìm thấy dữ liệu công nợ phù hợp.</p>
         ) : (
           filteredList.map((item) => (
             <div 
