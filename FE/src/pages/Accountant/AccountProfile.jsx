@@ -178,7 +178,7 @@ export const AccountantProfilePage = () => {
           {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
           <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
           <p className="text-sm text-gray-600">
-            ID Cư dân: {formData.residentId}
+            ID Kế toán: {formData.residentId}
           </p>
         </div>
       </div>
