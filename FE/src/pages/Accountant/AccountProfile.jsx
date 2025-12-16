@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 // --- 1. IMPORT MODAL VÀ ICONS ---
-import { StatusModal } from "../../layouts/StatusModal"; // Đảm bảo đường dẫn đúng
-import EditButtonImage from "../../images/edit_button.svg";
-import acceptIcon from "../../images/accept_icon.png"; // Icon thành công
-import notAcceptIcon from "../../images/not_accept_icon.png"; // Icon thất bại
+import { StatusModal } from "../../layouts/StatusModal";
+import EditButtonImage from "../../images/edit_button.svg"; // Đảm bảo đã import icon bút chì
+import acceptIcon from "../../images/accept_icon.png";
+import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- Icons ---
 const UserIcon = () => (
-  // ... (SVG code giữ nguyên)
   <svg
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
@@ -24,9 +23,15 @@ const UserIcon = () => (
   </svg>
 );
 
-// --- EditableField Component (giữ nguyên) ---
-const EditableField = ({ label, value, isEditing, onChange, name }) => (
-  // ... (JSX code giữ nguyên)
+// --- EditableField Component (Cập nhật thêm prop type) ---
+const EditableField = ({
+  label,
+  value,
+  isEditing,
+  onChange,
+  name,
+  type = "text",
+}) => (
   <div>
     <label
       htmlFor={name}
@@ -36,7 +41,7 @@ const EditableField = ({ label, value, isEditing, onChange, name }) => (
     </label>
     {isEditing ? (
       <input
-        type="text"
+        type={type}
         id={name}
         name={name}
         value={value}
@@ -44,18 +49,18 @@ const EditableField = ({ label, value, isEditing, onChange, name }) => (
         className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 min-h-[46px] focus:border-blue-500 focus:ring-blue-500"
       />
     ) : (
-      <div className="w-full bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-gray-900 min-h-[46px]">
+      <div className="w-full bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-gray-900 min-h-[46px] flex items-center">
         {value}
       </div>
     )}
   </div>
 );
 
-// --- Dữ liệu mẫu ban đầu (giữ nguyên) ---
+// --- Dữ liệu mẫu ban đầu ---
 const initialUserData = {
-  name: "Kế toán Đoàn Văn B",
+  name: "Kế toán Đoàn Văn B",
   residentId: "0003",
-  role: "Kế toán",
+  role: "Kế toán",
   apartment: "Tầng 7 - Phòng 714",
   cccd: "077204000124",
   dob: "30/10/1999",
@@ -67,9 +72,10 @@ const initialUserData = {
 // --- Main Profile Page Component ---
 export const AccountantProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
-  // Lấy user từ localStorage để lấy mã chuẩn hóa nếu có
+
+  // Lấy user từ localStorage
   const user = JSON.parse(localStorage.getItem("user"));
-  // Lấy đúng mã ID mới nếu có
+
   let residentId = initialUserData.residentId;
   if (user) {
     if (user.resident_code) {
@@ -78,41 +84,44 @@ export const AccountantProfilePage = () => {
       residentId = user.id;
     }
   }
+
   const initialData = {
     ...initialUserData,
-    ...(user ? {
-      residentId,
-      name: user.full_name || initialUserData.name,
-      role: user.role || initialUserData.role,
-      apartment: user.apartment_id || initialUserData.apartment,
-      cccd: user.cccd || initialUserData.cccd,
-      dob: user.birth_date || initialUserData.dob,
-      email: user.email || initialUserData.email,
-      phone: user.phone || initialUserData.phone,
-      status: user.residency_status || initialUserData.status,
-    } : {})
+    ...(user
+      ? {
+          residentId,
+          name: user.full_name || initialUserData.name,
+          role: user.role || initialUserData.role,
+          apartment: user.apartment_id || initialUserData.apartment,
+          cccd: user.cccd || initialUserData.cccd,
+          dob: user.birth_date || initialUserData.dob,
+          email: user.email || initialUserData.email,
+          phone: user.phone || initialUserData.phone,
+          status: user.residency_status || initialUserData.status,
+        }
+      : {}),
   };
+
   const [formData, setFormData] = useState(initialData);
   const [originalData, setOriginalData] = useState(initialData);
 
-  // --- 2. THÊM STATE CHO STATUS MODAL ---
+  // --- STATE CHO STATUS MODAL ---
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null); // 'success' or 'failure'
+  const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // Hàm xử lý khi nhấn nút Edit
+  // Hàm xử lý khi nhấn nút Edit (Icon bút chì)
   const handleEditClick = () => {
-    setOriginalData(formData); // Lưu lại trạng thái hiện tại trước khi sửa
+    setOriginalData(formData);
     setIsEditing(true);
   };
 
   // Hàm xử lý khi nhấn nút Hủy
   const cancelEditClick = () => {
-    setFormData(originalData); // Khôi phục dữ liệu gốc
+    setFormData(originalData);
     setIsEditing(false);
   };
 
-  // Hàm xử lý khi thay đổi input (giữ nguyên)
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -121,20 +130,18 @@ export const AccountantProfilePage = () => {
     }));
   };
 
-  // --- 3. CẬP NHẬT handleSubmit ---
-  // --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+  // --- HÀM LẤY TOKEN ---
   const getToken = () => {
     return localStorage.getItem("token");
   };
 
-  // --- CẬP NHẬT handleSubmit GỌI API VÀ GỬI TOKEN ---
+  // --- SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Dữ liệu gửi đi:", formData);
 
     try {
       const token = getToken();
-      // Gọi API cập nhật thông tin cá nhân
       const response = await fetch("/api/accountant/profile", {
         method: "PUT",
         headers: {
@@ -144,13 +151,11 @@ export const AccountantProfilePage = () => {
         body: JSON.stringify(formData),
       });
       if (response.ok) {
-        // Thành công
         setModalStatus("success");
         setStatusMessage("Đã sửa thông tin cá nhân thành công!");
         setIsEditing(false);
         setOriginalData(formData);
       } else {
-        // Thất bại
         setModalStatus("failure");
         setStatusMessage("Sửa thông tin cá nhân không thành công!");
       }
@@ -158,17 +163,15 @@ export const AccountantProfilePage = () => {
       setModalStatus("failure");
       setStatusMessage("Sửa thông tin cá nhân không thành công!");
     }
-    setIsStatusModalOpen(true); // Mở modal thông báo
+    setIsStatusModalOpen(true);
   };
 
-  // --- HÀM ĐÓNG STATUS MODAL ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
 
-  // --- HÀM RENDER NỘI DUNG CHO STATUS MODAL ---
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus === "success";
@@ -184,14 +187,25 @@ export const AccountantProfilePage = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
-      {/* ... (phần header và avatar giữ nguyên) ... */}
-      {/* Card Header: Title + Edit Button */}
+    // Thêm class 'relative' vào thẻ cha để định vị nút Edit
+    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto relative">
+      {/* --- NÚT SỬA (ICON BÚT CHÌ) --- */}
+      {/* Chỉ hiển thị khi KHÔNG phải chế độ editing */}
+      {!isEditing && (
+        <button
+          onClick={handleEditClick}
+          className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Chỉnh sửa thông tin"
+        >
+          <img src={EditButtonImage} alt="Edit" className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Card Header */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
           Thông tin cá nhân
         </h1>
-        {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
       </div>
 
       {/* Profile Header: Avatar + Name */}
@@ -200,7 +214,6 @@ export const AccountantProfilePage = () => {
           <UserIcon />
         </div>
         <div>
-          {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
           <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
           <p className="text-sm text-gray-600">
             ID Kế toán: {formData.residentId}
@@ -209,26 +222,25 @@ export const AccountantProfilePage = () => {
       </div>
 
       <form className="space-y-8" onSubmit={handleSubmit}>
-        {/* ... (các section thông tin giữ nguyên) ... */}
         {/* Section 1: Thông tin cá nhân */}
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Thông tin cá nhân
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
+            {/* Vai trò và Căn hộ thường không thay đổi được -> isEditing={false} */}
             <EditableField
               label="Vai trò"
               name="role"
               value={formData.role}
-              isEditing={isEditing}
+              isEditing={false}
               onChange={handleChange}
             />
             <EditableField
               label="Số căn hộ"
               name="apartment"
               value={formData.apartment}
-              isEditing={isEditing}
+              isEditing={false}
               onChange={handleChange}
             />
             <EditableField
@@ -238,6 +250,7 @@ export const AccountantProfilePage = () => {
               isEditing={isEditing}
               onChange={handleChange}
             />
+            {/* Thêm type='date' nếu dữ liệu dob đúng format YYYY-MM-DD, nếu không để text */}
             <EditableField
               label="Ngày sinh"
               name="dob"
@@ -281,12 +294,13 @@ export const AccountantProfilePage = () => {
               label="Tình trạng cư trú"
               name="status"
               value={formData.status}
-              isEditing={isEditing}
+              isEditing={false} // Thường trạng thái này do Admin set
               onChange={handleChange}
             />
           </div>
         </div>
-        {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
+
+        {/* Nút Hủy và Confirm */}
         {isEditing && (
           <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
             <button
@@ -306,12 +320,8 @@ export const AccountantProfilePage = () => {
         )}
       </form>
 
-      {/* --- 4. THÊM STATUS MODAL --- */}
-      <StatusModal
-        isOpen={isStatusModalOpen}
-        onClose={handleCloseStatusModal}
-        // Bỏ title đi để nút X tự căn giữa phải
-      >
+      {/* Status Modal */}
+      <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
     </div>
