@@ -63,6 +63,22 @@ const WarningIcon = () => (
   </svg>
 );
 
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  return str;
+};
+
 // --- MODAL THÊM/SỬA (HỖ TRỢ BULK INSERT) ---
 const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const isEditing = !!initialData;
@@ -476,11 +492,16 @@ export const SecurityNotification = () => {
 
   // --- FILTER ---
   const filteredList = notifications.filter((item) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      String(item.id).includes(term) ||
-      (item.content && item.content.toLowerCase().includes(term))
-    );
+    if (!searchTerm.trim()) return true;
+    const term = removeVietnameseTones(searchTerm.trim());
+    
+    // Tìm kiếm theo ID (không phân biệt hoa thường)
+    const idMatch = String(item.id).toLowerCase().includes(term);
+    
+    // Tìm kiếm theo Nội dung (không dấu)
+    const contentMatch = removeVietnameseTones(item.content || "").includes(term);
+
+    return idMatch || contentMatch;
   });
 
   return (
@@ -493,7 +514,7 @@ export const SecurityNotification = () => {
           </span>
           <input
             type="search"
-            placeholder="Search"
+            placeholder="Tìm theo ID hoặc Nội dung thông báo..." // Cập nhật placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -632,6 +653,8 @@ export const SecurityNotification = () => {
       </div>
 
       {/* --- MODAL SECTIONS --- */}
+
+      {/* 1. Modal Thêm/Sửa */}
       <NotificationFormModal
         isOpen={showFormModal}
         onClose={() => setShowFormModal(false)}
@@ -639,12 +662,14 @@ export const SecurityNotification = () => {
         initialData={editingItem}
       />
 
+      {/* 2. Modal Xác nhận Xóa (Custom giống ảnh) */}
       <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
+      {/* 3. Modal Trạng thái (Success/Fail) */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
