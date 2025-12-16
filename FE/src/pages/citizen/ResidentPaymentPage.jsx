@@ -78,16 +78,12 @@ const PaymentItem = ({ item }) => {
 // =========================================================================
 // === COMPONENT CHÍNH: RESIDENT PAYMENT PAGE ===
 // =========================================================================
-// ĐỔI TÊN THÀNH ResidentPaymentPage để phân biệt với PaymentPage của BQT
 export const ResidentPaymentPage = () => {
   const [payments, setPayments] = useState([]);
-  // KHÔNG CẦN RESIDENTS
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-
-  // KHÔNG CẦN CÁC STATE VÀ LOGIC CHO ADD MODAL VÀ STATUS MODAL
 
   // Hàm lấy JWT token từ localStorage
   const getToken = () => {
@@ -101,9 +97,9 @@ export const ResidentPaymentPage = () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       const apartment_id = user?.apartment_id;
-      console.log("User từ Storage:", user);
-      console.log("Apartment ID:", apartment_id);
+      
       if (!apartment_id) throw new Error("Không tìm thấy thông tin căn hộ.");
+      
       const token = getToken();
       const response = await fetch(
         `${API_BASE_URL}/payments/by-apartment/${apartment_id}`,
@@ -123,7 +119,6 @@ export const ResidentPaymentPage = () => {
       }
       const data = await response.json();
       setPayments(data);
-      console.log("Dữ liệu API trả về:", data);
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);
@@ -136,15 +131,20 @@ export const ResidentPaymentPage = () => {
     fetchPayments();
   }, []);
 
-  // Logic Lọc và Sắp xếp dữ liệu (Giữ nguyên logic sắp xếp: Chưa TT lên trên)
+  // Logic Lọc và Sắp xếp dữ liệu (CẬP NHẬT TẠI ĐÂY)
   const filteredPayments = payments
     .filter((payment) => {
       if (!searchTerm.trim()) {
         return true;
       }
       const searchLower = searchTerm.trim().toLowerCase();
+      
+      // Tìm theo ID
       const idMatch = String(payment.id).toLowerCase().includes(searchLower);
-      return idMatch;
+      // Tìm theo Loại phí (feetype)
+      const feeTypeMatch = payment.feetype && payment.feetype.toLowerCase().includes(searchLower);
+
+      return idMatch || feeTypeMatch;
     })
     .sort((a, b) => {
       const isAPaid = a.status_text === "Đã thanh toán" ? 1 : 0;
@@ -218,7 +218,7 @@ export const ResidentPaymentPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thanh toán..."
+            placeholder="Tìm theo ID thanh toán hoặc Loại phí..." // Cập nhật placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -232,9 +232,6 @@ export const ResidentPaymentPage = () => {
       </div>
 
       {renderContent()}
-
-      {/* KHÔNG CÓ MODAL TẠO THANH TOÁN */}
-      {/* KHÔNG CÓ STATUS MODAL */}
     </div>
   );
 };
