@@ -158,7 +158,7 @@ const ResidentFormModal = ({
         )}
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
           <InputGroup
-            label="Tên (First Name)"
+            label="Tên"
             name="first_name"
             value={formData.first_name}
             onChange={handleChange}
@@ -166,7 +166,7 @@ const ResidentFormModal = ({
             readOnly={isViewing}
           />
           <InputGroup
-            label="Họ (Last Name)"
+            label="Họ"
             name="last_name"
             value={formData.last_name}
             onChange={handleChange}
