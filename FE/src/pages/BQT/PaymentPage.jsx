@@ -429,7 +429,7 @@ const PaymentItem = ({ item, onStatusClick, isDeleteMode, isSelected, onToggleSe
 
 // ====================================================
 // === COMPONENT: TRANG THANH TOÁN CHÍNH ===
-export default function PaymentPage() {
+export const PaymentPage = () => {
   const [payments, setPayments] = useState([]);
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
