@@ -315,7 +315,7 @@ export const SecurityNotification = () => {
     saveAs(new Blob([buffer]), `DanhSachThongBao_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`);
   };
 
-  // --- NEW: HANDLER IMPORT EXCEL ---
+  // --- NEW: HANDLER IMPORT EXCEL (ĐÃ CẬP NHẬT LOGIC) ---
   const handleImportClick = () => {
     fileInputRef.current.click(); // Kích hoạt input file ẩn
   };
@@ -329,20 +329,51 @@ export const SecurityNotification = () => {
       await workbook.xlsx.load(file);
       
       const worksheet = workbook.getWorksheet(1); // Lấy sheet đầu tiên
-      const rowsFromFile = [];
+      
+      // 1. TÌM VỊ TRÍ CỘT DỰA VÀO HEADER (DÒNG 1)
+      const headerRow = worksheet.getRow(1);
+      let apartmentColIdx = -1;
+      let contentColIdx = -1;
 
-      // Duyệt qua từng dòng (bỏ qua header dòng 1)
+      headerRow.eachCell((cell, colNumber) => {
+        // Chuẩn hóa tên cột để so sánh (chữ thường, xóa khoảng trắng thừa)
+        const cellValue = cell.text ? cell.text.toLowerCase().trim() : "";
+        
+        // Tìm cột "Người nhận"
+        if (cellValue.includes("người nhận") || cellValue.includes("nguoi nhan")) {
+            apartmentColIdx = colNumber;
+        }
+        
+        // Tìm cột "Nội dung"
+        if (cellValue.includes("nội dung") || cellValue.includes("noi dung")) {
+            contentColIdx = colNumber;
+        }
+      });
+
+      // 2. KIỂM TRA ĐỊNH DẠNG FILE
+      if (apartmentColIdx === -1 || contentColIdx === -1) {
+        setStatusModal({ 
+            open: true, 
+            type: "failure", 
+            message: "File sai định dạng! Cần có cột 'Người nhận' và 'Nội dung'." 
+        });
+        e.target.value = null; // Reset input
+        return;
+      }
+
+      // 3. ĐỌC DỮ LIỆU TỪ CÁC CỘT ĐÃ TÌM ĐƯỢC
+      const rowsFromFile = [];
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return; // Skip header
 
-        // Giả sử Cột 1 = apartment_id, Cột 2 = content
-        // Sử dụng .text để lấy giá trị text an toàn
-        const apartmentVal = row.getCell(1).text || ""; 
-        const contentVal = row.getCell(2).text || "";
+        // Lấy giá trị chính xác từ cột đã tìm thấy
+        const apartmentVal = row.getCell(apartmentColIdx).text; 
+        const contentVal = row.getCell(contentColIdx).text;
 
+        // Chỉ thêm nếu có dữ liệu
         if (apartmentVal || contentVal) {
           rowsFromFile.push({
-            id: Date.now() + rowNumber, // Tạo ID tạm
+            id: Date.now() + rowNumber,
             apartment_id: apartmentVal,
             content: contentVal
           });
@@ -354,7 +385,7 @@ export const SecurityNotification = () => {
         setEditingItem(null);          // Đảm bảo không phải chế độ edit
         setShowFormModal(true);        // Mở modal để user check lại
       } else {
-        setStatusModal({ open: true, type: "failure", message: "File Excel rỗng hoặc sai định dạng!" });
+        setStatusModal({ open: true, type: "failure", message: "File Excel rỗng!" });
       }
 
     } catch (error) {
