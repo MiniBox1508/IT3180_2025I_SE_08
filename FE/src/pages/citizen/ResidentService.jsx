@@ -355,6 +355,10 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
   );
   const [note, setNote] = useState("");
 
+  // States cho tính năng "Nội dung khác"
+  const [isCustomContentOpen, setIsCustomContentOpen] = useState(false);
+  const [customContent, setCustomContent] = useState("");
+
   const [residenceForm, setResidenceForm] = useState({
     fullName: "",
     apartment_id: "",
@@ -369,6 +373,18 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
     const newType = e.target.value;
     setSelectedType(newType);
     setSelectedContent(SERVICE_MAPPING[newType].contents[0]);
+    // Reset custom content khi đổi loại dịch vụ
+    setCustomContent("");
+    setIsCustomContentOpen(false);
+  };
+
+  const handleContentChange = (e) => {
+    const val = e.target.value;
+    setSelectedContent(val);
+    if (val === "Nội dung khác") {
+      setIsCustomContentOpen(true);
+      setCustomContent(""); // Reset mỗi khi mở lại
+    }
   };
 
   const handleResidenceChange = (e) => {
@@ -391,10 +407,21 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
       };
       onSubmit(payload);
     } else {
+      // Logic xử lý nội dung khác
+      let finalContent = selectedContent;
+      if (selectedContent === "Nội dung khác") {
+        if (!customContent.trim()) {
+          alert("Vui lòng nhập nội dung chi tiết!");
+          setIsCustomContentOpen(true);
+          return;
+        }
+        finalContent = customContent;
+      }
+
       const payload = {
         isResidence: false,
         service_type: backendType,
-        content: selectedContent,
+        content: finalContent,
         note: note,
       };
       onSubmit(payload);
@@ -463,7 +490,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
               </label>
               <select
                 value={selectedContent}
-                onChange={(e) => setSelectedContent(e.target.value)}
+                onChange={handleContentChange}
                 className="w-full p-3 bg-blue-50 border border-blue-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               >
                 {currentConfig.contents.map((content) => (
@@ -471,6 +498,8 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
                     {content}
                   </option>
                 ))}
+                {/* Thêm option Nội dung khác */}
+                <option value="Nội dung khác">Nội dung khác</option>
               </select>
             </div>
             <div>
@@ -637,6 +666,52 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
             Xác nhận
           </button>
         </div>
+
+        {/* --- POPUP LỒNG: NHẬP NỘI DUNG KHÁC --- */}
+        {isCustomContentOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in">
+            <div className="bg-white rounded-2xl w-[90%] max-w-[400px] p-6 shadow-2xl relative">
+              <h3 className="text-lg font-bold mb-4 text-gray-800">
+                Nhập nội dung
+              </h3>
+              <div className="mb-6">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Nhập chi tiết nội dung..."
+                  value={customContent}
+                  onChange={(e) => setCustomContent(e.target.value)}
+                  className="w-full p-3 bg-white border border-gray-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setIsCustomContentOpen(false);
+                    // Reset về option đầu tiên nếu hủy mà chưa có nội dung
+                    if (!customContent)
+                      setSelectedContent(currentConfig.contents[0]);
+                  }}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-600 font-bold hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => {
+                    if (!customContent.trim()) {
+                      alert("Vui lòng nhập nội dung!");
+                      return;
+                    }
+                    setIsCustomContentOpen(false);
+                  }}
+                  className="px-4 py-2 rounded bg-blue-600 text-white font-bold hover:bg-blue-700"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
