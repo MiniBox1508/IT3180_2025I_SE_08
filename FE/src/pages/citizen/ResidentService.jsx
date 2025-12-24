@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+import ExcelJS from "exceljs";
 
 // --- FEEDBACK DROPDOWN & SUBMODAL ---
 const PROBLEM_OPTIONS = [
@@ -109,10 +110,6 @@ const QualitySubModal = ({ value, onConfirm, onCancel }) => {
   );
 };
 
-// --- FEEDBACK MODAL STATE ---
-
-// ...existing code...
-
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -171,6 +168,23 @@ const PlusIcon = () => (
       strokeLinejoin="round"
       strokeWidth={2}
       d="M12 4v16m8-8H4"
+    />
+  </svg>
+);
+
+const ImportIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 mr-1"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
     />
   </svg>
 );
@@ -628,7 +642,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
   );
 };
 
-// --- COMPONENT: MODAL THÔNG BÁO (CẬP NHẬT NÚT ĐÓNG) ---
+// --- COMPONENT: MODAL THÔNG BÁO ---
 const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -646,7 +660,6 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
           {type === "error" && <ErrorIcon />}
           <h3 className="text-xl font-bold text-gray-800 mb-8">{title}</h3>
 
-          {/* Nút Footer thay đổi theo loại */}
           {type === "warning" ? (
             <div className="flex justify-between space-x-4">
               <button
@@ -663,7 +676,6 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
               </button>
             </div>
           ) : (
-            // Success hoặc Error -> Hiện nút Đóng
             <div className="flex justify-center">
               <button
                 onClick={onClose}
@@ -679,54 +691,96 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
   );
 };
 
-// --- SuccessModal: Hiển thị thông báo thành công khi gửi phản ánh ---
+// --- SuccessModal ---
 const SuccessModal = ({ isOpen, onClose, message }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[60]">
-      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-sm p-8 relative animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-sm:w-[90%] p-8 relative animate-fade-in">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
         >
-          {/* X icon */}
-          <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-6 h-6 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
         <div className="flex flex-col items-center">
           <div className="bg-blue-500 rounded-full w-20 h-20 flex items-center justify-center mb-4">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-10 h-10 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={4}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          <div className="font-bold text-xl text-gray-900 mt-4 text-center">{message || "Gửi phản ánh thành công!"}</div>
+          <div className="font-bold text-xl text-gray-900 mt-4 text-center">
+            {message || "Thành công!"}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- ErrorModal: Hiển thị thông báo thất bại khi gửi phản ánh ---
+// --- ErrorModal ---
 const ErrorModal = ({ isOpen, onClose, message }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[60]">
-      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-sm p-8 relative animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-xl w-[400px] max-sm:w-[90%] p-8 relative animate-fade-in">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
         >
-          {/* X icon */}
-          <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-6 h-6 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
         <div className="flex flex-col items-center">
-          <svg className="w-20 h-20 text-red-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-20 h-20 text-red-600 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={4}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
-          <div className="font-bold text-xl text-gray-900 mt-4 text-center">{message || "Gửi phản ánh thất bại!"}</div>
+          <div className="font-bold text-xl text-gray-900 mt-4 text-center">
+            {message || "Thao tác thất bại!"}
+          </div>
         </div>
       </div>
     </div>
@@ -735,13 +789,11 @@ const ErrorModal = ({ isOpen, onClose, message }) => {
 
 // --- MAIN PAGE ---
 const ResidentService = () => {
-    // Hàm lấy JWT token từ localStorage
-    const getToken = () => {
-      return localStorage.getItem("token");
-    };
-  // --- FEEDBACK SELECTION MODE STATE ---
+  const getToken = () => localStorage.getItem("token");
+  const fileInputRef = useRef(null);
+
+  // --- STATE ---
   const [isFeedbackMode, setIsFeedbackMode] = useState(false);
-  // --- FEEDBACK MODAL STATE & HANDLERS ---
   const [feedbackModal, setFeedbackModal] = useState({
     isOpen: false,
     service: null,
@@ -750,39 +802,10 @@ const ResidentService = () => {
     details: "",
     isSubModalOpen: false,
   });
-
-  // --- State để quản lý hiển thị modal thành công/thất bại ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-
-  const handleOpenFeedbackModal = (service) => {
-    setFeedbackModal({
-      isOpen: true,
-      service,
-      problem: "",
-      rating: "",
-      details: "",
-      isSubModalOpen: false,
-    });
-  };
-
-  const handleCloseFeedbackModal = () => {
-    setFeedbackModal((prev) => ({
-      ...prev,
-      isOpen: false,
-      isSubModalOpen: false,
-    }));
-  };
-
-  const handleOpenSubModal = () => {
-    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: true }));
-  };
-
-  const handleCloseSubModal = () => {
-    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: false }));
-  };
   const [services, setServices] = useState([]);
-  const [residents, setResidents] = useState([]); // List all residents to get apartments
+  const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleteMode, setIsDeleteMode] = useState(false);
@@ -807,11 +830,7 @@ const ResidentService = () => {
 
       const servicesRes = await axios.get(
         `${API_BASE_URL}/services/by-apartment/${user.apartment_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const sortedServices = servicesRes.data.sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
@@ -819,9 +838,7 @@ const ResidentService = () => {
       setServices(sortedServices);
 
       const residentsRes = await axios.get(`${API_BASE_URL}/residents`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setResidents(residentsRes.data);
     } catch (error) {
@@ -876,9 +893,7 @@ const ResidentService = () => {
       await Promise.all(
         selectedIds.map((id) =>
           axios.delete(`${API_BASE_URL}/services/${id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           })
         )
       );
@@ -903,7 +918,6 @@ const ResidentService = () => {
     }
   };
 
-  // --- XỬ LÝ ĐĂNG KÝ ---
   const handleRegisterSubmit = async (payload) => {
     setIsRegisterModalOpen(false);
     try {
@@ -915,10 +929,7 @@ const ResidentService = () => {
       const token = getToken();
 
       if (payload.isResidence) {
-        // --- LOGIC KHAI BÁO TẠM TRÚ ---
         const formData = payload.formData;
-
-        // 1. Tạo Service Request
         const serviceRes = await axios.post(
           `${API_BASE_URL}/services`,
           {
@@ -927,15 +938,10 @@ const ResidentService = () => {
             content: payload.content,
             note: "Yêu cầu khai báo tạm trú",
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         const serviceId = serviceRes.data.service_id;
 
-        // 2. Tạo Form chi tiết
         await axios.post(
           `${API_BASE_URL}/forms`,
           {
@@ -948,14 +954,9 @@ const ResidentService = () => {
             end_date: formData.endDate,
             note: formData.reason,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // 3. Tạo Resident (Khách tạm trú)
         const nameParts = formData.fullName.trim().split(" ");
         const lastName = nameParts.pop() || "";
         const firstName = nameParts.join(" ");
@@ -974,14 +975,9 @@ const ResidentService = () => {
             email: null,
             password: "123",
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // Thông báo thành công riêng cho Khai báo tạm trú
         await fetchData();
         setTimeout(() => {
           setModalState({
@@ -991,7 +987,6 @@ const ResidentService = () => {
           });
         }, 300);
       } else {
-        // --- LOGIC DỊCH VỤ THƯỜNG ---
         await axios.post(
           `${API_BASE_URL}/services`,
           {
@@ -1000,11 +995,7 @@ const ResidentService = () => {
             content: payload.content,
             note: payload.note,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         await fetchData();
@@ -1026,6 +1017,147 @@ const ResidentService = () => {
         });
       }, 300);
     }
+  };
+
+  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS ---
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target.result;
+        const workbook = new ExcelJS.Workbook();
+
+        // Load file từ buffer
+        await workbook.xlsx.load(buffer);
+
+        // Lấy sheet đầu tiên
+        const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+          alert("File Excel không có dữ liệu!");
+          return;
+        }
+
+        const dataToImport = [];
+        let headers = {};
+
+        // Duyệt qua từng dòng trong sheet
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) {
+            // Dòng 1 là Header: Map index cột -> tên trường
+            // Ví dụ: column 1 -> 'apartment_id'
+            row.eachCell((cell, colNumber) => {
+              headers[colNumber] = cell.value;
+            });
+          } else {
+            // Dòng dữ liệu
+            const rowData = {};
+            row.eachCell((cell, colNumber) => {
+              const headerKey = headers[colNumber];
+              if (headerKey) {
+                // Lấy giá trị của cell (ExcelJS có thể trả về object nếu là formula/link)
+                // Ta lấy .value hoặc .result nếu có
+                let cellValue = cell.value;
+                if (
+                  typeof cellValue === "object" &&
+                  cellValue !== null &&
+                  "result" in cellValue
+                ) {
+                  cellValue = cellValue.result;
+                } else if (
+                  typeof cellValue === "object" &&
+                  cellValue !== null &&
+                  "text" in cellValue
+                ) {
+                  cellValue = cellValue.text;
+                }
+                rowData[headerKey] = cellValue;
+              }
+            });
+            // Kiểm tra nếu row có dữ liệu thì push vào mảng
+            if (Object.keys(rowData).length > 0) {
+              dataToImport.push(rowData);
+            }
+          }
+        });
+
+        if (dataToImport.length === 0) {
+          alert("Không tìm thấy dữ liệu hợp lệ trong file!");
+          return;
+        }
+
+        const token = getToken();
+
+        // Loop qua từng dòng data và call API
+        // Data format: { apartment_id, service_type, content, note }
+        const importPromises = dataToImport.map((row) =>
+          axios.post(
+            `${API_BASE_URL}/services`,
+            {
+              apartment_id: row.apartment_id,
+              service_type: row.service_type,
+              content: row.content,
+              note: row.note || "",
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          )
+        );
+
+        await Promise.all(importPromises);
+        await fetchData();
+
+        setModalState({
+          type: "success",
+          isOpen: true,
+          title: `Import thành công ${dataToImport.length} dịch vụ!`,
+        });
+      } catch (err) {
+        console.error("Import error:", err);
+        setModalState({
+          type: "error",
+          isOpen: true,
+          title: "Import thất bại! Hãy kiểm tra lại định dạng file.",
+        });
+      }
+    };
+    // Đọc file dưới dạng ArrayBuffer cho ExcelJS
+    reader.readAsArrayBuffer(file);
+    e.target.value = null; // reset input
+  };
+
+  const handleOpenFeedbackModal = (service) => {
+    setFeedbackModal({
+      isOpen: true,
+      service,
+      problem: "",
+      rating: "",
+      details: "",
+      isSubModalOpen: false,
+    });
+  };
+
+  const handleCloseFeedbackModal = () => {
+    setFeedbackModal((prev) => ({
+      ...prev,
+      isOpen: false,
+      isSubModalOpen: false,
+    }));
+  };
+
+  const handleOpenSubModal = () => {
+    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: true }));
+  };
+
+  const handleCloseSubModal = () => {
+    setFeedbackModal((prev) => ({ ...prev, isSubModalOpen: false }));
   };
 
   const handleViewDetail = (service) => {
@@ -1069,6 +1201,22 @@ const ResidentService = () => {
                 >
                   <PlusIcon /> Đăng ký dịch vụ
                 </button>
+
+                {/* --- NÚT IMPORT MỚI --- */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".xlsx, .xls"
+                  onChange={handleFileChange}
+                />
+                <button
+                  onClick={handleImportClick}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors text-sm"
+                >
+                  <ImportIcon /> Import dịch vụ
+                </button>
+
                 <button
                   onClick={() => setIsFeedbackMode(true)}
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-sm"
@@ -1219,178 +1367,167 @@ const ResidentService = () => {
                     </div>
                   )}
                 </div>
-                {/* --- MAIN FEEDBACK MODAL --- */}
-                {feedbackModal.isOpen && (
-                  <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl w-[90%] max-w-lg p-6 shadow-2xl relative">
-                      {/* Close Button */}
-                      <button
-                        onClick={handleCloseFeedbackModal}
-                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100"
-                      >
-                        <CloseIcon />
-                      </button>
-                      {/* Title */}
-                      <h2 className="text-xl font-bold mb-4">
-                        Phản ánh dịch vụ
-                      </h2>
-                      {/* Service Info */}
-                      <div className="mb-4">
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                          ID Dịch vụ
-                        </label>
-                        <input
-                          className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 mb-2 cursor-not-allowed"
-                          value={feedbackModal.service?.id || ""}
-                          readOnly
-                        />
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                          Nội dung
-                        </label>
-                        <input
-                          className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 cursor-not-allowed"
-                          value={feedbackModal.service?.content || ""}
-                          readOnly
-                        />
-                      </div>
-                      {/* Problem Dropdown */}
-                      <div className="mb-4 relative">
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                          Vấn đề
-                        </label>
-                        <CustomDropdown
-                          value={feedbackModal.problem}
-                          onChange={(val) =>
-                            setFeedbackModal((prev) => ({
-                              ...prev,
-                              problem: val,
-                            }))
-                          }
-                        />
-                      </div>
-                      {/* Service Quality Rating Trigger */}
-                      <div className="mb-4">
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                          Đánh giá chất lượng
-                        </label>
-                        <div
-                          className="w-full border border-gray-300 rounded px-3 py-2 bg-white cursor-pointer flex items-center justify-between"
-                          onClick={handleOpenSubModal}
-                        >
-                          <span
-                            className={
-                              feedbackModal.rating
-                                ? "text-gray-800"
-                                : "text-gray-400"
-                            }
-                          >
-                            {feedbackModal.rating || "Chọn mức độ hài lòng"}
-                          </span>
-                          <svg
-                            className="w-4 h-4 text-gray-400 ml-2"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      {/* Details */}
-                      <div className="mb-6">
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">
-                          Chi tiết
-                        </label>
-                        <textarea
-                          rows={4}
-                          className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                          value={feedbackModal.details}
-                          onChange={(e) =>
-                            setFeedbackModal((prev) => ({
-                              ...prev,
-                              details: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                      {/* Footer */}
-                      <button
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all"
-                        onClick={async () => {
-                          // Gửi phản ánh dịch vụ qua API PATCH
-                          try {
-                            const token = getToken();
-                            const id = feedbackModal.service?.id;
-                            if (!id) return;
-                            let problems = feedbackModal.problem || "Ko vấn đề";
-                            if (problems === "Không vấn đề") problems = "Ko vấn đề";
-                            let rates = "Chất lượng ổn";
-                            if (feedbackModal.rating === "Rất hài lòng") rates = "Chất lượng cao";
-                            else if (feedbackModal.rating === "Hài lòng") rates = "Chất lượng tốt";
-                            else if (feedbackModal.rating === "Tạm ổn") rates = "Chất lượng ổn";
-                            else if (feedbackModal.rating === "Không hài lòng") rates = "Chất lượng kém";
-                            await axios.patch(
-                              `${API_BASE_URL}/services/${id}`,
-                              {
-                                problems,
-                                rates,
-                                scripts: feedbackModal.details || null,
-                              },
-                              {
-                                headers: {
-                                  Authorization: `Bearer ${token}`,
-                                },
-                              }
-                            );
-                            setShowSuccessModal(true); // Hiển thị modal thành công
-                          } catch (err) {
-                            setShowErrorModal(true); // Hiển thị modal thất bại
-                          }
-                          // KHÔNG tắt popup phản ánh dịch vụ ở đây
-                        }}
-                      >
-                        Thêm
-                      </button>
-                      {/* Sub-Modal */}
-                      {feedbackModal.isSubModalOpen && (
-                        <QualitySubModal
-                          value={feedbackModal.rating}
-                          onConfirm={(val) =>
-                            setFeedbackModal((prev) => ({
-                              ...prev,
-                              rating: val,
-                              isSubModalOpen: false,
-                            }))
-                          }
-                          onCancel={handleCloseSubModal}
-                        />
-                      )}
-                      {/* SuccessModal và ErrorModal cho phản ánh dịch vụ */}
-                      <SuccessModal
-                        isOpen={showSuccessModal}
-                        onClose={() => {
-                          setShowSuccessModal(false);
-                          handleCloseFeedbackModal(); // Tắt popup phản ánh dịch vụ khi đóng SuccessModal
-                        }}
-                        message="Gửi phản ánh thành công!"
+              </div>
+
+              {/* --- MAIN FEEDBACK MODAL --- */}
+              {feedbackModal.isOpen && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
+                  <div className="bg-white rounded-2xl w-[90%] max-w-lg p-6 shadow-2xl relative">
+                    <button
+                      onClick={handleCloseFeedbackModal}
+                      className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100"
+                    >
+                      <CloseIcon />
+                    </button>
+                    <h2 className="text-xl font-bold mb-4">Phản ánh dịch vụ</h2>
+                    <div className="mb-4">
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">
+                        ID Dịch vụ
+                      </label>
+                      <input
+                        className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 mb-2 cursor-not-allowed"
+                        value={feedbackModal.service?.id || ""}
+                        readOnly
                       />
-                      <ErrorModal
-                        isOpen={showErrorModal}
-                        onClose={() => {
-                          setShowErrorModal(false);
-                          handleCloseFeedbackModal(); // Tắt popup phản ánh dịch vụ khi đóng ErrorModal
-                        }}
-                        message="Gửi phản ánh thất bại!"
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">
+                        Nội dung
+                      </label>
+                      <input
+                        className="w-full bg-gray-100 text-gray-500 rounded px-3 py-2 cursor-not-allowed"
+                        value={feedbackModal.service?.content || ""}
+                        readOnly
                       />
                     </div>
+                    <div className="mb-4 relative">
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">
+                        Vấn đề
+                      </label>
+                      <CustomDropdown
+                        value={feedbackModal.problem}
+                        onChange={(val) =>
+                          setFeedbackModal((prev) => ({
+                            ...prev,
+                            problem: val,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">
+                        Đánh giá chất lượng
+                      </label>
+                      <div
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-white cursor-pointer flex items-center justify-between"
+                        onClick={handleOpenSubModal}
+                      >
+                        <span
+                          className={
+                            feedbackModal.rating
+                              ? "text-gray-800"
+                              : "text-gray-400"
+                          }
+                        >
+                          {feedbackModal.rating || "Chọn mức độ hài lòng"}
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-gray-400 ml-2"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="mb-6">
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">
+                        Chi tiết
+                      </label>
+                      <textarea
+                        rows={4}
+                        className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        value={feedbackModal.details}
+                        onChange={(e) =>
+                          setFeedbackModal((prev) => ({
+                            ...prev,
+                            details: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all"
+                      onClick={async () => {
+                        try {
+                          const token = getToken();
+                          const id = feedbackModal.service?.id;
+                          if (!id) return;
+                          let problems = feedbackModal.problem || "Ko vấn đề";
+                          if (problems === "Không vấn đề")
+                            problems = "Ko vấn đề";
+                          let rates = "Chất lượng ổn";
+                          if (feedbackModal.rating === "Rất hài lòng")
+                            rates = "Chất lượng cao";
+                          else if (feedbackModal.rating === "Hài lòng")
+                            rates = "Chất lượng tốt";
+                          else if (feedbackModal.rating === "Tạm ổn")
+                            rates = "Chất lượng ổn";
+                          else if (feedbackModal.rating === "Không hài lòng")
+                            rates = "Chất lượng kém";
+                          await axios.patch(
+                            `${API_BASE_URL}/services/${id}`,
+                            {
+                              problems,
+                              rates,
+                              scripts: feedbackModal.details || null,
+                            },
+                            { headers: { Authorization: `Bearer ${token}` } }
+                          );
+                          setShowSuccessModal(true);
+                        } catch (err) {
+                          setShowErrorModal(true);
+                        }
+                      }}
+                    >
+                      Thêm
+                    </button>
+                    {feedbackModal.isSubModalOpen && (
+                      <QualitySubModal
+                        value={feedbackModal.rating}
+                        onConfirm={(val) =>
+                          setFeedbackModal((prev) => ({
+                            ...prev,
+                            rating: val,
+                            isSubModalOpen: false,
+                          }))
+                        }
+                        onCancel={handleCloseSubModal}
+                      />
+                    )}
+                    <SuccessModal
+                      isOpen={showSuccessModal}
+                      onClose={() => {
+                        setShowSuccessModal(false);
+                        handleCloseFeedbackModal();
+                      }}
+                      message="Gửi phản ánh thành công!"
+                    />
+                    <ErrorModal
+                      isOpen={showErrorModal}
+                      onClose={() => {
+                        setShowErrorModal(false);
+                        handleCloseFeedbackModal();
+                      }}
+                      message="Gửi phản ánh thất bại!"
+                    />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))
         )}
