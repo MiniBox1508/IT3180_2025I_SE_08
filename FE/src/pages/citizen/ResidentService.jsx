@@ -819,18 +819,21 @@ const ResidentService = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // --- FETCH DATA ---
+  // --- FETCH DATA (Đã FIX caching) ---
   const fetchData = async () => {
-    // Không set isLoading ở đây để tránh nháy màn hình khi refresh ngầm
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id)
         throw new Error("Không tìm thấy thông tin căn hộ");
       const token = getToken();
 
+      // FIX: Thêm params { _t: Date.now() } để tránh browser cache
       const servicesRes = await axios.get(
         `${API_BASE_URL}/services/by-apartment/${user.apartment_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { _t: Date.now() },
+        }
       );
       const sortedServices = servicesRes.data.sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
@@ -843,7 +846,6 @@ const ResidentService = () => {
       setResidents(residentsRes.data);
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error);
-      // Giữ nguyên data cũ nếu lỗi để tránh màn hình trắng
     }
   };
 
@@ -901,8 +903,9 @@ const ResidentService = () => {
           })
         )
       );
-      await fetchData();
-      setTimeout(() => {
+      // FIX: Chờ 300ms rồi mới fetch lại
+      setTimeout(async () => {
+        await fetchData();
         setModalState({
           type: "success",
           isOpen: true,
@@ -912,13 +915,11 @@ const ResidentService = () => {
       setIsDeleteMode(false);
       setSelectedIds([]);
     } catch (error) {
-      setTimeout(() => {
-        setModalState({
-          type: "error",
-          isOpen: true,
-          title: "Xóa đăng ký không thành công!",
-        });
-      }, 300);
+      setModalState({
+        type: "error",
+        isOpen: true,
+        title: "Xóa đăng ký không thành công!",
+      });
     }
   };
 
@@ -982,8 +983,8 @@ const ResidentService = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        await fetchData();
-        setTimeout(() => {
+        setTimeout(async () => {
+          await fetchData();
           setModalState({
             type: "success",
             isOpen: true,
@@ -1002,8 +1003,8 @@ const ResidentService = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        await fetchData();
-        setTimeout(() => {
+        setTimeout(async () => {
+          await fetchData();
           setModalState({
             type: "success",
             isOpen: true,
@@ -1013,17 +1014,15 @@ const ResidentService = () => {
       }
     } catch (e) {
       console.error(e);
-      setTimeout(() => {
-        setModalState({
-          type: "error",
-          isOpen: true,
-          title: "Thao tác thất bại! Vui lòng thử lại.",
-        });
-      }, 300);
+      setModalState({
+        type: "error",
+        isOpen: true,
+        title: "Thao tác thất bại! Vui lòng thử lại.",
+      });
     }
   };
 
-  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS ---
+  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (Đã FIX hiển thị) ---
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -1032,7 +1031,7 @@ const ResidentService = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Bật Loading để người dùng biết đang xử lý
+    // Bật Loading ngay lập tức
     setIsLoading(true);
 
     const reader = new FileReader();
@@ -1045,6 +1044,7 @@ const ResidentService = () => {
         const worksheet = workbook.getWorksheet(1);
         if (!worksheet) {
           alert("File Excel không có dữ liệu!");
+          setIsLoading(false);
           return;
         }
 
@@ -1086,6 +1086,7 @@ const ResidentService = () => {
 
         if (dataToImport.length === 0) {
           alert("Không tìm thấy dữ liệu hợp lệ trong file!");
+          setIsLoading(false);
           return;
         }
 
@@ -1121,11 +1122,16 @@ const ResidentService = () => {
           title: "Import thất bại! Hãy kiểm tra lại định dạng file.",
         });
       } finally {
-        // QUAN TRỌNG: Luôn tải lại dữ liệu và tắt loading dù thành công hay thất bại
-        await fetchData();
-        setIsLoading(false);
+        // FIX QUAN TRỌNG:
+        // Chờ 500ms để đảm bảo Server DB đã lưu xong
+        // Sau đó mới gọi fetchData để lấy data mới về
+        setTimeout(async () => {
+          await fetchData();
+          setIsLoading(false);
+        }, 500);
+
         if (fileInputRef.current) {
-          fileInputRef.current.value = null; // Reset input để chọn lại file cũ được
+          fileInputRef.current.value = null;
         }
       }
     };
