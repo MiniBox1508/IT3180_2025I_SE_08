@@ -821,7 +821,7 @@ const ResidentService = () => {
 
   // --- FETCH DATA ---
   const fetchData = async () => {
-    setIsLoading(true);
+    // Không set isLoading ở đây để tránh nháy màn hình khi refresh ngầm
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user.apartment_id)
@@ -843,14 +843,18 @@ const ResidentService = () => {
       setResidents(residentsRes.data);
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error);
-      setServices([]);
-    } finally {
-      setIsLoading(false);
+      // Giữ nguyên data cũ nếu lỗi để tránh màn hình trắng
     }
   };
 
+  // Fetch lần đầu tiên
   useEffect(() => {
-    fetchData();
+    const initData = async () => {
+      setIsLoading(true);
+      await fetchData();
+      setIsLoading(false);
+    };
+    initData();
   }, []);
 
   const uniqueApartments = useMemo(() => {
@@ -1028,16 +1032,16 @@ const ResidentService = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Bật Loading để người dùng biết đang xử lý
+    setIsLoading(true);
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const buffer = evt.target.result;
         const workbook = new ExcelJS.Workbook();
-
-        // Load file từ buffer
         await workbook.xlsx.load(buffer);
 
-        // Lấy sheet đầu tiên
         const worksheet = workbook.getWorksheet(1);
         if (!worksheet) {
           alert("File Excel không có dữ liệu!");
@@ -1047,22 +1051,16 @@ const ResidentService = () => {
         const dataToImport = [];
         let headers = {};
 
-        // Duyệt qua từng dòng trong sheet
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber === 1) {
-            // Dòng 1 là Header: Map index cột -> tên trường
-            // Ví dụ: column 1 -> 'apartment_id'
             row.eachCell((cell, colNumber) => {
               headers[colNumber] = cell.value;
             });
           } else {
-            // Dòng dữ liệu
             const rowData = {};
             row.eachCell((cell, colNumber) => {
               const headerKey = headers[colNumber];
               if (headerKey) {
-                // Lấy giá trị của cell (ExcelJS có thể trả về object nếu là formula/link)
-                // Ta lấy .value hoặc .result nếu có
                 let cellValue = cell.value;
                 if (
                   typeof cellValue === "object" &&
@@ -1080,7 +1078,6 @@ const ResidentService = () => {
                 rowData[headerKey] = cellValue;
               }
             });
-            // Kiểm tra nếu row có dữ liệu thì push vào mảng
             if (Object.keys(rowData).length > 0) {
               dataToImport.push(rowData);
             }
@@ -1094,8 +1091,6 @@ const ResidentService = () => {
 
         const token = getToken();
 
-        // Loop qua từng dòng data và call API
-        // Data format: { apartment_id, service_type, content, note }
         const importPromises = dataToImport.map((row) =>
           axios.post(
             `${API_BASE_URL}/services`,
@@ -1112,7 +1107,6 @@ const ResidentService = () => {
         );
 
         await Promise.all(importPromises);
-        await fetchData();
 
         setModalState({
           type: "success",
@@ -1126,11 +1120,16 @@ const ResidentService = () => {
           isOpen: true,
           title: "Import thất bại! Hãy kiểm tra lại định dạng file.",
         });
+      } finally {
+        // QUAN TRỌNG: Luôn tải lại dữ liệu và tắt loading dù thành công hay thất bại
+        await fetchData();
+        setIsLoading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = null; // Reset input để chọn lại file cũ được
+        }
       }
     };
-    // Đọc file dưới dạng ArrayBuffer cho ExcelJS
     reader.readAsArrayBuffer(file);
-    e.target.value = null; // reset input
   };
 
   const handleOpenFeedbackModal = (service) => {
