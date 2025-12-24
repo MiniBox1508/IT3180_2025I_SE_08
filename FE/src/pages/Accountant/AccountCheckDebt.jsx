@@ -149,7 +149,7 @@ export const AccountCheckDebt = () => {
 
       {/* 2. TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6 relative z-10">
-        <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
         
         {!isSelectionMode ? (
            <button
