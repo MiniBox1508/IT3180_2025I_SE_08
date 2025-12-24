@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { FaHome, FaUserShield, FaCalculator, FaUserLock } from "react-icons/fa";
+import {
+  FaHome,
+  FaUserShield,
+  FaCalculator,
+  FaUserLock,
+  FaCheckCircle,
+  FaTimesCircle,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import bgImage from "../images/new_welcome_background.jpg";
 
@@ -12,9 +19,20 @@ export const NewWelcomeScreen = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // --- State quản lý hiển thị Modal Quên mật khẩu ---
-  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
-  const openForgotPasswordModal = () => setIsForgotPasswordModalOpen(true);
+  // --- State quản lý Modal Quên mật khẩu ---
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] =
+    useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotStatus, setForgotStatus] = useState("idle"); // 'idle' | 'loading' | 'success' | 'error'
+  const [forgotMessage, setForgotMessage] = useState("");
+
+  const openForgotPasswordModal = () => {
+    setForgotEmail("");
+    setForgotStatus("idle");
+    setForgotMessage("");
+    setIsForgotPasswordModalOpen(true);
+  };
+
   const closeForgotPasswordModal = () => setIsForgotPasswordModalOpen(false);
 
   const handleRoleClick = (role) => {
@@ -61,6 +79,36 @@ export const NewWelcomeScreen = () => {
       else if (selectedRole === "Công an") navigate("/security");
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  // --- Logic xử lý Quên mật khẩu ---
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+
+    setForgotStatus("loading");
+    try {
+      // Gọi API kiểm tra email và gửi link (API này sẽ viết ở bước Backend)
+      const res = await fetch(`${API_BASE_URL}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setForgotStatus("success");
+        setForgotMessage(
+          "Đã gửi liên kết về email, vui lòng truy cập vào email để thực hiện cấp lại mật khẩu."
+        );
+      } else {
+        throw new Error(data.error || "Email không tồn tại");
+      }
+    } catch (err) {
+      setForgotStatus("error");
+      setForgotMessage("Email không tồn tại, vui lòng kiểm tra lại.");
     }
   };
 
@@ -111,7 +159,9 @@ export const NewWelcomeScreen = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="text-red-500 bg-red-50 p-2 rounded text-sm text-center border border-red-200">{error}</div>
+            <div className="text-red-500 bg-red-50 p-2 rounded text-sm text-center border border-red-200">
+              {error}
+            </div>
           )}
           <div>
             <label
@@ -152,8 +202,8 @@ export const NewWelcomeScreen = () => {
             Đăng nhập
           </button>
         </form>
-        
-        {/* --- Nút Quên mật khẩu (MỚI THÊM) --- */}
+
+        {/* --- Nút Quên mật khẩu --- */}
         <div className="text-center mt-4">
           <button
             onClick={openForgotPasswordModal}
@@ -165,48 +215,98 @@ export const NewWelcomeScreen = () => {
         </div>
       </div>
 
-      {/* --- MODAL QUÊN MẬT KHẨU (NỘI DUNG GIỐNG HỆT ẢNH) --- */}
+      {/* --- MODAL QUÊN MẬT KHẨU (ĐÃ SỬA) --- */}
       {isForgotPasswordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-opacity-50 backdrop-blur-sm transition-opacity duration-300">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl transform transition-all scale-100">
-            
-            {/* Header 1 */}
-            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center uppercase">
-              LƯU Ý: NGƯỜI DÙNG KHI QUÊN MẬT KHẨU TÀI KHOẢN
-            </h3>
-            
-            {/* List 1 */}
-            <div className="text-gray-700 text-sm space-y-2 mb-6 leading-relaxed">
-              <p>- Hãy đến gặp <span className="text-blue-500 font-semibold">Ban quản trị chung cư Bluemoon</span> vào hành chính</p>
-              <p>- Mang theo <span className="font-bold">minh chứng là cư dân hoặc bên liên quan</span> của chung cư ( thẻ cư dân, thẻ nhân viên,...)</p>
-              <p>- Làm thủ tục cấp lại mật khẩu</p>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-opacity-50 backdrop-blur-sm bg-black transition-opacity duration-300">
+          <div className="bg-white rounded-2xl w-full max-w-md p-8 relative shadow-2xl transform transition-all scale-100">
+            {/* Trường hợp 1: Form nhập Email (Chưa gửi hoặc đang gửi) */}
+            {forgotStatus === "idle" || forgotStatus === "loading" ? (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-6 text-center uppercase">
+                  Lấy lại mật khẩu
+                </h3>
+                <form onSubmit={handleForgotPasswordSubmit}>
+                  <div className="mb-6">
+                    <label
+                      htmlFor="forgot-email"
+                      className="block text-sm font-bold text-gray-700 mb-2"
+                    >
+                      Nhập địa chỉ Email đã đăng ký
+                    </label>
+                    <input
+                      type="email"
+                      id="forgot-email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="vidu@gmail.com"
+                      disabled={forgotStatus === "loading"}
+                    />
+                  </div>
 
-            {/* Header 2 */}
-            <h4 className="text-lg font-bold text-gray-900 mb-4 text-center uppercase">
-              THÔNG TIN LIÊN HỆ :
-            </h4>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={closeForgotPasswordModal}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-semibold"
+                      disabled={forgotStatus === "loading"}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors flex items-center justify-center min-w-[140px]"
+                      disabled={forgotStatus === "loading"}
+                    >
+                      {forgotStatus === "loading"
+                        ? "Đang xử lý..."
+                        : "Lấy lại mật khẩu"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              /* Trường hợp 2: Popup Thông báo Kết quả (Success hoặc Error) */
+              <div className="flex flex-col items-center text-center">
+                {forgotStatus === "success" ? (
+                  <FaCheckCircle className="text-green-500 w-16 h-16 mb-4" />
+                ) : (
+                  <FaTimesCircle className="text-red-500 w-16 h-16 mb-4" />
+                )}
 
-            {/* List 2 */}
-            <div className="text-gray-700 text-sm space-y-1 mb-8 leading-relaxed">
-              <p>- Văn phòng: Tầng 1- Phòng 106- Chung cư Bluemoon</p>
-              <p>- SĐT: 0913006205</p>
-              <p>- Email: bqtBluemoon@gmail.com</p>
-              <p>- Giờ hành chính:</p>
-              <p className="pl-1">7h30-11h30 sáng: Thứ 2 đến Thứ 6</p>
-              <p className="pl-1">13h00-17h00 chiều: Thứ 2 đến Thứ 6</p>
-            </div>
-
-            {/* Footer Button */}
-            <div className="flex justify-end">
-                <button 
-                onClick={closeForgotPasswordModal}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-8 rounded-lg shadow transition-colors"
+                <h3
+                  className={`text-lg font-bold mb-2 ${
+                    forgotStatus === "success"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
                 >
-                Đóng
-                </button>
-            </div>
+                  {forgotStatus === "success" ? "Thành công!" : "Thất bại!"}
+                </h3>
 
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  {forgotMessage}
+                </p>
+
+                <div className="flex gap-3">
+                  {forgotStatus === "error" && (
+                    <button
+                      onClick={() => setForgotStatus("idle")}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
+                    >
+                      Thử lại
+                    </button>
+                  )}
+                  <button
+                    onClick={closeForgotPasswordModal}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow transition-colors"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
