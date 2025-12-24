@@ -6,6 +6,10 @@ import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
+// --- NEW IMPORT: EXCEL EXPORT ---
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- HÀM LẤY TOKEN ---
@@ -18,6 +22,24 @@ const formatCurrency = (amount) => {
     currency: "VND",
   }).format(amount);
 };
+
+// --- ICON DOWNLOAD (Mới) ---
+const DownloadIcon = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    className="h-5 w-5 mr-2" 
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
+    />
+  </svg>
+);
 
 // =========================================================================
 // === INVOICE FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
@@ -333,6 +355,71 @@ export const AccountPayment = () => {
     return String(item.id).toLowerCase().includes(searchLower) || (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower));
   });
 
+  // --- NEW: HANDLE EXPORT EXCEL ---
+  const handleExportExcel = async () => {
+    // Sử dụng danh sách đã lọc (filteredInvoices) để xuất những gì người dùng đang thấy
+    const dataToExport = filteredInvoices;
+
+    if (dataToExport.length === 0) {
+      setModalStatus("failure");
+      setStatusMessage("Không có dữ liệu để xuất!");
+      setIsStatusModalOpen(true);
+      return;
+    }
+
+    // 1. Khởi tạo Workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Danh sách hóa đơn");
+
+    // 2. Cấu hình cột
+    worksheet.columns = [
+      { header: "ID Hóa đơn", key: "id", width: 15 },
+      { header: "Số căn hộ", key: "apartment_id", width: 15 },
+      { header: "Loại phí", key: "feetype", width: 30 },
+      { header: "Ngày thanh toán", key: "payment_date", width: 20 },
+      { header: "Số tiền (VNĐ)", key: "amount", width: 20 },
+      { header: "Trạng thái", key: "state", width: 20 },
+    ];
+
+    // 3. Format Header
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    worksheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4F81BD" }, // Màu xanh header
+    };
+    worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+    // 4. Thêm dữ liệu
+    dataToExport.forEach((item) => {
+      const row = worksheet.addRow({
+        id: item.id,
+        apartment_id: item.apartment_id || "---",
+        feetype: item.feetype,
+        payment_date: item.payment_date ? new Date(item.payment_date).toLocaleDateString("vi-VN") : "---",
+        amount: item.amount,
+        state: item.state === 1 ? "Đã thanh toán" : "Chưa thanh toán",
+      });
+
+      // Format màu trạng thái
+      const stateCell = row.getCell("state");
+      if (item.state === 1) {
+        stateCell.font = { color: { argb: "FF008000" }, bold: true }; // Xanh lá
+      } else {
+        stateCell.font = { color: { argb: "FFFF0000" }, bold: true }; // Đỏ
+      }
+
+      // Format số tiền
+      row.getCell("amount").numFmt = '#,##0'; 
+    });
+
+    // 5. Xuất file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const fileName = `DanhSachHoaDon_${new Date().toLocaleDateString("vi-VN").replace(/\//g, "")}.xlsx`;
+    saveAs(blob, fileName);
+  };
+
   const handleAddClick = () => { setIsAddModalOpen(true); setFormError(""); };
   const handleEditClick = (invoice) => { setEditingInvoice(invoice); setIsEditModalOpen(true); setFormError(""); };
 
@@ -489,6 +576,15 @@ export const AccountPayment = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
+              {/* Nút Xuất Excel Mới */}
+              <button 
+                onClick={handleExportExcel} 
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md"
+              >
+                <DownloadIcon />
+                Xuất Excel
+              </button>
+
               <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
                 <span>+ Thêm hóa đơn</span>
               </button>
