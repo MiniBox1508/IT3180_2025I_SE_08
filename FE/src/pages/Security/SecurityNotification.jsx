@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-// --- THÊM IMPORT XLSX ---
-import * as XLSX from "xlsx";
+
+// --- THAY ĐỔI IMPORT: DÙNG EXCELJS & FILE-SAVER ---
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
@@ -48,7 +50,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-// --- THÊM ICON DOWNLOAD ---
+// --- ICON DOWNLOAD ---
 const DownloadIcon = () => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
@@ -92,8 +94,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0309|\u0323/g, ""); 
+  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); 
   return str;
 };
 
@@ -112,13 +114,11 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // Chế độ Edit: Fill dữ liệu cũ
         setFormData({
           apartment_id: initialData.apartment_id || "",
           content: initialData.content || "",
         });
       } else {
-        // Chế độ Add: Reset về 1 dòng trắng
         setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
       }
     }
@@ -147,16 +147,12 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   // --- HANDLER SUBMIT ---
   const handleSubmit = () => {
     if (isEditing) {
-      // Logic Sửa
       onSubmit(formData);
     } else {
-      // Logic Thêm Nhiều
-      // Validate sơ bộ
       const validRows = rows.map(({ apartment_id, content }) => ({
         apartment_id,
         content,
       }));
-      // Bạn có thể thêm validate rỗng tại đây nếu cần
       onSubmit(validRows);
     }
   };
@@ -165,7 +161,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      {/* Điều chỉnh độ rộng modal tùy theo chế độ */}
       <div
         className={`bg-white rounded-2xl p-8 relative shadow-2xl ${
           isEditing ? "w-full max-w-lg" : "w-full max-w-4xl"
@@ -406,24 +401,18 @@ export const SecurityNotification = () => {
     fetchNotifications();
   }, []);
 
-  // --- FILTER (Tính toán trước khi dùng cho render và export) ---
+  // --- FILTER ---
   const filteredList = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
-    
-    // Tìm kiếm theo ID (không phân biệt hoa thường)
     const idMatch = String(item.id).toLowerCase().includes(term);
-    
-    // Tìm kiếm theo Nội dung (không dấu)
     const contentMatch = removeVietnameseTones(item.content || "").includes(term);
-
     return idMatch || contentMatch;
   });
 
-  // --- HANDLER EXPORT EXCEL ---
-  const handleExportExcel = () => {
+  // --- HANDLER EXPORT EXCEL (SỬ DỤNG EXCELJS) ---
+  const handleExportExcel = async () => {
     // 1. Xác định dữ liệu cần xuất
-    // Nếu có chọn checkbox -> xuất mục đã chọn. Nếu không -> xuất danh sách đang hiển thị (đã lọc)
     const dataToExport = selectedIds.length > 0 
         ? notifications.filter(item => selectedIds.includes(item.id))
         : filteredList;
@@ -437,27 +426,46 @@ export const SecurityNotification = () => {
         return;
     }
 
-    // 2. Format dữ liệu cho đẹp trong Excel
-    const formattedData = dataToExport.map(item => ({
-        "ID Thông báo": item.id,
-        "Người nhận (Căn hộ)": item.apartment_id,
-        "Nội dung": item.content,
-        "Ngày gửi": item.notification_date 
-            ? dayjs(item.notification_date).format("DD/MM/YYYY HH:mm:ss") 
-            : "",
-        "Ngày tạo": item.created_at 
-            ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm:ss")
-            : ""
-    }));
+    // 2. Tạo Workbook & Worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('DanhSachThongBao');
 
-    // 3. Tạo Workbook và Worksheet
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachThongBao");
+    // 3. Cấu hình cột (Header và độ rộng)
+    worksheet.columns = [
+      { header: 'ID Thông báo', key: 'id', width: 15 },
+      { header: 'Người nhận (Căn hộ)', key: 'apartment_id', width: 20 },
+      { header: 'Nội dung', key: 'content', width: 50 },
+      { header: 'Ngày gửi', key: 'notification_date', width: 25 },
+      { header: 'Ngày tạo', key: 'created_at', width: 25 },
+    ];
 
-    // 4. Xuất file
+    // 4. Định dạng Header (In đậm)
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // 5. Thêm dữ liệu vào bảng
+    dataToExport.forEach((item) => {
+      worksheet.addRow({
+        id: item.id,
+        apartment_id: item.apartment_id,
+        content: item.content,
+        notification_date: item.notification_date
+          ? dayjs(item.notification_date).format("DD/MM/YYYY HH:mm:ss")
+          : "",
+        created_at: item.created_at
+          ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm:ss")
+          : "",
+      });
+    });
+
+    // 6. Xuất file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const fileName = `DanhSachThongBao_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    
+    saveAs(blob, fileName);
   };
 
   // --- HANDLERS ---
@@ -471,15 +479,13 @@ export const SecurityNotification = () => {
     setShowFormModal(true);
   };
 
-  // --- HANDLER SUBMIT FORM (XỬ LÝ CẢ ĐƠN VÀ ĐA) ---
+  // --- HANDLER SUBMIT FORM ---
   const handleSubmitForm = async (data) => {
     setShowFormModal(false);
     try {
       const token = getToken();
       
       if (Array.isArray(data)) {
-        // === XỬ LÝ THÊM NHIỀU (BULK ADD) ===
-        // Gửi nhiều request song song
         await Promise.all(
           data.map((item) =>
             axios.post(`${API_BASE_URL}/notifications`, item, {
@@ -494,10 +500,9 @@ export const SecurityNotification = () => {
         });
 
       } else if (editingItem) {
-        // === XỬ LÝ SỬA (EDIT SINGLE) ===
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          data, // data là object { apartment_id, content }
+          data, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStatusModal({
@@ -585,7 +590,7 @@ export const SecurityNotification = () => {
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
 
         <div className="flex space-x-4">
-          {/* Nút Export Excel - Luôn hiển thị hoặc chỉ hiện khi không ở chế độ xóa */}
+          {/* Nút Export Excel */}
           {!isDeleteMode && (
             <button
               onClick={handleExportExcel}
@@ -723,7 +728,6 @@ export const SecurityNotification = () => {
 
       {/* --- MODAL SECTIONS --- */}
 
-      {/* 1. Modal Thêm/Sửa */}
       <NotificationFormModal
         isOpen={showFormModal}
         onClose={() => setShowFormModal(false)}
@@ -731,14 +735,12 @@ export const SecurityNotification = () => {
         initialData={editingItem}
       />
 
-      {/* 2. Modal Xác nhận Xóa (Custom giống ảnh) */}
       <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
-      {/* 3. Modal Trạng thái (Success/Fail) */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
