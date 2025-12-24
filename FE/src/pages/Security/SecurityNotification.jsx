@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+// --- THÊM IMPORT XLSX ---
+import * as XLSX from "xlsx";
 
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
-// Chúng ta sẽ tự define Modal Confirm và Form để giống hệt ảnh thiết kế 100%
-// thay vì dùng ConfirmationModal chung nếu nó không khớp style.
 
 // --- IMPORT ICONS (Dùng cho Modal Bulk) ---
 import { FiPlus, FiX } from "react-icons/fi";
@@ -44,6 +44,24 @@ const CloseIcon = () => (
       strokeLinejoin="round"
       strokeWidth={2}
       d="M6 18L18 6M6 6l12 12"
+    />
+  </svg>
+);
+
+// --- THÊM ICON DOWNLOAD ---
+const DownloadIcon = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    className="h-5 w-5 mr-2" 
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
     />
   </svg>
 );
@@ -388,6 +406,60 @@ export const SecurityNotification = () => {
     fetchNotifications();
   }, []);
 
+  // --- FILTER (Tính toán trước khi dùng cho render và export) ---
+  const filteredList = notifications.filter((item) => {
+    if (!searchTerm.trim()) return true;
+    const term = removeVietnameseTones(searchTerm.trim());
+    
+    // Tìm kiếm theo ID (không phân biệt hoa thường)
+    const idMatch = String(item.id).toLowerCase().includes(term);
+    
+    // Tìm kiếm theo Nội dung (không dấu)
+    const contentMatch = removeVietnameseTones(item.content || "").includes(term);
+
+    return idMatch || contentMatch;
+  });
+
+  // --- HANDLER EXPORT EXCEL ---
+  const handleExportExcel = () => {
+    // 1. Xác định dữ liệu cần xuất
+    // Nếu có chọn checkbox -> xuất mục đã chọn. Nếu không -> xuất danh sách đang hiển thị (đã lọc)
+    const dataToExport = selectedIds.length > 0 
+        ? notifications.filter(item => selectedIds.includes(item.id))
+        : filteredList;
+
+    if (dataToExport.length === 0) {
+        setStatusModal({
+            open: true,
+            type: "failure",
+            message: "Không có dữ liệu để xuất!",
+        });
+        return;
+    }
+
+    // 2. Format dữ liệu cho đẹp trong Excel
+    const formattedData = dataToExport.map(item => ({
+        "ID Thông báo": item.id,
+        "Người nhận (Căn hộ)": item.apartment_id,
+        "Nội dung": item.content,
+        "Ngày gửi": item.notification_date 
+            ? dayjs(item.notification_date).format("DD/MM/YYYY HH:mm:ss") 
+            : "",
+        "Ngày tạo": item.created_at 
+            ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm:ss")
+            : ""
+    }));
+
+    // 3. Tạo Workbook và Worksheet
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachThongBao");
+
+    // 4. Xuất file
+    const fileName = `DanhSachThongBao_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   // --- HANDLERS ---
   const handleAddClick = () => {
     setEditingItem(null);
@@ -490,20 +562,6 @@ export const SecurityNotification = () => {
     }
   };
 
-  // --- FILTER ---
-  const filteredList = notifications.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const term = removeVietnameseTones(searchTerm.trim());
-    
-    // Tìm kiếm theo ID (không phân biệt hoa thường)
-    const idMatch = String(item.id).toLowerCase().includes(term);
-    
-    // Tìm kiếm theo Nội dung (không dấu)
-    const contentMatch = removeVietnameseTones(item.content || "").includes(term);
-
-    return idMatch || contentMatch;
-  });
-
   return (
     <div className="w-full min-h-screen">
       {/* 1. THANH TÌM KIẾM */}
@@ -514,7 +572,7 @@ export const SecurityNotification = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Nội dung thông báo..." // Cập nhật placeholder
+            placeholder="Tìm theo ID hoặc Nội dung thông báo..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -527,6 +585,17 @@ export const SecurityNotification = () => {
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
 
         <div className="flex space-x-4">
+          {/* Nút Export Excel - Luôn hiển thị hoặc chỉ hiện khi không ở chế độ xóa */}
+          {!isDeleteMode && (
+            <button
+              onClick={handleExportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
+            >
+              <DownloadIcon />
+              Xuất Excel
+            </button>
+          )}
+
           {!isDeleteMode ? (
             <>
               <button
@@ -671,7 +740,7 @@ export const SecurityNotification = () => {
 
       {/* 3. Modal Trạng thái (Success/Fail) */}
       <StatusModal
-        isOpen={statusModal.open}
+        isOpen={statusModal.open}FE\src\pages\Security\SecurityNotification.jsx
         onClose={() => setStatusModal({ ...statusModal, open: false })}
       >
         <div className="flex flex-col items-center justify-center p-4">
