@@ -658,7 +658,9 @@ const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
           {type === "warning" && <WarningIcon />}
           {type === "success" && <SuccessIcon />}
           {type === "error" && <ErrorIcon />}
-          <h3 className="text-xl font-bold text-gray-800 mb-8">{title}</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-8 whitespace-pre-line leading-normal">
+            {title}
+          </h3>
 
           {type === "warning" ? (
             <div className="flex justify-between space-x-4">
@@ -819,7 +821,7 @@ const ResidentService = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // --- FETCH DATA (Đã FIX caching) ---
+  // --- FETCH DATA ---
   const fetchData = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -827,7 +829,6 @@ const ResidentService = () => {
         throw new Error("Không tìm thấy thông tin căn hộ");
       const token = getToken();
 
-      // FIX: Thêm params { _t: Date.now() } để tránh browser cache
       const servicesRes = await axios.get(
         `${API_BASE_URL}/services/by-apartment/${user.apartment_id}`,
         {
@@ -903,7 +904,6 @@ const ResidentService = () => {
           })
         )
       );
-      // FIX: Chờ 300ms rồi mới fetch lại
       setTimeout(async () => {
         await fetchData();
         setModalState({
@@ -1022,7 +1022,7 @@ const ResidentService = () => {
     }
   };
 
-  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (Đã FIX hiển thị) ---
+  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (ĐÃ SỬA LOGIC) ---
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -1031,8 +1031,24 @@ const ResidentService = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Bật Loading ngay lập tức
     setIsLoading(true);
+
+    // Lấy thông tin user hiện tại
+    let currentUser = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem("user"));
+    } catch (err) {
+      console.error("User info error:", err);
+    }
+
+    if (!currentUser || !currentUser.apartment_id) {
+      alert("Không xác định được căn hộ của bạn. Vui lòng đăng nhập lại.");
+      setIsLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = null;
+      return;
+    }
+
+    const currentApartmentId = String(currentUser.apartment_id).trim();
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -1091,40 +1107,59 @@ const ResidentService = () => {
         }
 
         const token = getToken();
+        let successCount = 0;
+        let failCount = 0;
 
-        const importPromises = dataToImport.map((row) =>
-          axios.post(
-            `${API_BASE_URL}/services`,
-            {
-              apartment_id: row.apartment_id,
-              service_type: row.service_type,
-              content: row.content,
-              note: row.note || "",
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          )
-        );
+        // Xử lý từng dòng: kiểm tra ID và gọi API
+        const promises = dataToImport.map(async (row) => {
+          // Kiểm tra apartment_id trùng khớp
+          const rowApartmentId = row.apartment_id
+            ? String(row.apartment_id).trim()
+            : "";
 
-        await Promise.all(importPromises);
+          if (rowApartmentId !== currentApartmentId) {
+            // Khác ID -> tính là thất bại (hoặc bỏ qua)
+            failCount++;
+            return;
+          }
 
+          // Đúng ID -> Gọi API
+          try {
+            await axios.post(
+              `${API_BASE_URL}/services`,
+              {
+                apartment_id: row.apartment_id,
+                service_type: row.service_type,
+                content: row.content,
+                note: row.note || "",
+              },
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            successCount++;
+          } catch (err) {
+            // Lỗi API -> tính là thất bại
+            failCount++;
+          }
+        });
+
+        await Promise.all(promises);
+
+        // Hiển thị kết quả
         setModalState({
-          type: "success",
+          type: successCount > 0 ? "success" : "error",
           isOpen: true,
-          title: `Import thành công ${dataToImport.length} dịch vụ!`,
+          title: `Kết quả Import:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}`,
         });
       } catch (err) {
         console.error("Import error:", err);
         setModalState({
           type: "error",
           isOpen: true,
-          title: "Import thất bại! Hãy kiểm tra lại định dạng file.",
+          title: "Lỗi đọc file Excel!",
         });
       } finally {
-        // FIX QUAN TRỌNG:
-        // Chờ 500ms để đảm bảo Server DB đã lưu xong
-        // Sau đó mới gọi fetchData để lấy data mới về
         setTimeout(async () => {
           await fetchData();
           setIsLoading(false);
