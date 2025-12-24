@@ -69,8 +69,13 @@ export const AccountCheckDebt = () => {
           };
         });
 
-        processedData.sort((a, b) => a.state - b.state || new Date(b.created_at) - new Date(a.created_at));
-        setDebts(processedData);
+        // --- THAY ĐỔI Ở ĐÂY: CHỈ LỌC LẤY HÓA ĐƠN ĐÃ THANH TOÁN (state === 1) ---
+        const paidDebts = processedData.filter(item => item.state === 1);
+
+        // Sắp xếp theo thời gian tạo mới nhất
+        paidDebts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        setDebts(paidDebts);
       } catch (error) {
         console.error("Lỗi tải công nợ:", error);
       } finally {
@@ -174,12 +179,12 @@ export const AccountCheckDebt = () => {
         )}
       </div>
 
-      {/* 3. DANH SÁCH CÔNG NỢ */}
+      {/* 3. DANH SÁCH CÔNG NỢ (CHỈ HIỆN ĐÃ THANH TOÁN) */}
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <p className="text-white text-center">Đang tải dữ liệu...</p>
         ) : filteredList.length === 0 ? (
-          <p className="text-white text-center">Không tìm thấy dữ liệu công nợ phù hợp.</p>
+          <p className="text-white text-center">Không tìm thấy dữ liệu hóa đơn đã thanh toán phù hợp.</p>
         ) : (
           filteredList.map((item) => (
             <div 
@@ -189,10 +194,8 @@ export const AccountCheckDebt = () => {
                     selectedIds.includes(item.id) ? "ring-2 ring-blue-400 bg-blue-50" : ""
                 }`}
             >
-              {/* Giữ lại vạch màu trạng thái bên trái để phân biệt nhanh (Xanh/Cam) */}
-              <div className={`absolute left-6 top-4 bottom-4 w-1 rounded-full ${
-                  item.state === 1 ? 'bg-green-500' : 'bg-orange-500'
-              }`}></div>
+              {/* Vạch màu trạng thái (Lúc này sẽ luôn là xanh vì chỉ hiện đã thanh toán) */}
+              <div className="absolute left-6 top-4 bottom-4 w-1 rounded-full bg-green-500"></div>
 
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
                 <div className="col-span-1">
@@ -220,7 +223,7 @@ export const AccountCheckDebt = () => {
                   <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
                 </div>
 
-                {/* CỘT CUỐI: Chỉ hiện Checkbox khi ở chế độ chọn, không hiện text trạng thái nữa */}
+                {/* CỘT CUỐI: Checkbox chọn in */}
                 <div className="col-span-2 flex flex-col items-end justify-center">
                    {isSelectionMode && item.can_print && (
                         <div 
