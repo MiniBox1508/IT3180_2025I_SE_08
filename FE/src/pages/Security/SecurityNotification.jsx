@@ -740,7 +740,7 @@ export const SecurityNotification = () => {
 
       {/* 3. Modal Trạng thái (Success/Fail) */}
       <StatusModal
-        isOpen={statusModal.open}FE\src\pages\Security\SecurityNotification.jsx
+        isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
       >
         <div className="flex flex-col items-center justify-center p-4">
