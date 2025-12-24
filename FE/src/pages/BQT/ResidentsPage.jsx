@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 import { StatusModal } from "../../layouts/StatusModal";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
-// --- THÊM ICON ĐỂ HIỂN THỊ MẬT KHẨU ---
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+// --- THƯ VIỆN CHO EXCEL ---
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -28,9 +30,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
 };
 
@@ -67,7 +68,7 @@ const ResidentFormModal = ({
         birth_date: residentData.birth_date
           ? new Date(residentData.birth_date).toISOString().split("T")[0]
           : "",
-        password: "", // Luôn để trống khi bắt đầu sửa
+        password: "",
       });
     } else {
       setFormData({
@@ -98,7 +99,6 @@ const ResidentFormModal = ({
     if (isViewing) return;
     setError("");
 
-    // Validate
     if (
       !formData.first_name ||
       !formData.last_name ||
@@ -124,7 +124,6 @@ const ResidentFormModal = ({
 
     let submitData = { ...formData };
 
-    // Nếu đang sửa và ô mật khẩu trống -> Xóa trường password để giữ pass cũ
     if (isEditing && !formData.password) {
       delete submitData.password;
     }
@@ -255,7 +254,6 @@ const ResidentFormModal = ({
             disabled={isViewing || !isEditing}
           />
 
-          {/* Ô MẬT KHẨU */}
           {!isViewing && (
             <InputGroup
               label="Mật khẩu"
@@ -397,6 +395,9 @@ export const ResidentsPage = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
+  // Reference cho input file
+  const fileInputRef = useRef(null);
+
   const getToken = () => localStorage.getItem("token");
 
   const fetchResidents = async () => {
@@ -420,22 +421,16 @@ export const ResidentsPage = () => {
     fetchResidents();
   }, []);
 
-  // --- LOGIC TÌM KIẾM ĐÃ SỬA: THEO ID VÀ HỌ TÊN (KHÔNG DẤU) ---
+  // --- LOGIC TÌM KIẾM ---
   const filteredResidents = residents.filter((resident) => {
-    // Nếu không nhập từ khóa, hiển thị tất cả
     if (!searchTerm.trim()) {
       return true;
     }
-    
-    // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
     const term = removeVietnameseTones(searchTerm.trim());
-    
-    // 2. Chuẩn hóa ID
     const idMatch = String(resident.id).toLowerCase().includes(term);
-    
-    // 3. Chuẩn hóa Họ và tên
-    const nameMatch = removeVietnameseTones(resident.full_name || "").includes(term);
-
+    const nameMatch = removeVietnameseTones(resident.full_name || "").includes(
+      term
+    );
     return idMatch || nameMatch;
   });
 
@@ -481,6 +476,173 @@ export const ResidentsPage = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
+  };
+
+  // --- LOGIC XUẤT FILE EXCEL ---
+  const handleExport = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Residents");
+
+      // Định nghĩa cột
+      worksheet.columns = [
+        { header: "Tên", key: "first_name", width: 15 },
+        { header: "Họ", key: "last_name", width: 15 },
+        { header: "Số điện thoại", key: "phone", width: 15 },
+        { header: "Mã căn hộ", key: "apartment_id", width: 15 },
+        { header: "Mật khẩu", key: "password", width: 15 }, // Để trống khi xuất
+        { header: "Email", key: "email", width: 25 },
+        { header: "CCCD", key: "cccd", width: 20 },
+        { header: "Ngày sinh", key: "birth_date", width: 15 },
+        { header: "Trạng thái cư trú", key: "residency_status", width: 20 },
+        { header: "Vai trò", key: "role", width: 15 },
+        { header: "Trạng thái", key: "state", width: 15 },
+      ];
+
+      // Thêm dữ liệu
+      residents.forEach((res) => {
+        worksheet.addRow({
+          first_name: res.first_name,
+          last_name: res.last_name,
+          phone: res.phone,
+          apartment_id: res.apartment_id,
+          password: "", // Không xuất mật khẩu thật vì bảo mật/không lưu raw
+          email: res.email || "",
+          cccd: res.cccd || "",
+          birth_date: res.birth_date
+            ? new Date(res.birth_date).toISOString().split("T")[0]
+            : "",
+          residency_status: res.residency_status || "chủ hộ",
+          role: res.role || "Cư dân",
+          state: res.state || "active",
+        });
+      });
+
+      // Tạo style cho header
+      worksheet.getRow(1).font = { bold: true };
+
+      // Xuất file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, "Danh_sach_cu_dan.xlsx");
+
+      setModalStatus("success");
+      setStatusMessage("Xuất dữ liệu người dùng thành công!");
+      setIsStatusModalOpen(true);
+    } catch (err) {
+      console.error("Export Error:", err);
+      setModalStatus("failure");
+      setStatusMessage("Xuất dữ liệu thất bại.");
+      setIsStatusModalOpen(true);
+    }
+  };
+
+  // --- LOGIC NHẬP FILE EXCEL ---
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target.result;
+        await workbook.xlsx.load(buffer);
+        const worksheet = workbook.getWorksheet(1); // Lấy sheet đầu tiên
+
+        const dataToImport = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        // Đọc từng dòng (bỏ qua header dòng 1)
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > 1) {
+            // Mapping cột theo thứ tự file xuất (index bắt đầu từ 1)
+            // 1: Tên, 2: Họ, 3: SĐT, 4: Mã CH, 5: Pass, 6: Email, 7: CCCD, 8: DOB, 9: Status, 10: Role, 11: State
+            const rowData = {
+              first_name: row.getCell(1).text,
+              last_name: row.getCell(2).text,
+              phone: row.getCell(3).text,
+              apartment_id: row.getCell(4).text,
+              password: row.getCell(5).text, // Bắt buộc khi import
+              email: row.getCell(6).text,
+              cccd: row.getCell(7).text,
+              birth_date: row.getCell(8).value
+                ? new Date(row.getCell(8).value).toISOString().split("T")[0]
+                : "",
+              residency_status: row.getCell(9).text || "chủ hộ",
+              role: row.getCell(10).text || "Cư dân",
+              state: row.getCell(11).text || "active",
+            };
+            dataToImport.push(rowData);
+          }
+        });
+
+        // Loop và gọi API add
+        const token = getToken();
+        await Promise.all(
+          dataToImport.map(async (userData) => {
+            // Validate trường bắt buộc
+            if (
+              !userData.first_name ||
+              !userData.last_name ||
+              !userData.phone ||
+              !userData.apartment_id ||
+              !userData.password
+            ) {
+              failCount++;
+              return;
+            }
+
+            try {
+              const res = await fetch(`${API_BASE_URL}/residents`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(userData),
+              });
+
+              if (res.ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch (err) {
+              failCount++;
+            }
+          })
+        );
+
+        // Reset input file
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        // Reload data và hiện thông báo
+        fetchResidents();
+        setModalStatus("success"); // Luôn hiện icon success nhưng báo chi tiết
+        setStatusMessage(
+          `Nhập dữ liệu hoàn tất:\nThành công: ${successCount}\nThất bại: ${failCount}`
+        );
+        setIsStatusModalOpen(true);
+      } catch (err) {
+        console.error("Import Error:", err);
+        setModalStatus("failure");
+        setStatusMessage("Lỗi đọc file Excel.");
+        setIsStatusModalOpen(true);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
   };
 
   const confirmDelete = async () => {
@@ -540,7 +702,7 @@ export const ResidentsPage = () => {
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">
+        <p className="text-xl font-semibold text-center text-gray-800 whitespace-pre-line">
           {statusMessage}
         </p>
       </div>
@@ -595,6 +757,27 @@ export const ResidentsPage = () => {
       <div className="flex justify-end gap-4 mb-8">
         {!isDeleteMode ? (
           <>
+            {/* Input file ẩn cho chức năng Import */}
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+            <button
+              onClick={handleImportClick}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+            >
+              Nhập người dùng
+            </button>
+            <button
+              onClick={handleExport}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+            >
+              Xuất người dùng
+            </button>
+
             <button
               onClick={handleAddClick}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
@@ -693,7 +876,6 @@ export const ResidentsPage = () => {
                   </span>
                 </div>
 
-                {/* --- THAY ĐỔI CỘT Ở ĐÂY: TỪ "CĂN HỘ" SANG "TRẠNG THÁI" --- */}
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs mb-1">Trạng thái</span>
                   <span
@@ -706,7 +888,6 @@ export const ResidentsPage = () => {
                     {resident.state === "active" ? "Hoạt động" : "Vô hiệu hóa"}
                   </span>
                 </div>
-                {/* ------------------------------------------------------------ */}
 
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs mb-1">Chi tiết</span>
