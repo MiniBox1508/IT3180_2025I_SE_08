@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // Import Icons
-import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
+import { FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
@@ -38,7 +38,7 @@ const UploadIcon = () => (
 );
 
 // =========================================================================
-// === INVOICE FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
+// === INVOICE FORM MODAL ===
 // =========================================================================
 const InvoiceFormModal = ({
   isOpen,
@@ -48,7 +48,7 @@ const InvoiceFormModal = ({
   residents,
   error,
   setError,
-  importedData // PROPS MỚI: Dữ liệu từ Excel
+  importedData // PROPS: Dữ liệu từ Excel
 }) => {
   const isEditing = !!invoiceData;
 
@@ -211,7 +211,6 @@ const InvoiceFormModal = ({
 
         {isEditing && (
           <div className="space-y-4">
-             {/* ... (Phần Form Edit giữ nguyên) ... */}
             <div><label className="block text-sm font-medium text-gray-500 mb-1">Hóa đơn ID</label><div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700 font-mono text-sm">{invoiceData.id}</div></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Số căn hộ</label><input type="text" value={singleFormData.apartment_id} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 focus:outline-none" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Loại phí</label><input type="text" name="feetype" value={singleFormData.feetype} onChange={handleSingleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none" /></div>
@@ -280,7 +279,7 @@ export const AccountPayment = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [formError, setFormError] = useState("");
-  const [importedInvoices, setImportedInvoices] = useState(null); // State chứa data import
+  const [importedInvoices, setImportedInvoices] = useState(null); 
 
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null);
@@ -290,7 +289,7 @@ export const AccountPayment = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   
-  const fileInputRef = useRef(null); // Ref cho input file upload
+  const fileInputRef = useRef(null); 
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -325,7 +324,6 @@ export const AccountPayment = () => {
     return String(item.id).toLowerCase().includes(searchLower) || (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower));
   });
 
-  // --- HANDLE EXPORT EXCEL ---
   const handleExportExcel = async () => {
     const dataToExport = filteredInvoices;
 
@@ -377,11 +375,9 @@ export const AccountPayment = () => {
     saveAs(blob, fileName);
   };
 
-  // --- NEW: HANDLE IMPORT EXCEL ---
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
+  const handleImportClick = () => { fileInputRef.current.click(); };
 
+  // --- LOGIC ĐỌC FILE VÀ CHECK LỖI ---
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -389,18 +385,15 @@ export const AccountPayment = () => {
     try {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(file);
-      const worksheet = workbook.getWorksheet(1); // Lấy sheet đầu tiên
+      const worksheet = workbook.getWorksheet(1);
 
       const validRows = [];
       const errorMessages = [];
-
-      // Lấy danh sách apartment_id hợp lệ từ state residents
       const validApartmentIds = residents.map(r => r.apartment_id ? r.apartment_id.toLowerCase().trim() : "");
 
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return; // Skip header
 
-        // Giả sử: Cột 1 = Căn hộ, Cột 2 = Loại phí, Cột 3 = Số tiền, Cột 4 = Ngày (Tùy chọn)
         const aptId = row.getCell(1).text ? row.getCell(1).text.trim() : "";
         const feeType = row.getCell(2).text || "";
         const amount = row.getCell(3).value ? Number(row.getCell(3).value) : 0;
@@ -410,15 +403,15 @@ export const AccountPayment = () => {
         if (dateCell instanceof Date) {
             paymentDate = dateCell.toISOString().split('T')[0];
         } else if (typeof dateCell === 'string') {
-             // Handle text date format if needed
              paymentDate = dateCell; 
         }
 
         if (aptId) {
-          // Kiểm tra tồn tại
           if (!validApartmentIds.includes(aptId.toLowerCase())) {
+            // Căn hộ KHÔNG tồn tại -> Đẩy vào list lỗi
             errorMessages.push(`Dòng ${rowNumber}: Căn hộ "${aptId}" không tồn tại trong hệ thống.`);
           } else {
+            // Căn hộ hợp lệ -> Đẩy vào list hợp lệ
             validRows.push({
               id: Date.now() + rowNumber,
               apartment_id: aptId,
@@ -430,25 +423,40 @@ export const AccountPayment = () => {
         }
       });
 
-      // Xử lý kết quả
       if (errorMessages.length > 0) {
-        // Có lỗi -> Hiện Popup báo lỗi
+        // TRƯỜNG HỢP CÓ LỖI: HIỆN POPUP LỖI
         setModalStatus("failure");
-        // Chỉ hiển thị tối đa 5 lỗi để tránh popup quá dài
+        
+        // Tạo thông báo lỗi + Thông báo về việc sẽ tiếp tục với các dòng hợp lệ
         const displayErrors = errorMessages.slice(0, 5);
         if (errorMessages.length > 5) displayErrors.push(`...và ${errorMessages.length - 5} lỗi khác.`);
         
         setStatusMessage(
           <div>
-            <p className="font-bold mb-2">Không thể Import file!</p>
-            <ul className="text-left text-sm list-disc pl-5">
+            <p className="font-bold mb-2">Phát hiện lỗi trong file Excel!</p>
+            <ul className="text-left text-sm list-disc pl-5 mb-3 text-red-600 bg-red-50 p-2 rounded">
                 {displayErrors.map((err, idx) => <li key={idx}>{err}</li>)}
             </ul>
+            {validRows.length > 0 ? (
+                <p className="text-sm font-semibold text-green-700">
+                    Nhấn "Đóng" để tiếp tục thêm {validRows.length} hóa đơn hợp lệ.
+                </p>
+            ) : (
+                <p className="text-sm text-gray-600">Vui lòng kiểm tra lại file.</p>
+            )}
           </div>
         );
+
+        // Lưu tạm các dòng hợp lệ để dùng sau khi đóng modal
+        if (validRows.length > 0) {
+            setImportedInvoices(validRows);
+        } else {
+            setImportedInvoices(null);
+        }
         setIsStatusModalOpen(true);
+
       } else if (validRows.length > 0) {
-        // Thành công -> Mở Modal Add với dữ liệu
+        // TRƯỜNG HỢP KHÔNG CÓ LỖI: Mở luôn form
         setImportedInvoices(validRows);
         setFormError("");
         setIsAddModalOpen(true);
@@ -464,12 +472,12 @@ export const AccountPayment = () => {
       setStatusMessage("Lỗi khi đọc file Excel!");
       setIsStatusModalOpen(true);
     } finally {
-      e.target.value = null; // Reset input file
+      e.target.value = null; 
     }
   };
 
   const handleAddClick = () => { 
-      setImportedInvoices(null); // Reset imported data
+      setImportedInvoices(null); 
       setIsAddModalOpen(true); 
       setFormError(""); 
   };
@@ -481,13 +489,11 @@ export const AccountPayment = () => {
       setFormError(""); 
   };
 
-  // --- HÀM LƯU DỮ LIỆU ---
   const handleSave = async (data, invoiceId) => {
     try {
       const token = getToken();
 
       if (invoiceId) {
-        // Edit
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -500,7 +506,6 @@ export const AccountPayment = () => {
         setIsEditModalOpen(false);
 
       } else {
-        // Create (Bulk)
         const itemsToCreate = Array.isArray(data) ? data : [data];
         
         await Promise.all(itemsToCreate.map(async (item) => {
@@ -544,7 +549,6 @@ export const AccountPayment = () => {
     }
   };
 
-  // --- DELETE HANDLERS ---
   const toggleDeleteMode = () => { setIsDeleteMode(!isDeleteMode); setSelectedIds([]); };
   const handleSelect = (id) => { setSelectedIds((prev) => prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]); };
   const handleDeleteSelectedClick = () => { if (selectedIds.length > 0) setShowConfirmModal(true); };
@@ -579,7 +583,19 @@ export const AccountPayment = () => {
   };
 
   const handleCancelDelete = () => { setShowConfirmModal(false); };
-  const handleCloseStatusModal = () => { setIsStatusModalOpen(false); setModalStatus(null); setStatusMessage(""); };
+  
+  // --- SỬA LOGIC KHI ĐÓNG STATUS MODAL ---
+  const handleCloseStatusModal = () => {
+    setIsStatusModalOpen(false);
+    
+    // Nếu vừa đóng popup lỗi import (failure) MÀ vẫn có dữ liệu hợp lệ đang chờ -> Mở form thêm
+    if (modalStatus === "failure" && importedInvoices && importedInvoices.length > 0) {
+        setIsAddModalOpen(true);
+    }
+    
+    setModalStatus(null);
+    setStatusMessage("");
+  };
 
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
@@ -598,16 +614,8 @@ export const AccountPayment = () => {
 
   return (
     <div>
-      {/* HIDDEN INPUT FOR FILE UPLOAD */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept=".xlsx, .xls" 
-        className="hidden" 
-      />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
 
-      {/* HEADER SEARCH */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -617,27 +625,17 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* HEADER BUTTONS */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
-              {/* Nút Import Excel */}
-              <button 
-                onClick={handleImportClick}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md"
-              >
-                <UploadIcon />
-                Nhập Excel
+              <button onClick={handleImportClick} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md">
+                <UploadIcon /> Nhập Excel
               </button>
-
-              {/* Nút Xuất Excel */}
               <button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md">
-                <DownloadIcon />
-                Xuất Excel
+                <DownloadIcon /> Xuất Excel
               </button>
-
               <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
                 <span>+ Thêm hóa đơn</span>
               </button>
@@ -658,25 +656,16 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* INVOICE LIST */}
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không có hóa đơn nào phù hợp với tìm kiếm.</div>
         ) : (
           filteredInvoices.map((item) => (
-            <InvoiceItem 
-              key={item.id} 
-              item={item} 
-              isDeleteMode={isDeleteMode} 
-              onEditClick={handleEditClick}
-              isSelected={selectedIds.includes(item.id)}
-              onToggleSelect={handleSelect}
-            />
+            <InvoiceItem key={item.id} item={item} isDeleteMode={isDeleteMode} onEditClick={handleEditClick} isSelected={selectedIds.includes(item.id)} onToggleSelect={handleSelect} />
           ))
         )}
       </div>
 
-      {/* --- MODALS --- */}
       <InvoiceFormModal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
@@ -685,7 +674,7 @@ export const AccountPayment = () => {
         residents={residents}
         error={formError}
         setError={setFormError}
-        importedData={importedInvoices} // PASS DATA IMPORTED
+        importedData={importedInvoices}
       />
 
       <ConfirmationModal isOpen={showConfirmModal} onClose={handleCancelDelete} onConfirm={handleConfirmDelete} title="Chú ý: Xóa hóa đơn!!!" message={`Bạn có chắc chắn muốn xóa ${selectedIds.length} hóa đơn đã chọn không?`} />
