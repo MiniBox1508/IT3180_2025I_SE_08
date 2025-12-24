@@ -194,7 +194,7 @@ export const AccountReport = () => {
     }
   }, [availableMonths, selectedMonth]);
 
-  // --- 6. XỬ LÝ XUẤT PDF (CÓ TIẾNG VIỆT) ---
+  // --- 6. XỬ LÝ XUẤT PDF (CÓ CHUẨN HÓA UNICODE NFC) ---
   const handleExportPDF = async () => {
     if (!selectedMonth) {
       alert("Không có dữ liệu trong năm này để xuất báo cáo!");
@@ -282,16 +282,19 @@ export const AccountReport = () => {
       ];
       const tableRows = [];
 
+      // --- HÀM HELPER CHUẨN HÓA CHUỖI VỀ NFC (Khắc phục lỗi font dấu) ---
+      const toNFC = (str) => (str ? String(str).normalize("NFC") : "");
+
       filteredPayments.forEach((p) => {
         const paymentData = [
           p.id,
-          p.apartment_id,
-          p.feetype || "",
+          toNFC(p.apartment_id), // Chuẩn hóa mã căn hộ
+          toNFC(p.feetype), // Chuẩn hóa loại phí (Fix lỗi dấu sắc)
           new Intl.NumberFormat("vi-VN").format(p.amount),
-          p.state === 1 ? "Đã TT" : "Chưa TT",
+          toNFC(p.state === 1 ? "Đã TT" : "Chưa TT"), // Chuẩn hóa trạng thái
           p.payment_date
             ? dayjs(p.payment_date).format("DD/MM/YYYY")
-            : "Chưa TT",
+            : toNFC("Chưa TT"),
         ];
         tableRows.push(paymentData);
       });
