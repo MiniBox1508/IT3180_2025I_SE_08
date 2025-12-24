@@ -1109,7 +1109,7 @@ const ResidentService = () => {
     }
   };
 
-  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (ĐÃ SỬA MAPPING) ---
+  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (UPDATED FOR 3 SHEETS) ---
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -1120,7 +1120,6 @@ const ResidentService = () => {
 
     setIsLoading(true);
 
-    // Lấy thông tin user hiện tại
     let currentUser = null;
     try {
       currentUser = JSON.parse(localStorage.getItem("user"));
@@ -1137,12 +1136,23 @@ const ResidentService = () => {
 
     const currentApartmentId = String(currentUser.apartment_id).trim();
 
-    // Map tên cột tiếng Việt sang key của API
-    const COLUMN_MAPPING = {
+    // Map cho Dịch vụ chung cư & Khiếu nại
+    const NORMAL_MAPPING = {
       "Mã số căn hộ": "apartment_id",
       "Loại dịch vụ": "service_type",
       "Nội dung": "content",
       "Ghi chú": "note",
+    };
+
+    // Map cho Khai báo tạm trú
+    const RESIDENCE_MAPPING = {
+      "Họ và tên": "fullName",
+      "Căn hộ tạm trú": "apartment_id",
+      "Ngày sinh": "dob",
+      CCCD: "cccd",
+      "Ngày bắt đầu tạm trú": "startDate",
+      "Ngày kết thúc tạm trú": "endDate",
+      "Lý do/ mục đích tạm trú": "reason",
     };
 
     const reader = new FileReader();
@@ -1152,102 +1162,145 @@ const ResidentService = () => {
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(buffer);
 
-        const worksheet = workbook.getWorksheet(1);
-        if (!worksheet) {
-          alert("File Excel không có dữ liệu!");
-          setIsLoading(false);
-          return;
-        }
-
-        const dataToImport = [];
-        let headers = {};
-
-        worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber === 1) {
-            row.eachCell((cell, colNumber) => {
-              // Lấy giá trị cột, trim khoảng trắng
-              const cellVal = cell.value ? String(cell.value).trim() : "";
-              // Kiểm tra trong map có key này không -> gán tên trường API
-              if (COLUMN_MAPPING[cellVal]) {
-                headers[colNumber] = COLUMN_MAPPING[cellVal];
-              }
-            });
-          } else {
-            const rowData = {};
-            row.eachCell((cell, colNumber) => {
-              const headerKey = headers[colNumber];
-              // Chỉ lấy dữ liệu của các cột đã map được
-              if (headerKey) {
-                let cellValue = cell.value;
-                if (
-                  typeof cellValue === "object" &&
-                  cellValue !== null &&
-                  "result" in cellValue
-                ) {
-                  cellValue = cellValue.result;
-                } else if (
-                  typeof cellValue === "object" &&
-                  cellValue !== null &&
-                  "text" in cellValue
-                ) {
-                  cellValue = cellValue.text;
-                }
-                rowData[headerKey] = cellValue;
-              }
-            });
-            if (Object.keys(rowData).length > 0) {
-              dataToImport.push(rowData);
-            }
-          }
-        });
-
-        if (dataToImport.length === 0) {
-          alert("Không tìm thấy dữ liệu hợp lệ trong file!");
-          setIsLoading(false);
-          return;
-        }
-
         const token = getToken();
         let successCount = 0;
         let failCount = 0;
 
-        // Xử lý từng dòng: kiểm tra ID và gọi API
-        const promises = dataToImport.map(async (row) => {
-          // Kiểm tra apartment_id trùng khớp
-          const rowApartmentId = row.apartment_id
-            ? String(row.apartment_id).trim()
-            : "";
+        const sheetsToProcess = [
+          { name: "Dịch vụ chung cư", type: "normal" },
+          { name: "Khiếu nại", type: "normal" },
+          { name: "Khai báo tạm trú", type: "residence" },
+        ];
 
-          if (rowApartmentId !== currentApartmentId) {
-            // Khác ID -> tính là thất bại (hoặc bỏ qua)
-            failCount++;
-            return;
-          }
+        for (const sheetInfo of sheetsToProcess) {
+          const worksheet = workbook.getWorksheet(sheetInfo.name);
+          if (!worksheet) continue;
 
-          // Đúng ID -> Gọi API
-          try {
-            await axios.post(
-              `${API_BASE_URL}/services`,
-              {
-                apartment_id: row.apartment_id,
-                service_type: row.service_type,
-                content: row.content,
-                note: row.note || "",
-              },
-              {
-                headers: { Authorization: `Bearer ${token}` },
+          const dataToImport = [];
+          let headers = {};
+          const MAPPING =
+            sheetInfo.type === "residence" ? RESIDENCE_MAPPING : NORMAL_MAPPING;
+
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) {
+              row.eachCell((cell, colNumber) => {
+                const cellVal = cell.value ? String(cell.value).trim() : "";
+                if (MAPPING[cellVal]) {
+                  headers[colNumber] = MAPPING[cellVal];
+                }
+              });
+            } else {
+              const rowData = {};
+              row.eachCell((cell, colNumber) => {
+                const headerKey = headers[colNumber];
+                if (headerKey) {
+                  let cellValue = cell.value;
+                  // Xử lý value từ object (ExcelJS đôi khi trả về object)
+                  if (typeof cellValue === "object" && cellValue !== null) {
+                    if ("result" in cellValue) cellValue = cellValue.result;
+                    else if ("text" in cellValue) cellValue = cellValue.text;
+                  }
+                  // Xử lý ngày tháng nếu là object Date
+                  if (cellValue instanceof Date) {
+                    cellValue = dayjs(cellValue).format("YYYY-MM-DD");
+                  }
+                  rowData[headerKey] = cellValue;
+                }
+              });
+              if (Object.keys(rowData).length > 0) {
+                dataToImport.push(rowData);
               }
-            );
-            successCount++;
-          } catch (err) {
-            // Lỗi API -> tính là thất bại
-            failCount++;
+            }
+          });
+
+          // Xử lý import cho từng dòng trong sheet hiện tại
+          for (const row of dataToImport) {
+            const rowApartmentId = row.apartment_id
+              ? String(row.apartment_id).trim()
+              : "";
+
+            // Check security: user chỉ đc import cho căn hộ của mình
+            if (rowApartmentId !== currentApartmentId) {
+              failCount++;
+              continue;
+            }
+
+            try {
+              if (sheetInfo.type === "residence") {
+                // --- LOGIC KHAI BÁO TẠM TRÚ (3 API calls) ---
+                // 1. Create Service
+                const serviceRes = await axios.post(
+                  `${API_BASE_URL}/services`,
+                  {
+                    apartment_id: row.apartment_id,
+                    service_type: "Khai báo tạm trú", // Backend value
+                    content: "Khai báo thông tin",
+                    note: "Yêu cầu khai báo tạm trú (Import Excel)",
+                  },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+                const serviceId = serviceRes.data.service_id;
+
+                // 2. Create Form
+                await axios.post(
+                  `${API_BASE_URL}/forms`,
+                  {
+                    service_id: serviceId,
+                    apartment_id: row.apartment_id,
+                    full_name: row.fullName,
+                    cccd: row.cccd,
+                    dob: row.dob, // Format YYYY-MM-DD expected
+                    start_date: row.startDate,
+                    end_date: row.endDate,
+                    note: row.reason,
+                  },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                // 3. Create Resident Account
+                const nameParts = row.fullName
+                  ? row.fullName.trim().split(" ")
+                  : ["Unknown"];
+                const lastName = nameParts.pop() || "";
+                const firstName = nameParts.join(" ");
+
+                await axios.post(
+                  `${API_BASE_URL}/residents`,
+                  {
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: `000000${Date.now().toString().slice(-4)}`, // Fake phone
+                    apartment_id: row.apartment_id,
+                    cccd: row.cccd,
+                    birth_date: row.dob,
+                    role: "Cư dân",
+                    residency_status: "khách tạm trú",
+                    email: null,
+                    password: "123",
+                  },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+              } else {
+                // --- LOGIC DỊCH VỤ CHUNG CƯ & KHIẾU NẠI ---
+                await axios.post(
+                  `${API_BASE_URL}/services`,
+                  {
+                    apartment_id: row.apartment_id,
+                    service_type: row.service_type,
+                    content: row.content,
+                    note: row.note || "",
+                  },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+              }
+              successCount++;
+            } catch (err) {
+              console.error(`Error importing row in ${sheetInfo.name}:`, err);
+              failCount++;
+            }
           }
-        });
+        }
 
-        await Promise.all(promises);
-
-        // Hiển thị kết quả
         setModalState({
           type: successCount > 0 ? "success" : "error",
           isOpen: true,
@@ -1265,7 +1318,6 @@ const ResidentService = () => {
           await fetchData();
           setIsLoading(false);
         }, 500);
-
         if (fileInputRef.current) {
           fileInputRef.current.value = null;
         }
