@@ -1097,7 +1097,7 @@ const ResidentService = () => {
     }
   };
 
-  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (ĐÃ SỬA LOGIC) ---
+  // --- LOGIC IMPORT EXCEL SỬ DỤNG EXCELJS (ĐÃ SỬA MAPPING) ---
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -1125,6 +1125,14 @@ const ResidentService = () => {
 
     const currentApartmentId = String(currentUser.apartment_id).trim();
 
+    // Map tên cột tiếng Việt sang key của API
+    const COLUMN_MAPPING = {
+      "Mã số căn hộ": "apartment_id",
+      "Loại dịch vụ": "service_type",
+      "Nội dung": "content",
+      "Ghi chú": "note",
+    };
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -1145,12 +1153,18 @@ const ResidentService = () => {
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber === 1) {
             row.eachCell((cell, colNumber) => {
-              headers[colNumber] = cell.value;
+              // Lấy giá trị cột, trim khoảng trắng
+              const cellVal = cell.value ? String(cell.value).trim() : "";
+              // Kiểm tra trong map có key này không -> gán tên trường API
+              if (COLUMN_MAPPING[cellVal]) {
+                headers[colNumber] = COLUMN_MAPPING[cellVal];
+              }
             });
           } else {
             const rowData = {};
             row.eachCell((cell, colNumber) => {
               const headerKey = headers[colNumber];
+              // Chỉ lấy dữ liệu của các cột đã map được
               if (headerKey) {
                 let cellValue = cell.value;
                 if (
