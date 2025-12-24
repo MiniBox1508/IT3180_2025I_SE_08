@@ -15,7 +15,7 @@ import { ResidentSharedLayout as RsLayout } from "./layouts/ResidentSharedLayout
 import { AccountantSharedLayout as AsLayout } from "./layouts/AccountantSharedLayout.jsx";
 import { QRCodePayment } from "./pages/QRCodePayment.jsx"; //QR Layout
 import { SecuritySharedLayout as SLayout } from "./layouts/SecuritySharedLayout.jsx";
-
+import { ResetPasswordScreen as ResetPass } from "./pages/ResetPasswordScreen";
 // import BQT pages
 import { PaymentPage } from "./pages/BQT/PaymentPage.jsx";
 import { ProfilePage } from "./pages/BQT/ProfilePage.jsx";
@@ -66,7 +66,12 @@ export default function App() {
           }
         />
 
-        {/* ------------------------------------------ */}
+        {/* ------------------------------------------------------------ */}
+
+        {/* --- Đặt lại mật khẩu --- */}
+        <Route path="/reset-password" element={<ResetPass />} />
+
+        {/* --------------------------------------------------------- */}
 
         {/* BAN QUẢN TRỊ */}
         <Route path="/management" element={<SharedLayout />}>
