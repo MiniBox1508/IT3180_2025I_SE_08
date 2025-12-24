@@ -44,7 +44,7 @@ export const AccountCheckDebt = () => {
 
   // State cho chức năng chọn/xuất hóa đơn
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]); // SỬA: Dùng mảng để lưu nhiều ID
+  const [selectedIds, setSelectedIds] = useState([]); 
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -59,26 +59,11 @@ export const AccountCheckDebt = () => {
         });
         const processedData = response.data.map(item => {
           const createdDate = dayjs(item.created_at);
-          const now = dayjs();
-          const isOverdue = item.state === 0 && now.diff(createdDate, 'day') > 30;
-
-          let statusText = "Chưa thanh toán";
-          let statusColor = "text-orange-500";
-
-          if (item.state === 1) {
-            statusText = "Đã thanh toán";
-            statusColor = "text-green-500";
-          } else if (isOverdue) {
-            statusText = "Quá hạn";
-            statusColor = "text-red-500";
-          }
-
+          
           return {
             ...item,
             period: `T${createdDate.format("MM/YYYY")}`,
             paid_amount: item.state === 1 ? item.amount : 0,
-            status_text: statusText,
-            status_color: statusColor,
             payment_date_display: item.payment_date ? dayjs(item.payment_date).format("DD/MM/YYYY") : "---",
             can_print: item.state === 1 
           };
@@ -105,7 +90,6 @@ export const AccountCheckDebt = () => {
   const handleSelect = (item) => {
     if (!item.can_print) return;
 
-    // Logic chọn nhiều: Nếu có rồi thì bỏ, chưa có thì thêm
     if (selectedIds.includes(item.id)) {
       setSelectedIds(prev => prev.filter(id => id !== item.id));
     } else {
@@ -123,7 +107,7 @@ export const AccountCheckDebt = () => {
     navigate('/accountant/print_invoice', { state: { data: selectedInvoices } });
   };
 
-  // --- FILTER (LOGIC MỚI CÓ HỖ TRỢ TIẾNG VIỆT KHÔNG DẤU) ---
+  // --- FILTER ---
   const filteredList = debts.filter(item => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
@@ -205,6 +189,7 @@ export const AccountCheckDebt = () => {
                     selectedIds.includes(item.id) ? "ring-2 ring-blue-400 bg-blue-50" : ""
                 }`}
             >
+              {/* Giữ lại vạch màu trạng thái bên trái để phân biệt nhanh (Xanh/Cam) */}
               <div className={`absolute left-6 top-4 bottom-4 w-1 rounded-full ${
                   item.state === 1 ? 'bg-green-500' : 'bg-orange-500'
               }`}></div>
@@ -234,36 +219,24 @@ export const AccountCheckDebt = () => {
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Tổng thu</p>
                   <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
                 </div>
-                {/* <div className="col-span-1">
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Đã thu</p>
-                  <p className="text-sm font-bold text-gray-900">{formatCurrency(item.paid_amount)}</p>
-                </div> */}
 
+                {/* CỘT CUỐI: Chỉ hiện Checkbox khi ở chế độ chọn, không hiện text trạng thái nữa */}
                 <div className="col-span-2 flex flex-col items-end justify-center">
-                   {isSelectionMode ? (
-                        item.can_print ? (
-                            <div 
-                                onClick={() => handleSelect(item)}
-                                className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
-                                    selectedIds.includes(item.id) 
-                                    ? "bg-blue-500 border-blue-500" 
-                                    : "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                                }`}
-                            >
-                                {selectedIds.includes(item.id) && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </div>
-                        ) : (
-                            <span className="text-xs text-red-400 italic">Chưa TT</span>
-                        )
-                   ) : (
-                        <>
-                            <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
-                            <p className={`text-xs font-bold ${item.status_color}`}>{item.status_text}</p>
-                        </>
+                   {isSelectionMode && item.can_print && (
+                        <div 
+                            onClick={() => handleSelect(item)}
+                            className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
+                                selectedIds.includes(item.id) 
+                                ? "bg-blue-500 border-blue-500" 
+                                : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                            }`}
+                        >
+                            {selectedIds.includes(item.id) && (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                        </div>
                    )}
                 </div>
               </div>
