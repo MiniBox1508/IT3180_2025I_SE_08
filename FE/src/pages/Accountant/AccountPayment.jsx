@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // Import Icons
-import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
+import { FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
@@ -23,26 +23,22 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// --- ICON DOWNLOAD (Mới) ---
+// --- ICON DOWNLOAD ---
 const DownloadIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    className="h-5 w-5 mr-2" 
-    fill="none" 
-    viewBox="0 0 24 24" 
-    stroke="currentColor"
-  >
-    <path 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      strokeWidth={2} 
-      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
-    />
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+// --- NEW: UPLOAD ICON ---
+const UploadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m-4-4v12" />
   </svg>
 );
 
 // =========================================================================
-// === INVOICE FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
+// === INVOICE FORM MODAL ===
 // =========================================================================
 const InvoiceFormModal = ({
   isOpen,
@@ -52,6 +48,7 @@ const InvoiceFormModal = ({
   residents,
   error,
   setError,
+  importedData // PROPS: Dữ liệu từ Excel
 }) => {
   const isEditing = !!invoiceData;
 
@@ -78,6 +75,7 @@ const InvoiceFormModal = ({
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
+        // Mode: Edit Single
         const paymentDate = invoiceData.payment_date
           ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
@@ -88,12 +86,16 @@ const InvoiceFormModal = ({
           payment_date: paymentDate,
           state: invoiceData.state !== undefined ? invoiceData.state : 0,
         });
+      } else if (importedData && importedData.length > 0) {
+        // Mode: Import Excel -> Fill Rows
+        setRows(importedData);
       } else {
+        // Mode: Add New Empty
         setRows([{ id: Date.now(), apartment_id: "", feetype: "", amount: "", payment_date: "" }]);
       }
       setError("");
     }
-  }, [isOpen, invoiceData, setError]);
+  }, [isOpen, invoiceData, importedData, setError]);
 
   const handleSingleChange = (e) => {
     const { name, value } = e.target;
@@ -228,10 +230,9 @@ const InvoiceFormModal = ({
 };
 
 // =========================================================================
-// === INVOICE ITEM COMPONENT (ĐÃ SỬA: CHECKBOX THAY NÚT) ===
+// === INVOICE ITEM COMPONENT ===
 // =========================================================================
 const InvoiceItem = ({ item, isDeleteMode, onEditClick, isSelected, onToggleSelect }) => {
-  
   const formattedDate = item.payment_date
     ? new Date(item.payment_date).toLocaleDateString("vi-VN")
     : "---";
@@ -242,57 +243,22 @@ const InvoiceItem = ({ item, isDeleteMode, onEditClick, isSelected, onToggleSele
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      {/* Thanh màu trạng thái bên trái */}
       <div className={`absolute left-4 top-3 bottom-3 w-1.5 rounded-full ${isPaid ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-
-      {/* Grid thông tin */}
       <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8 pr-4 text-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p>
-          <p className="font-semibold">{item.id}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Số căn hộ</p>
-          <p className="font-medium">{item.apartment_id || "---"}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Loại phí</p>
-          <p className="font-medium truncate" title={item.feetype}>{item.feetype}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-          <p className="text-gray-600">{formattedDate}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Số tiền</p>
-          <p className="font-semibold text-blue-600">{formatCurrency(item.amount)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-          <p className={`font-bold text-sm ${statusColorClass}`}>{statusText}</p>
-        </div>
+        <div className="text-center"><p className="text-xs text-gray-500 mb-1">Hóa đơn ID</p><p className="font-semibold">{item.id}</p></div>
+        <div><p className="text-xs text-gray-500 mb-1">Số căn hộ</p><p className="font-medium">{item.apartment_id || "---"}</p></div>
+        <div><p className="text-xs text-gray-500 mb-1">Loại phí</p><p className="font-medium truncate" title={item.feetype}>{item.feetype}</p></div>
+        <div><p className="text-xs text-gray-500 mb-1">Ngày thanh toán</p><p className="text-gray-600">{formattedDate}</p></div>
+        <div><p className="text-xs text-gray-500 mb-1">Số tiền</p><p className="font-semibold text-blue-600">{formatCurrency(item.amount)}</p></div>
+        <div><p className="text-xs text-gray-500 mb-1">Trạng thái</p><p className={`font-bold text-sm ${statusColorClass}`}>{statusText}</p></div>
       </div>
-
-      {/* Action Section (Right) */}
       <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
         {isDeleteMode ? (
-          /* TRƯỜNG HỢP XÓA: Hiện Checkbox thay vì nút */
           <div className="flex items-center justify-center h-full">
-             <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => onToggleSelect(item.id)}
-                className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-              />
+             <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(item.id)} className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" />
           </div>
         ) : (
-          /* TRƯỜNG HỢP THƯỜNG: Hiện nút Chỉnh sửa */
-          <button
-            onClick={() => onEditClick(item)}
-            className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
-          >
-            Chỉnh sửa
-          </button>
+          <button onClick={() => onEditClick(item)} className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium">Chỉnh sửa</button>
         )}
       </div>
     </div>
@@ -313,6 +279,7 @@ export const AccountPayment = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [formError, setFormError] = useState("");
+  const [importedInvoices, setImportedInvoices] = useState(null); 
 
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null);
@@ -321,6 +288,8 @@ export const AccountPayment = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  
+  const fileInputRef = useRef(null); 
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -355,9 +324,7 @@ export const AccountPayment = () => {
     return String(item.id).toLowerCase().includes(searchLower) || (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower));
   });
 
-  // --- NEW: HANDLE EXPORT EXCEL ---
   const handleExportExcel = async () => {
-    // Sử dụng danh sách đã lọc (filteredInvoices) để xuất những gì người dùng đang thấy
     const dataToExport = filteredInvoices;
 
     if (dataToExport.length === 0) {
@@ -367,11 +334,9 @@ export const AccountPayment = () => {
       return;
     }
 
-    // 1. Khởi tạo Workbook
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Danh sách hóa đơn");
 
-    // 2. Cấu hình cột
     worksheet.columns = [
       { header: "ID Hóa đơn", key: "id", width: 15 },
       { header: "Số căn hộ", key: "apartment_id", width: 15 },
@@ -381,16 +346,10 @@ export const AccountPayment = () => {
       { header: "Trạng thái", key: "state", width: 20 },
     ];
 
-    // 3. Format Header
     worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-    worksheet.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF4F81BD" }, // Màu xanh header
-    };
+    worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F81BD" } };
     worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
 
-    // 4. Thêm dữ liệu
     dataToExport.forEach((item) => {
       const row = worksheet.addRow({
         id: item.id,
@@ -401,35 +360,140 @@ export const AccountPayment = () => {
         state: item.state === 1 ? "Đã thanh toán" : "Chưa thanh toán",
       });
 
-      // Format màu trạng thái
       const stateCell = row.getCell("state");
       if (item.state === 1) {
-        stateCell.font = { color: { argb: "FF008000" }, bold: true }; // Xanh lá
+        stateCell.font = { color: { argb: "FF008000" }, bold: true };
       } else {
-        stateCell.font = { color: { argb: "FFFF0000" }, bold: true }; // Đỏ
+        stateCell.font = { color: { argb: "FFFF0000" }, bold: true };
       }
-
-      // Format số tiền
       row.getCell("amount").numFmt = '#,##0'; 
     });
 
-    // 5. Xuất file
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const fileName = `DanhSachHoaDon_${new Date().toLocaleDateString("vi-VN").replace(/\//g, "")}.xlsx`;
     saveAs(blob, fileName);
   };
 
-  const handleAddClick = () => { setIsAddModalOpen(true); setFormError(""); };
-  const handleEditClick = (invoice) => { setEditingInvoice(invoice); setIsEditModalOpen(true); setFormError(""); };
+  const handleImportClick = () => { fileInputRef.current.click(); };
 
-  // --- HÀM LƯU DỮ LIỆU ---
+  // --- LOGIC ĐỌC FILE VÀ CHECK LỖI ---
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(file);
+      const worksheet = workbook.getWorksheet(1);
+
+      const validRows = [];
+      const errorMessages = [];
+      const validApartmentIds = residents.map(r => r.apartment_id ? r.apartment_id.toLowerCase().trim() : "");
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const aptId = row.getCell(1).text ? row.getCell(1).text.trim() : "";
+        const feeType = row.getCell(2).text || "";
+        const amount = row.getCell(3).value ? Number(row.getCell(3).value) : 0;
+        
+        let paymentDate = "";
+        const dateCell = row.getCell(4).value;
+        if (dateCell instanceof Date) {
+            paymentDate = dateCell.toISOString().split('T')[0];
+        } else if (typeof dateCell === 'string') {
+             paymentDate = dateCell; 
+        }
+
+        if (aptId) {
+          if (!validApartmentIds.includes(aptId.toLowerCase())) {
+            // Căn hộ KHÔNG tồn tại -> Đẩy vào list lỗi
+            errorMessages.push(`Dòng ${rowNumber}: Căn hộ "${aptId}" không tồn tại trong hệ thống.`);
+          } else {
+            // Căn hộ hợp lệ -> Đẩy vào list hợp lệ
+            validRows.push({
+              id: Date.now() + rowNumber,
+              apartment_id: aptId,
+              feetype: feeType,
+              amount: amount,
+              payment_date: paymentDate
+            });
+          }
+        }
+      });
+
+      if (errorMessages.length > 0) {
+        // TRƯỜNG HỢP CÓ LỖI: HIỆN POPUP LỖI
+        setModalStatus("failure");
+        
+        // Tạo thông báo lỗi + Thông báo về việc sẽ tiếp tục với các dòng hợp lệ
+        const displayErrors = errorMessages.slice(0, 5);
+        if (errorMessages.length > 5) displayErrors.push(`...và ${errorMessages.length - 5} lỗi khác.`);
+        
+        setStatusMessage(
+          <div>
+            <p className="font-bold mb-2">Phát hiện lỗi trong file Excel!</p>
+            <ul className="text-left text-sm list-disc pl-5 mb-3 text-red-600 bg-red-50 p-2 rounded">
+                {displayErrors.map((err, idx) => <li key={idx}>{err}</li>)}
+            </ul>
+            {validRows.length > 0 ? (
+                <p className="text-sm font-semibold text-green-700">
+                    Nhấn "Đóng" để tiếp tục thêm {validRows.length} hóa đơn hợp lệ.
+                </p>
+            ) : (
+                <p className="text-sm text-gray-600">Vui lòng kiểm tra lại file.</p>
+            )}
+          </div>
+        );
+
+        // Lưu tạm các dòng hợp lệ để dùng sau khi đóng modal
+        if (validRows.length > 0) {
+            setImportedInvoices(validRows);
+        } else {
+            setImportedInvoices(null);
+        }
+        setIsStatusModalOpen(true);
+
+      } else if (validRows.length > 0) {
+        // TRƯỜNG HỢP KHÔNG CÓ LỖI: Mở luôn form
+        setImportedInvoices(validRows);
+        setFormError("");
+        setIsAddModalOpen(true);
+      } else {
+        setModalStatus("failure");
+        setStatusMessage("File Excel rỗng hoặc không đúng định dạng!");
+        setIsStatusModalOpen(true);
+      }
+
+    } catch (err) {
+      console.error("Import Error:", err);
+      setModalStatus("failure");
+      setStatusMessage("Lỗi khi đọc file Excel!");
+      setIsStatusModalOpen(true);
+    } finally {
+      e.target.value = null; 
+    }
+  };
+
+  const handleAddClick = () => { 
+      setImportedInvoices(null); 
+      setIsAddModalOpen(true); 
+      setFormError(""); 
+  };
+  
+  const handleEditClick = (invoice) => { 
+      setImportedInvoices(null);
+      setEditingInvoice(invoice); 
+      setIsEditModalOpen(true); 
+      setFormError(""); 
+  };
+
   const handleSave = async (data, invoiceId) => {
     try {
       const token = getToken();
 
       if (invoiceId) {
-        // Edit 1 hóa đơn
         const response = await fetch(`${API_BASE_URL}/payments/${invoiceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -442,7 +506,6 @@ export const AccountPayment = () => {
         setIsEditModalOpen(false);
 
       } else {
-        // Bulk Add (Thêm nhiều hóa đơn)
         const itemsToCreate = Array.isArray(data) ? data : [data];
         
         await Promise.all(itemsToCreate.map(async (item) => {
@@ -486,23 +549,9 @@ export const AccountPayment = () => {
     }
   };
 
-  // --- DELETE HANDLERS ---
-  const toggleDeleteMode = () => {
-    setIsDeleteMode(!isDeleteMode);
-    setSelectedIds([]); 
-  };
-
-  const handleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-    );
-  };
-
-  const handleDeleteSelectedClick = () => {
-    if (selectedIds.length > 0) {
-      setShowConfirmModal(true); 
-    }
-  };
+  const toggleDeleteMode = () => { setIsDeleteMode(!isDeleteMode); setSelectedIds([]); };
+  const handleSelect = (id) => { setSelectedIds((prev) => prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]); };
+  const handleDeleteSelectedClick = () => { if (selectedIds.length > 0) setShowConfirmModal(true); };
 
   const handleConfirmDelete = async () => {
     setShowConfirmModal(false);
@@ -515,10 +564,7 @@ export const AccountPayment = () => {
           fetch(`${API_BASE_URL}/payments/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
-          }).then((res) => {
-            if (!res.ok) throw new Error(`Xóa thất bại ID: ${id}`);
-            return res;
-          })
+          }).then((res) => { if (!res.ok) throw new Error(`Xóa thất bại ID: ${id}`); return res; })
         )
       );
 
@@ -526,7 +572,6 @@ export const AccountPayment = () => {
       setModalStatus("success");
       setStatusMessage(`Đã xóa ${selectedIds.length} hóa đơn thành công!`);
       setIsStatusModalOpen(true);
-      
       setIsDeleteMode(false);
       setSelectedIds([]);
 
@@ -537,11 +582,20 @@ export const AccountPayment = () => {
     }
   };
 
-  const handleCancelDelete = () => {
-    setShowConfirmModal(false);
+  const handleCancelDelete = () => { setShowConfirmModal(false); };
+  
+  // --- SỬA LOGIC KHI ĐÓNG STATUS MODAL ---
+  const handleCloseStatusModal = () => {
+    setIsStatusModalOpen(false);
+    
+    // Nếu vừa đóng popup lỗi import (failure) MÀ vẫn có dữ liệu hợp lệ đang chờ -> Mở form thêm
+    if (modalStatus === "failure" && importedInvoices && importedInvoices.length > 0) {
+        setIsAddModalOpen(true);
+    }
+    
+    setModalStatus(null);
+    setStatusMessage("");
   };
-
-  const handleCloseStatusModal = () => { setIsStatusModalOpen(false); setModalStatus(null); setStatusMessage(""); };
 
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
@@ -550,7 +604,7 @@ export const AccountPayment = () => {
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">{statusMessage}</p>
+        <div className="text-xl font-semibold text-center text-gray-800">{statusMessage}</div>
       </div>
     );
   };
@@ -560,7 +614,8 @@ export const AccountPayment = () => {
 
   return (
     <div>
-      {/* HEADER SEARCH */}
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
+
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -570,21 +625,17 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* HEADER BUTTONS */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
-              {/* Nút Xuất Excel Mới */}
-              <button 
-                onClick={handleExportExcel} 
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md"
-              >
-                <DownloadIcon />
-                Xuất Excel
+              <button onClick={handleImportClick} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md">
+                <UploadIcon /> Nhập Excel
               </button>
-
+              <button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center shadow-md">
+                <DownloadIcon /> Xuất Excel
+              </button>
               <button onClick={handleAddClick} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
                 <span>+ Thêm hóa đơn</span>
               </button>
@@ -605,26 +656,16 @@ export const AccountPayment = () => {
         </div>
       </div>
 
-      {/* INVOICE LIST */}
       <div className="space-y-4">
         {filteredInvoices.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không có hóa đơn nào phù hợp với tìm kiếm.</div>
         ) : (
           filteredInvoices.map((item) => (
-            <InvoiceItem 
-              key={item.id} 
-              item={item} 
-              isDeleteMode={isDeleteMode} 
-              // Ẩn nút Edit ở chế độ Delete, nên không cần onDeleteClick ở đây
-              onEditClick={handleEditClick}
-              isSelected={selectedIds.includes(item.id)}
-              onToggleSelect={handleSelect}
-            />
+            <InvoiceItem key={item.id} item={item} isDeleteMode={isDeleteMode} onEditClick={handleEditClick} isSelected={selectedIds.includes(item.id)} onToggleSelect={handleSelect} />
           ))
         )}
       </div>
 
-      {/* --- MODALS --- */}
       <InvoiceFormModal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
@@ -633,6 +674,7 @@ export const AccountPayment = () => {
         residents={residents}
         error={formError}
         setError={setFormError}
+        importedData={importedInvoices}
       />
 
       <ConfirmationModal isOpen={showConfirmModal} onClose={handleCancelDelete} onConfirm={handleConfirmDelete} title="Chú ý: Xóa hóa đơn!!!" message={`Bạn có chắc chắn muốn xóa ${selectedIds.length} hóa đơn đã chọn không?`} />
