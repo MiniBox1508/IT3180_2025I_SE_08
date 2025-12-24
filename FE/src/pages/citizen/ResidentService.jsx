@@ -391,6 +391,18 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
     setResidenceForm({ ...residenceForm, [e.target.name]: e.target.value });
   };
 
+  // --- XỬ LÝ NÚT X (QUAY VỀ) ---
+  const handleCloseAction = () => {
+    if (selectedType === "Khai báo tạm trú") {
+      // Nếu đang ở form khai báo tạm trú, quay về form chính (Dịch vụ chung cư)
+      setSelectedType("Dịch vụ chung cư");
+      setSelectedContent(SERVICE_MAPPING["Dịch vụ chung cư"].contents[0]);
+    } else {
+      // Nếu đang ở form chính, đóng modal
+      onClose();
+    }
+  };
+
   const handleSubmit = () => {
     const backendType = SERVICE_MAPPING[selectedType].backendValue;
 
@@ -440,7 +452,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
         } shadow-2xl relative max-h-[90vh] overflow-y-auto`}
       >
         <button
-          onClick={onClose}
+          onClick={handleCloseAction}
           className="absolute top-6 right-6 p-1 rounded-full hover:bg-gray-100 transition-colors"
         >
           <CloseIcon />
