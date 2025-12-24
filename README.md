@@ -121,3 +121,8 @@ npm run dev
 ## Link demo
 
 1. Link demo 3-11-2025: https://drive.google.com/file/d/1T5CA9tu9Wm4PaGRermAaTMNcgHef_5mP/view?usp=sharing
+
+## Tài khoản gmail của BQT:
+
+1. TK: bqtbluemoon@gmail.com
+2. Pass: Banquantricnpm123@#
