@@ -16,11 +16,11 @@ import iconCongNo from "../images/coins.png";
 const navItems = [
   { name: "Trang chủ", to: "/accountant", icon: iconTrangChu },
   {
-    name: "Hóa đơn",
+    name: "Công nợ",
     to: "/accountant/invoices",
     icon: iconThanhToan,
   },
-  { name: "Công nợ", to: "/accountant/debt", icon: iconCongNo },
+  { name: "Hoá đơn", to: "/accountant/debt", icon: iconCongNo },
   { name: "Báo cáo", to: "/accountant/report", icon: iconTrangChu },
   {
     name: "Thông báo",
