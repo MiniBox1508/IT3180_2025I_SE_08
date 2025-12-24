@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 // --- 1. IMPORT MODAL VÀ ICONS ---
-import { StatusModal } from "../../layouts/StatusModal";
+import { StatusModal } from "../../layouts/StatusModal"; // Đảm bảo đường dẫn đúng
 import EditButtonImage from "../../images/edit_button.svg";
-import acceptIcon from "../../images/accept_icon.png";
-import notAcceptIcon from "../../images/not_accept_icon.png";
+import acceptIcon from "../../images/accept_icon.png"; // Icon thành công
+// ...existing code...
+import notAcceptIcon from "../../images/not_accept_icon.png"; // Icon thất bại
 
-// --- CẤU HÌNH API ---
-const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
-
-// --- Icons (Giữ nguyên) ---
+// --- Icons ---
 const UserIcon = () => (
+  // ... (SVG code giữ nguyên)
   <svg
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
@@ -26,15 +25,9 @@ const UserIcon = () => (
   </svg>
 );
 
-// --- EditableField Component (Giữ nguyên) ---
-const EditableField = ({
-  label,
-  value,
-  isEditing,
-  onChange,
-  name,
-  type = "text",
-}) => (
+// --- EditableField Component (giữ nguyên) ---
+const EditableField = ({ label, value, isEditing, onChange, name }) => (
+  // ... (JSX code giữ nguyên)
   <div>
     <label
       htmlFor={name}
@@ -44,29 +37,29 @@ const EditableField = ({
     </label>
     {isEditing ? (
       <input
-        type={type}
+        type="text"
         id={name}
         name={name}
-        value={value || ""}
+        value={value}
         onChange={onChange}
         className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 min-h-[46px] focus:border-blue-500 focus:ring-blue-500"
       />
     ) : (
-      <div className="w-full bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-gray-900 min-h-[46px] flex items-center">
-        {value || "Chưa cập nhật"}
+      <div className="w-full bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-gray-900 min-h-[46px]">
+        {value}
       </div>
     )}
   </div>
 );
 
-// --- Dữ liệu mẫu ban đầu ---
+// --- Dữ liệu mẫu ban đầu (giữ nguyên) ---
 const initialUserData = {
-  name: "Trị Quan Ban",
+  name: "Trị Quan Ban",
   residentId: "0002",
-  role: "Ban quản trị",
+  role: "Ban quản trị",
   apartment: "Tầng 7 - Phòng 713",
   cccd: "077204000123",
-  dob: "1999-10-30",
+  dob: "30/10/1999",
   email: "dovanb@gmail.com",
   phone: "0938 099 203",
   status: "người thuê",
@@ -75,67 +68,42 @@ const initialUserData = {
 // --- Main Profile Page Component ---
 export const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
-
-  // --- LẤY USER TỪ STORAGE ---
-  const getUserFromStorage = () => {
-    try {
-      const userStr = localStorage.getItem("user");
-      return userStr ? JSON.parse(userStr) : null;
-    } catch (e) {
-      return null;
-    }
-  };
-  const user = getUserFromStorage();
-
-  // Logic ID: userId dùng để gọi API, residentId dùng để hiển thị
-  let displayId = initialUserData.residentId;
-  let apiId = null;
-
-  if (user) {
-    apiId = user.id; // Quan trọng: ID thực tế trong DB
-    if (user.resident_code) displayId = user.resident_code;
-    else if (user.id) displayId = user.id;
-  }
-
-  // Khởi tạo form data, map từ trường Backend -> Frontend
-  const initialData = {
-    ...initialUserData,
-    ...(user
-      ? {
-          residentId: displayId,
-          name: user.full_name || initialUserData.name,
-          role: user.role || initialUserData.role,
-          apartment: user.apartment_id || initialUserData.apartment,
-          cccd: user.cccd || initialUserData.cccd,
-          // Chuyển đổi ngày tháng nếu cần (backend trả về ISO string)
-          dob: user.birth_date
-            ? user.birth_date.split("T")[0]
-            : initialUserData.dob,
-          email: user.email || initialUserData.email,
-          phone: user.phone || initialUserData.phone,
-          status: user.residency_status || initialUserData.status,
-        }
-      : {}),
-  };
-
+  const user = JSON.parse(localStorage.getItem("user"));
+  // Nếu không có user, dùng dữ liệu mẫu
+  const initialData = user
+    ? {
+        name: user.full_name || "",
+        residentId: user.resident_code || user.id || "",
+        role: user.role || "",
+        apartment: user.apartment_id || "",
+        cccd: user.cccd || "",
+        dob: user.birth_date || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        status: user.residency_status || "",
+      }
+    : initialUserData;
   const [formData, setFormData] = useState(initialData);
   const [originalData, setOriginalData] = useState(initialData);
 
-  // --- STATE MODAL ---
+  // --- 2. THÊM STATE CHO STATUS MODAL ---
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [modalStatus, setModalStatus] = useState(null);
+  const [modalStatus, setModalStatus] = useState(null); // 'success' or 'failure'
   const [statusMessage, setStatusMessage] = useState("");
 
+  // Hàm xử lý khi nhấn nút Edit
   const handleEditClick = () => {
-    setOriginalData(formData);
+    setOriginalData(formData); // Lưu lại trạng thái hiện tại trước khi sửa
     setIsEditing(true);
   };
 
+  // Hàm xử lý khi nhấn nút Hủy
   const cancelEditClick = () => {
-    setFormData(originalData);
+    setFormData(originalData); // Khôi phục dữ liệu gốc
     setIsEditing(false);
   };
 
+  // Hàm xử lý khi thay đổi input (giữ nguyên)
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -144,87 +112,54 @@ export const ProfilePage = () => {
     }));
   };
 
-  const getToken = () => localStorage.getItem("token");
+  // --- 3. CẬP NHẬT handleSubmit ---
+  // --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
 
-  // --- HÀM SUBMIT ĐÃ CHỈNH SỬA ---
+  // --- CẬP NHẬT handleSubmit GỌI API VÀ GỬI TOKEN ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!apiId) {
-      setModalStatus("failure");
-      setStatusMessage("Không tìm thấy ID người dùng. Vui lòng đăng nhập lại!");
-      setIsStatusModalOpen(true);
-      return;
-    }
-
-    // --- MAP DỮ LIỆU FRONTEND -> BACKEND ---
-    const payload = {
-      role: formData.role,
-      apartment_id: formData.apartment, // Backend: apartment_id
-      cccd: formData.cccd,
-      birth_date: formData.dob, // Backend: birth_date
-      email: formData.email,
-      phone: formData.phone,
-      residency_status: formData.status, // Backend: residency_status
-      // Lưu ý: Form này không có input nhập tên nên không gửi first_name/last_name
-    };
-
-    console.log("Payload gửi đi:", payload);
+    console.log("Dữ liệu gửi đi:", formData);
 
     try {
       const token = getToken();
-      // --- SỬA URL API: /residents/:id ---
-      const response = await fetch(`${API_BASE_URL}/residents/${apiId}`, {
+      // Gọi API cập nhật thông tin cá nhân
+      const response = await fetch("/api/residents", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
-
-      const result = await response.json();
-
       if (response.ok) {
+        // Thành công
         setModalStatus("success");
         setStatusMessage("Đã sửa thông tin cá nhân thành công!");
         setIsEditing(false);
         setOriginalData(formData);
-
-        // Cập nhật lại localStorage để dữ liệu mới hiển thị ngay nếu F5
-        if (user) {
-          const updatedUser = {
-            ...user,
-            role: payload.role,
-            apartment_id: payload.apartment_id,
-            cccd: payload.cccd,
-            birth_date: payload.birth_date,
-            email: payload.email,
-            phone: payload.phone,
-            residency_status: payload.residency_status,
-          };
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-        }
       } else {
+        // Thất bại
         setModalStatus("failure");
-        setStatusMessage(
-          result.error || "Sửa thông tin cá nhân không thành công!"
-        );
+        setStatusMessage("Sửa thông tin cá nhân không thành công!");
       }
     } catch (err) {
-      console.error(err);
       setModalStatus("failure");
-      setStatusMessage("Lỗi kết nối đến máy chủ!");
+      setStatusMessage("Sửa thông tin cá nhân không thành công!");
     }
     setIsStatusModalOpen(true);
   };
 
+  // --- HÀM ĐÓNG STATUS MODAL ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
 
+  // --- HÀM RENDER NỘI DUNG CHO STATUS MODAL ---
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus === "success";
@@ -242,6 +177,7 @@ export const ProfilePage = () => {
   return (
     <>
       <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
+        {/* ... (phần header và avatar giữ nguyên) ... */}
         {/* Card Header: Title + Edit Button */}
         <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -250,7 +186,7 @@ export const ProfilePage = () => {
           {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
           {!isEditing && (
             <button
-              onClick={handleEditClick}
+              onClick={handleEditClick} // Thêm onClick handler
               className="p-1 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Chỉnh sửa thông tin"
             >
@@ -265,6 +201,7 @@ export const ProfilePage = () => {
             <UserIcon />
           </div>
           <div>
+            {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
             <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
             <p className="text-sm text-gray-600">
               ID Quản lý: {formData.residentId}
@@ -273,12 +210,14 @@ export const ProfilePage = () => {
         </div>
 
         <form className="space-y-8" onSubmit={handleSubmit}>
+          {/* ... (các section thông tin giữ nguyên) ... */}
           {/* Section 1: Thông tin cá nhân */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Thông tin cá nhân
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
               <EditableField
                 label="Vai trò"
                 name="role"
@@ -303,7 +242,6 @@ export const ProfilePage = () => {
               <EditableField
                 label="Ngày sinh"
                 name="dob"
-                type="date" // Thêm type date để hiện lịch
                 value={formData.dob}
                 isEditing={isEditing}
                 onChange={handleChange}
@@ -349,7 +287,7 @@ export const ProfilePage = () => {
               />
             </div>
           </div>
-          {/* Nút Hủy và Confirm */}
+          {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
           {isEditing && (
             <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
               <button
@@ -369,9 +307,11 @@ export const ProfilePage = () => {
           )}
         </form>
 
+        {/* --- 4. THÊM STATUS MODAL --- */}
         <StatusModal
           isOpen={isStatusModalOpen}
           onClose={handleCloseStatusModal}
+          // Bỏ title đi để nút X tự căn giữa phải
         >
           {renderStatusModalContent()}
         </StatusModal>
