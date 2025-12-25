@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+// --- THƯ VIỆN CHO PDF ---
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 const statusColor = {
@@ -35,7 +39,7 @@ const ServicesPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   // Hàm lấy token từ localStorage
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem("token");
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -62,7 +66,7 @@ const ServicesPage = () => {
   const filteredServices = services.filter((item) => {
     // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
     const term = removeVietnameseTones(search).trim();
-    
+
     // 2. Nếu không nhập gì thì hiện tất cả
     if (!term) return true;
 
@@ -73,9 +77,9 @@ const ServicesPage = () => {
 
     // 4. Kiểm tra xem từ khóa có nằm trong bất kỳ trường nào không
     return (
-      idStr.includes(term) ||          // Tìm theo ID
-      contentStr.includes(term) ||     // Tìm theo Nội dung (không dấu)
-      apartmentStr.includes(term)      // Tìm theo Số căn hộ (không dấu)
+      idStr.includes(term) || // Tìm theo ID
+      contentStr.includes(term) || // Tìm theo Nội dung (không dấu)
+      apartmentStr.includes(term) // Tìm theo Số căn hộ (không dấu)
     );
   });
 
@@ -107,6 +111,52 @@ const ServicesPage = () => {
     } catch {
       setShowErrorModal(true);
     }
+  };
+
+  // --- LOGIC XUẤT PDF ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    // Thêm font chữ tiếng Việt (nếu cần thiết, ở đây dùng font mặc định)
+    // doc.addFont(...)
+
+    doc.text("Danh Sách Dịch Vụ", 14, 15);
+
+    const tableColumn = [
+      "ID",
+      "Nội dung",
+      "Số căn hộ",
+      "Trạng thái",
+      "Ngày xử lý",
+      "Phản ánh",
+    ];
+    const tableRows = [];
+
+    filteredServices.forEach((item) => {
+      const serviceData = [
+        item.id,
+        item.content,
+        item.apartment_id,
+        item.servicestatus || "Đã ghi nhận",
+        item.handle_date
+          ? new Date(item.handle_date).toLocaleDateString("vi-VN")
+          : "----------",
+        !item.problems || item.problems === "Ko vấn đề"
+          ? "----------"
+          : item.problems,
+      ];
+      tableRows.push(serviceData);
+    });
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+      styles: { font: "helvetica", fontSize: 10 }, // Dùng font mặc định helvetica
+      headStyles: { fillColor: [22, 160, 133] },
+    });
+
+    doc.save("danh_sach_dich_vu.pdf");
   };
 
   // Kính lúp SVG
@@ -159,6 +209,12 @@ const ServicesPage = () => {
             <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
             {!isDeleteMode ? (
               <div className="flex gap-3">
+                <button
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold shadow"
+                  onClick={handleExportPDF}
+                >
+                  Xuất dịch vụ
+                </button>
                 <button
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold shadow"
                   onClick={() => setIsDeleteMode(true)}
@@ -332,129 +388,131 @@ const ServicesPage = () => {
                     </div>
                   )}
                 </div>
-                {/* Confirm Delete Modal */}
-                {showConfirmModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
-                      <div className="mb-4">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-16 h-16 text-red-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
-                          />
-                        </svg>
-                      </div>
-                      <div className="text-xl font-bold text-center mb-6">
-                        Xóa các mục đã chọn
-                      </div>
-                      <div className="flex gap-4 w-full justify-center">
-                        <button
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold shadow"
-                          onClick={() => setShowConfirmModal(false)}
-                        >
-                          Hoàn tác
-                        </button>
-                        <button
-                          className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-bold shadow"
-                          onClick={handleDeleteSelected}
-                        >
-                          Xác nhận
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Success Modal */}
-                {showSuccessModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-16 h-16 text-blue-500 mb-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9 12l2 2 4-4"
-                        />
-                      </svg>
-                      <div className="text-lg font-bold text-center mb-2">
-                        Xóa dịch vụ thành công!
-                      </div>
-                      <button
-                        className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
-                        onClick={() => setShowSuccessModal(false)}
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error Modal */}
-                {showErrorModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-16 h-16 text-red-500 mb-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M15 9l-6 6m0-6l6 6"
-                        />
-                      </svg>
-                      <div className="text-lg font-bold text-center mb-2">
-                        Xóa dịch vụ không thành công!
-                      </div>
-                      <button
-                        className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
-                        onClick={() => setShowErrorModal(false)}
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Modals placed outside main loop for cleaner DOM structure, though logic remains same */}
+      {/* Confirm Delete Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
+            <div className="mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-16 h-16 text-red-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
+                />
+              </svg>
+            </div>
+            <div className="text-xl font-bold text-center mb-6">
+              Xóa các mục đã chọn
+            </div>
+            <div className="flex gap-4 w-full justify-center">
+              <button
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold shadow"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Hoàn tác
+              </button>
+              <button
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-bold shadow"
+                onClick={handleDeleteSelected}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-16 h-16 text-blue-500 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="none"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4"
+              />
+            </svg>
+            <div className="text-lg font-bold text-center mb-2">
+              Xóa dịch vụ thành công!
+            </div>
+            <button
+              className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-16 h-16 text-red-500 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="none"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 9l-6 6m0-6l6 6"
+              />
+            </svg>
+            <div className="text-lg font-bold text-center mb-2">
+              Xóa dịch vụ không thành công!
+            </div>
+            <button
+              className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
+              onClick={() => setShowErrorModal(false)}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
