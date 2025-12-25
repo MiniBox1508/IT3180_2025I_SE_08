@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 // --- THƯ VIỆN CHO PDF ---
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable"; // SỬA: Import object autoTable
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -105,7 +105,7 @@ const ServicesPage = () => {
     }
   };
 
-  // --- LOGIC XUẤT PDF (ĐÃ SỬA) ---
+  // --- LOGIC XUẤT PDF (ĐÃ SỬA LỖI) ---
   const handleExportPDF = () => {
     try {
       // Kiểm tra xem có dữ liệu để xuất không
@@ -116,7 +116,7 @@ const ServicesPage = () => {
 
       const doc = new jsPDF();
 
-      doc.text("Danh Sach Dich Vu", 14, 15); // Dùng không dấu để tránh lỗi font mặc định
+      doc.text("Danh Sach Dich Vu", 14, 15);
 
       const tableColumn = [
         "ID",
@@ -130,8 +130,6 @@ const ServicesPage = () => {
       const tableRows = [];
 
       filteredServices.forEach((item) => {
-        // Lưu ý: jsPDF mặc định không hỗ trợ tiếng Việt có dấu tốt nếu không add font
-        // Nên ở đây ta tạm thời dùng removeVietnameseTones cho nội dung để đảm bảo không bị lỗi ký tự lạ
         const serviceData = [
           item.id,
           removeVietnameseTones(item.content || ""),
@@ -147,7 +145,8 @@ const ServicesPage = () => {
         tableRows.push(serviceData);
       });
 
-      doc.autoTable({
+      // SỬA: Gọi autoTable như một hàm độc lập và truyền doc vào
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 20,
@@ -157,11 +156,9 @@ const ServicesPage = () => {
 
       doc.save("danh_sach_dich_vu.pdf");
 
-      // --- QUAN TRỌNG: Hiển thị modal thành công ---
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Lỗi xuất PDF:", error);
-      // --- Hiển thị modal lỗi ---
       setShowErrorModal(true);
     }
   };
@@ -450,7 +447,6 @@ const ServicesPage = () => {
               />
             </svg>
             <div className="text-lg font-bold text-center mb-2">
-              {/* Đã sửa nội dung thông báo cho phù hợp */}
               Thao tác thành công!
             </div>
             <button
