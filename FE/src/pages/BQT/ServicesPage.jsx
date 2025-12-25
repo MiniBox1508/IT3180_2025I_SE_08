@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-// --- THƯ VIỆN CHO PDF (ĐÃ SỬA IMPORT) ---
+// --- THƯ VIỆN CHO PDF ---
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // Sửa cách import để lấy hàm autoTable
+import autoTable from "jspdf-autotable";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -105,8 +105,8 @@ const ServicesPage = () => {
     }
   };
 
-  // --- LOGIC XUẤT PDF (ĐÃ FIX LỖI AUTOTABLE) ---
-  const handleExportPDF = () => {
+  // --- LOGIC XUẤT PDF (TIẾNG VIỆT + ROBOTO + NFC) ---
+  const handleExportPDF = async () => {
     try {
       if (filteredServices.length === 0) {
         alert("Không có dữ liệu để xuất!");
@@ -115,47 +115,77 @@ const ServicesPage = () => {
 
       const doc = new jsPDF();
 
-      doc.text("Danh Sach Dich Vu", 14, 15);
+      // 1. Tải font Roboto từ CDN (hoặc file local nếu có)
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
 
-      const tableColumn = [
-        "ID",
-        "Noi dung",
-        "So can ho",
-        "Trang thai",
-        "Ngay xu ly",
-        "Phan anh",
-      ];
+      // 2. Chuyển Blob sang Base64 để add vào VFS của jsPDF
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
 
-      const tableRows = [];
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
 
-      filteredServices.forEach((item) => {
-        const serviceData = [
-          item.id,
-          removeVietnameseTones(item.content || ""),
-          item.apartment_id,
-          removeVietnameseTones(item.servicestatus || "Da ghi nhan"),
-          item.handle_date
-            ? new Date(item.handle_date).toLocaleDateString("vi-VN")
-            : "----------",
-          !item.problems || item.problems === "Ko vấn đề"
-            ? "----------"
-            : removeVietnameseTones(item.problems),
+        // Thêm font vào hệ thống ảo
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto"); // Set font active
+
+        // Tiêu đề (có dấu)
+        doc.text("Danh Sách Dịch Vụ", 14, 15);
+
+        const tableColumn = [
+          "ID",
+          "Nội dung",
+          "Số căn hộ",
+          "Trạng thái",
+          "Ngày xử lý",
+          "Phản ánh",
         ];
-        tableRows.push(serviceData);
-      });
 
-      // SỬA LỖI: Gọi hàm autoTable(doc, options) thay vì doc.autoTable(options)
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 20,
-        styles: { font: "helvetica", fontSize: 10 },
-        headStyles: { fillColor: [22, 160, 133] },
-      });
+        const tableRows = [];
 
-      doc.save("danh_sach_dich_vu.pdf");
+        filteredServices.forEach((item) => {
+          // Chuẩn hóa dữ liệu với NFC để tránh lỗi font chữ tiếng Việt
+          const serviceData = [
+            String(item.id),
+            (item.content || "").normalize("NFC"),
+            (item.apartment_id || "").normalize("NFC"),
+            (item.servicestatus || "Đã ghi nhận").normalize("NFC"),
+            item.handle_date
+              ? new Date(item.handle_date).toLocaleDateString("vi-VN")
+              : "----------",
+            (!item.problems || item.problems === "Ko vấn đề"
+              ? "----------"
+              : item.problems
+            ).normalize("NFC"),
+          ];
+          tableRows.push(serviceData);
+        });
 
-      setShowSuccessModal(true);
+        // Tạo bảng với font Roboto
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 20,
+          styles: {
+            font: "Roboto", // Bắt buộc dùng font đã đăng ký
+            fontStyle: "normal",
+            fontSize: 10,
+          },
+          headStyles: { fillColor: [22, 160, 133] },
+        });
+
+        doc.save("danh_sach_dich_vu.pdf");
+        setShowSuccessModal(true);
+      };
+
+      reader.onerror = () => {
+        console.error("Lỗi đọc file font");
+        setShowErrorModal(true);
+      };
     } catch (error) {
       console.error("Lỗi xuất PDF:", error);
       setShowErrorModal(true);
