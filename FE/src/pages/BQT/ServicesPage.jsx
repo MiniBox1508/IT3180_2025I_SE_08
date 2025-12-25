@@ -7,7 +7,7 @@ const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 const statusColor = {
   "Đã xử lý": "text-green-600 font-bold",
-  "Đã ghi nhận": "text-gray-800 font-bold", // Thêm màu cho trạng thái mặc định
+  "Đã ghi nhận": "text-gray-800 font-bold",
   "Chưa xử lý": "text-red-500 font-bold",
   "Đang chờ": "text-yellow-500 font-bold",
 };
@@ -23,9 +23,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
 };
 
@@ -38,7 +37,7 @@ const ServicesPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  // Hàm lấy token từ localStorage
+
   const getToken = () => localStorage.getItem("token");
 
   useEffect(() => {
@@ -50,7 +49,6 @@ const ServicesPage = () => {
           },
         });
         const data = await res.json();
-        // Sắp xếp mới nhất lên đầu
         const sortedData = Array.isArray(data)
           ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           : [];
@@ -64,22 +62,17 @@ const ServicesPage = () => {
 
   // --- LOGIC TÌM KIẾM MỚI ---
   const filteredServices = services.filter((item) => {
-    // 1. Chuẩn hóa từ khóa tìm kiếm (bỏ dấu, chữ thường)
     const term = removeVietnameseTones(search).trim();
-
-    // 2. Nếu không nhập gì thì hiện tất cả
     if (!term) return true;
 
-    // 3. Chuẩn hóa các trường dữ liệu cần tìm
     const idStr = String(item.id).toLowerCase();
     const contentStr = removeVietnameseTones(item.content || "");
     const apartmentStr = removeVietnameseTones(item.apartment_id || "");
 
-    // 4. Kiểm tra xem từ khóa có nằm trong bất kỳ trường nào không
     return (
-      idStr.includes(term) || // Tìm theo ID
-      contentStr.includes(term) || // Tìm theo Nội dung (không dấu)
-      apartmentStr.includes(term) // Tìm theo Số căn hộ (không dấu)
+      idStr.includes(term) ||
+      contentStr.includes(term) ||
+      apartmentStr.includes(term)
     );
   });
 
@@ -97,7 +90,6 @@ const ServicesPage = () => {
         await fetch(`${API_BASE_URL}/services/${id}`, { method: "DELETE" });
       }
       setShowSuccessModal(true);
-      // Reload lại danh sách
       const resReload = await fetch(`${API_BASE_URL}/services`);
       const dataReload = await resReload.json();
       const sortedReload = Array.isArray(dataReload)
@@ -113,53 +105,67 @@ const ServicesPage = () => {
     }
   };
 
-  // --- LOGIC XUẤT PDF ---
+  // --- LOGIC XUẤT PDF (ĐÃ SỬA) ---
   const handleExportPDF = () => {
-    const doc = new jsPDF();
+    try {
+      // Kiểm tra xem có dữ liệu để xuất không
+      if (filteredServices.length === 0) {
+        alert("Không có dữ liệu để xuất!");
+        return;
+      }
 
-    // Thêm font chữ tiếng Việt (nếu cần thiết, ở đây dùng font mặc định)
-    // doc.addFont(...)
+      const doc = new jsPDF();
 
-    doc.text("Danh Sách Dịch Vụ", 14, 15);
+      doc.text("Danh Sach Dich Vu", 14, 15); // Dùng không dấu để tránh lỗi font mặc định
 
-    const tableColumn = [
-      "ID",
-      "Nội dung",
-      "Số căn hộ",
-      "Trạng thái",
-      "Ngày xử lý",
-      "Phản ánh",
-    ];
-    const tableRows = [];
-
-    filteredServices.forEach((item) => {
-      const serviceData = [
-        item.id,
-        item.content,
-        item.apartment_id,
-        item.servicestatus || "Đã ghi nhận",
-        item.handle_date
-          ? new Date(item.handle_date).toLocaleDateString("vi-VN")
-          : "----------",
-        !item.problems || item.problems === "Ko vấn đề"
-          ? "----------"
-          : item.problems,
+      const tableColumn = [
+        "ID",
+        "Noi dung",
+        "So can ho",
+        "Trang thai",
+        "Ngay xu ly",
+        "Phan anh",
       ];
-      tableRows.push(serviceData);
-    });
 
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-      styles: { font: "helvetica", fontSize: 10 }, // Dùng font mặc định helvetica
-      headStyles: { fillColor: [22, 160, 133] },
-    });
+      const tableRows = [];
 
-    doc.save("danh_sach_dich_vu.pdf");
+      filteredServices.forEach((item) => {
+        // Lưu ý: jsPDF mặc định không hỗ trợ tiếng Việt có dấu tốt nếu không add font
+        // Nên ở đây ta tạm thời dùng removeVietnameseTones cho nội dung để đảm bảo không bị lỗi ký tự lạ
+        const serviceData = [
+          item.id,
+          removeVietnameseTones(item.content || ""),
+          item.apartment_id,
+          removeVietnameseTones(item.servicestatus || "Da ghi nhan"),
+          item.handle_date
+            ? new Date(item.handle_date).toLocaleDateString("vi-VN")
+            : "----------",
+          !item.problems || item.problems === "Ko vấn đề"
+            ? "----------"
+            : removeVietnameseTones(item.problems),
+        ];
+        tableRows.push(serviceData);
+      });
+
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        styles: { font: "helvetica", fontSize: 10 },
+        headStyles: { fillColor: [22, 160, 133] },
+      });
+
+      doc.save("danh_sach_dich_vu.pdf");
+
+      // --- QUAN TRỌNG: Hiển thị modal thành công ---
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Lỗi xuất PDF:", error);
+      // --- Hiển thị modal lỗi ---
+      setShowErrorModal(true);
+    }
   };
 
-  // Kính lúp SVG
   const SearchIcon = () => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -179,13 +185,9 @@ const ServicesPage = () => {
 
   return (
     <>
-      {/* Sidebar placeholder */}
       <div className="w-[250px]" />
-      {/* Main content */}
       <div className="flex-1 p-8">
-        {/* Header Section */}
         <div className="flex flex-col gap-6 mb-8">
-          {/* Search Bar */}
           <div className="flex" style={{ justifyContent: "flex-start" }}>
             <div
               className="relative w-2/3 max-w-2xl"
@@ -198,13 +200,12 @@ const ServicesPage = () => {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo ID, Nội dung hoặc Số căn hộ..." // Cập nhật placeholder cho dễ hiểu
+                placeholder="Tìm theo ID, Nội dung hoặc Số căn hộ..."
                 className="w-full bg-white rounded-lg shadow-sm px-5 py-3 text-gray-700 focus:outline-none pl-10"
                 style={{ paddingLeft: "2.5rem" }}
               />
             </div>
           </div>
-          {/* Title & Actions */}
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-white">Dịch vụ</h1>
             {!isDeleteMode ? (
@@ -247,18 +248,14 @@ const ServicesPage = () => {
           </div>
         </div>
 
-        {/* Service List */}
         <div className="flex flex-col gap-4">
           {filteredServices.map((item) => (
             <div
               key={item.id}
               className="rounded-2xl shadow-md flex items-stretch relative"
             >
-              {/* Accent bar */}
               <div className="w-2 bg-blue-500 rounded-l-2xl" />
-              {/* Card Content */}
               <div className="flex-1 grid grid-cols-12 items-center p-4 bg-white rounded-r-2xl gap-2 text-sm">
-                {/* ID */}
                 <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Dịch vụ ID
@@ -267,14 +264,12 @@ const ServicesPage = () => {
                     {item.id}
                   </div>
                 </div>
-                {/* Content */}
                 <div className="col-span-3">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Nội dung
                   </div>
                   <div className="font-bold text-gray-900">{item.content}</div>
                 </div>
-                {/* Apartment */}
                 <div className="col-span-1">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Số căn hộ
@@ -283,7 +278,6 @@ const ServicesPage = () => {
                     {item.apartment_id}
                   </div>
                 </div>
-                {/* Status - SỬA item.status THÀNH item.servicestatus */}
                 <div className="col-span-2">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Trạng thái
@@ -308,7 +302,6 @@ const ServicesPage = () => {
                           const data = await res.json();
                           if (data.message) {
                             alert("Cập nhật trạng thái thành công!");
-                            // Reload lại danh sách dịch vụ
                             const resReload = await fetch(
                               `${API_BASE_URL}/services`
                             );
@@ -334,7 +327,6 @@ const ServicesPage = () => {
                     </select>
                   </div>
                 </div>
-                {/* Date */}
                 <div className="col-span-2">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Ngày xử lý
@@ -345,7 +337,6 @@ const ServicesPage = () => {
                       : "----------"}
                   </div>
                 </div>
-                {/* Phản ánh dịch vụ - HIỂN THỊ TÌNH TRẠNG PHẢN HỒI Ở DƯỚI */}
                 <div className="col-span-2">
                   <div className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Phản ánh dịch vụ
@@ -356,7 +347,6 @@ const ServicesPage = () => {
                       : item.problems}
                   </div>
                 </div>
-                {/* Action hoặc Checkbox Delete Mode */}
                 <div className="col-span-1 flex justify-end items-center">
                   {!isDeleteMode ? (
                     <div></div>
@@ -394,8 +384,6 @@ const ServicesPage = () => {
         </div>
       </div>
 
-      {/* Modals placed outside main loop for cleaner DOM structure, though logic remains same */}
-      {/* Confirm Delete Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md flex flex-col items-center">
@@ -436,7 +424,6 @@ const ServicesPage = () => {
         </div>
       )}
 
-      {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
@@ -463,7 +450,8 @@ const ServicesPage = () => {
               />
             </svg>
             <div className="text-lg font-bold text-center mb-2">
-              Xóa dịch vụ thành công!
+              {/* Đã sửa nội dung thông báo cho phù hợp */}
+              Thao tác thành công!
             </div>
             <button
               className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded font-bold shadow"
@@ -475,7 +463,6 @@ const ServicesPage = () => {
         </div>
       )}
 
-      {/* Error Modal */}
       {showErrorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-xs flex flex-col items-center">
@@ -502,7 +489,7 @@ const ServicesPage = () => {
               />
             </svg>
             <div className="text-lg font-bold text-center mb-2">
-              Xóa dịch vụ không thành công!
+              Thao tác không thành công!
             </div>
             <button
               className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded font-bold shadow"
