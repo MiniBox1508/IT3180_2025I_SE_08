@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-// --- THƯ VIỆN CHO PDF ---
+// --- THƯ VIỆN CHO PDF (ĐÃ SỬA IMPORT) ---
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // SỬA: Import object autoTable
+import autoTable from "jspdf-autotable"; // Sửa cách import để lấy hàm autoTable
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -105,10 +105,9 @@ const ServicesPage = () => {
     }
   };
 
-  // --- LOGIC XUẤT PDF (ĐÃ SỬA LỖI) ---
+  // --- LOGIC XUẤT PDF (ĐÃ FIX LỖI AUTOTABLE) ---
   const handleExportPDF = () => {
     try {
-      // Kiểm tra xem có dữ liệu để xuất không
       if (filteredServices.length === 0) {
         alert("Không có dữ liệu để xuất!");
         return;
@@ -145,7 +144,7 @@ const ServicesPage = () => {
         tableRows.push(serviceData);
       });
 
-      // SỬA: Gọi autoTable như một hàm độc lập và truyền doc vào
+      // SỬA LỖI: Gọi hàm autoTable(doc, options) thay vì doc.autoTable(options)
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
