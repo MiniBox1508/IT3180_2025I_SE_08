@@ -72,7 +72,7 @@ const RATING_OPTIONS = [
 const QualitySubModal = ({ value, onConfirm, onCancel }) => {
   const [selected, setSelected] = useState(value);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center ">
       <div className="bg-white rounded-2xl w-[90%] max-w-[400px] p-6 shadow-2xl relative">
         <h3 className="text-lg font-bold mb-4">Đánh giá chất lượng dịch vụ</h3>
         <div className="space-y-3 mb-6">
@@ -257,7 +257,7 @@ const ServiceDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-2xl p-8 relative shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Chi tiết dịch vụ</h2>
@@ -449,7 +449,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
   const isResidence = selectedType === "Khai báo tạm trú";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0  bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div
         className={`bg-white rounded-3xl p-8 w-full ${
           isResidence ? "max-w-2xl" : "max-w-lg"
@@ -685,7 +685,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
 
         {/* --- POPUP LỒNG: NHẬP NỘI DUNG KHÁC --- */}
         {isCustomContentOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center  animate-fade-in">
             <div className="bg-white rounded-2xl w-[90%] max-w-[400px] p-6 shadow-2xl relative">
               <h3 className="text-lg font-bold mb-4 text-gray-800">
                 Nhập nội dung
@@ -737,7 +737,7 @@ const RegisterServiceModal = ({ isOpen, onClose, onSubmit, apartments }) => {
 const CustomModal = ({ isOpen, onClose, type, title, onConfirm }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+    <div className="fixed inset-0  bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white rounded-3xl p-8 w-full max-w-md text-center shadow-2xl relative">
         <button
           onClick={onClose}
@@ -1596,7 +1596,7 @@ const ResidentService = () => {
 
               {/* --- MAIN FEEDBACK MODAL --- */}
               {feedbackModal.isOpen && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
+                <div className="fixed inset-0 z-40 flex items-center justify-center">
                   <div className="bg-white rounded-2xl w-[90%] max-w-lg p-6 shadow-2xl relative">
                     <button
                       onClick={handleCloseFeedbackModal}
