@@ -3,6 +3,10 @@ import React, { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 const statusColor = {
@@ -31,12 +35,17 @@ const removeVietnameseTones = (str) => {
 const ServicesPage = () => {
   const [search, setSearch] = useState("");
   const [services, setServices] = useState([]);
+  
   // Multi-Select Delete Workflow states
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // --- STATE PHÂN TRANG ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
 
   const getToken = () => localStorage.getItem("token");
 
@@ -60,6 +69,11 @@ const ServicesPage = () => {
     fetchServices();
   }, []);
 
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   // --- LOGIC TÌM KIẾM MỚI ---
   const filteredServices = services.filter((item) => {
     const term = removeVietnameseTones(search).trim();
@@ -75,6 +89,25 @@ const ServicesPage = () => {
       apartmentStr.includes(term)
     );
   });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // Multi-Select Delete logic
   const handleToggleSelect = (id) => {
@@ -108,6 +141,7 @@ const ServicesPage = () => {
   // --- LOGIC XUẤT PDF (TIẾNG VIỆT + ROBOTO + NFC) ---
   const handleExportPDF = async () => {
     try {
+      // Xuất toàn bộ danh sách đã lọc (không bị cắt bởi phân trang)
       if (filteredServices.length === 0) {
         alert("Không có dữ liệu để xuất!");
         return;
@@ -275,7 +309,8 @@ const ServicesPage = () => {
         </div>
 
         <div className="flex flex-col gap-4">
-          {filteredServices.map((item) => (
+          {/* Render danh sách đã được cắt (Pagination) */}
+          {currentServices.map((item) => (
             <div
               key={item.id}
               className="rounded-2xl shadow-md flex items-stretch relative"
@@ -408,6 +443,42 @@ const ServicesPage = () => {
             </div>
           ))}
         </div>
+
+        {/* --- PAGINATION CONTROLS --- */}
+        {filteredServices.length > 0 && (
+          <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+            {/* Nút Prev */}
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+                currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              }`}
+            >
+              <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            </button>
+
+            {/* Thanh hiển thị số trang */}
+            <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+              <span className="text-lg">Trang</span>
+              <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+                {currentPage}
+              </div>
+              <span className="text-lg">/ {totalPages}</span>
+            </div>
+
+            {/* Nút Next */}
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+                currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              }`}
+            >
+              <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            </button>
+          </div>
+        )}
       </div>
 
       {showConfirmModal && (

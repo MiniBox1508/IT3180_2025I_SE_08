@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// Dân cư chỉ cần StatusModal để xem kết quả thanh toán từ trang QR (nếu cần)
-// và ConfirmationModal không dùng ở đây.
-// import { StatusModal } from "../layouts/StatusModal";
-// import acceptIcon from "../images/accept_icon.png";
-// import notAcceptIcon from "../images/not_accept_icon.png";
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- Component hiển thị một mục thanh toán (Giữ nguyên) ---
 const PaymentItem = ({ item }) => {
@@ -85,6 +84,10 @@ export const ResidentPaymentPage = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // Hàm lấy JWT token từ localStorage
   const getToken = () => {
     return localStorage.getItem("token");
@@ -131,7 +134,12 @@ export const ResidentPaymentPage = () => {
     fetchPayments();
   }, []);
 
-  // Logic Lọc và Sắp xếp dữ liệu (CẬP NHẬT TẠI ĐÂY)
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Logic Lọc và Sắp xếp dữ liệu
   const filteredPayments = payments
     .filter((payment) => {
       if (!searchTerm.trim()) {
@@ -158,7 +166,25 @@ export const ResidentPaymentPage = () => {
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     });
-  // ----------------------------
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPayments = filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // Xử lý Loading State
   if (isLoading) {
@@ -188,7 +214,8 @@ export const ResidentPaymentPage = () => {
 
     return (
       <div className="space-y-4">
-        {filteredPayments.map((item) => (
+        {/* Render danh sách đã được cắt (Pagination) */}
+        {currentPayments.map((item) => (
           <PaymentItem key={item.id} item={item} />
         ))}
       </div>
@@ -218,7 +245,7 @@ export const ResidentPaymentPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thanh toán hoặc Loại phí..." // Cập nhật placeholder
+            placeholder="Tìm theo ID thanh toán hoặc Loại phí..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -232,6 +259,42 @@ export const ResidentPaymentPage = () => {
       </div>
 
       {renderContent()}
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredPayments.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner text-white">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
