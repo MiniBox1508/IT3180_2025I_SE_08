@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
+
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // Giả định bạn có component Modal để sử dụng lại cho việc Thêm/Sửa
@@ -333,6 +338,10 @@ export const ResidentViewPage = () => {
   // --- State cho Thanh Tìm kiếm ---
   const [searchTerm, setSearchTerm] = useState("");
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // --- READ (Đọc danh sách cư dân) ---
   const fetchResidents = async () => {
     setIsLoading(true);
@@ -382,6 +391,11 @@ export const ResidentViewPage = () => {
     fetchResidents();
   }, []);
 
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // --- LOGIC LỌC DỮ LIỆU (Search bar - ID HOẶC TÊN) ---
   const filteredResidents = residents.filter((resident) => {
     // Nếu không có searchTerm, trả về tất cả
@@ -396,6 +410,25 @@ export const ResidentViewPage = () => {
 
     return matchId || matchName;
   });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentResidents = filteredResidents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // --- VIEW (Xem chi tiết) ---
   const handleViewClick = (resident) => {
@@ -463,14 +496,14 @@ export const ResidentViewPage = () => {
       <div className="space-y-4">
         {" "}
         {/* Khoảng cách dọc giữa các thẻ */}
-        {filteredResidents.length === 0 ? (
+        {currentResidents.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
             {" "}
             {/* Nền thẻ trắng */}
             Không tìm thấy kết quả phù hợp.
           </div>
         ) : (
-          filteredResidents.map((resident) => (
+          currentResidents.map((resident) => (
             // Thẻ thông tin cư dân (Giao diện Sáng)
             <div
               key={resident.id}
@@ -573,6 +606,43 @@ export const ResidentViewPage = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredResidents.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
+
       {/* Modals */}
       {/* --- MODAL XEM CHI TIẾT --- */}
       <ResidentFormModal
