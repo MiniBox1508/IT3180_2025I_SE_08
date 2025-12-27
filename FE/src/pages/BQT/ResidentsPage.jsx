@@ -8,8 +8,8 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-import arrowLeft from "../../images/Arrow-Left-Mini-Circle.png"; 
-import arrowRight from "../../images/Arrow-Right-Mini-Circle.png";
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
