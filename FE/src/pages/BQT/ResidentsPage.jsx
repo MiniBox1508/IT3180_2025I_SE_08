@@ -8,6 +8,9 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
+import arrowLeft from "../../images/Arrow-Left-Mini-Circle.png"; 
+import arrowRight from "../../images/Arrow-Right-Mini-Circle.png";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- VALIDATION HELPERS ---
@@ -395,6 +398,10 @@ export const ResidentsPage = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // Reference cho input file
   const fileInputRef = useRef(null);
 
@@ -421,6 +428,11 @@ export const ResidentsPage = () => {
     fetchResidents();
   }, []);
 
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // --- LOGIC TÌM KIẾM ---
   const filteredResidents = residents.filter((resident) => {
     if (!searchTerm.trim()) {
@@ -433,6 +445,25 @@ export const ResidentsPage = () => {
     );
     return idMatch || nameMatch;
   });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentResidents = filteredResidents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // Handlers
   const handleAddClick = () => {
@@ -499,14 +530,14 @@ export const ResidentsPage = () => {
         { header: "Trạng thái", key: "state", width: 15 },
       ];
 
-      // Thêm dữ liệu
+      // Thêm dữ liệu (Xuất TOÀN BỘ danh sách hiện có, không phải chỉ trang hiện tại)
       residents.forEach((res) => {
         worksheet.addRow({
           first_name: res.first_name,
           last_name: res.last_name,
           phone: res.phone,
           apartment_id: res.apartment_id,
-          password: "", // Không xuất mật khẩu thật vì bảo mật/không lưu raw
+          password: "", 
           email: res.email || "",
           cccd: res.cccd || "",
           birth_date: res.birth_date
@@ -566,8 +597,6 @@ export const ResidentsPage = () => {
         // Đọc từng dòng (bỏ qua header dòng 1)
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > 1) {
-            // Mapping cột theo thứ tự file xuất (index bắt đầu từ 1)
-            // 1: Tên, 2: Họ, 3: SĐT, 4: Mã CH, 5: Pass, 6: Email, 7: CCCD, 8: DOB, 9: Status, 10: Role, 11: State
             const rowData = {
               first_name: row.getCell(1).text,
               last_name: row.getCell(2).text,
@@ -587,11 +616,9 @@ export const ResidentsPage = () => {
           }
         });
 
-        // Loop và gọi API add
         const token = getToken();
         await Promise.all(
           dataToImport.map(async (userData) => {
-            // Validate trường bắt buộc
             if (
               !userData.first_name ||
               !userData.last_name ||
@@ -624,12 +651,10 @@ export const ResidentsPage = () => {
           })
         );
 
-        // Reset input file
         if (fileInputRef.current) fileInputRef.current.value = "";
 
-        // Reload data và hiện thông báo
         fetchResidents();
-        setModalStatus("success"); // Luôn hiện icon success nhưng báo chi tiết
+        setModalStatus("success"); 
         setStatusMessage(
           `Nhập dữ liệu hoàn tất:\nThành công: ${successCount}\nThất bại: ${failCount}`
         );
@@ -757,7 +782,6 @@ export const ResidentsPage = () => {
       <div className="flex justify-end gap-4 mb-8">
         {!isDeleteMode ? (
           <>
-            {/* Input file ẩn cho chức năng Import */}
             <input
               type="file"
               accept=".xlsx, .xls"
@@ -815,12 +839,13 @@ export const ResidentsPage = () => {
       </div>
 
       <div className="space-y-4">
-        {filteredResidents.length === 0 ? (
+        {/* Render danh sách đã được cắt (Pagination) */}
+        {currentResidents.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
             Không tìm thấy cư dân nào.
           </div>
         ) : (
-          filteredResidents.map((resident) => (
+          currentResidents.map((resident) => (
             <div
               key={resident.id}
               className="bg-white p-4 rounded-lg shadow-md flex items-center gap-4 text-gray-900 relative"
@@ -934,6 +959,42 @@ export const ResidentsPage = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredResidents.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       <ResidentFormModal
         isOpen={isModalOpen}
