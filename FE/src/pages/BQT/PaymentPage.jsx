@@ -7,6 +7,10 @@ import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 // === Khai báo API Base URL
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -34,9 +38,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
 };
 
@@ -450,7 +453,10 @@ export const PaymentPage = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]); 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  // ------------------------------------
+  
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
 
   // Hàm Fetch dữ liệu Thanh toán
   const fetchPayments = async () => {
@@ -499,7 +505,12 @@ export const PaymentPage = () => {
     fetchResidents();
   }, []);
 
-  // --- LOGIC LỌC VÀ SẮP XẾP (ĐÃ CẬP NHẬT) ---
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // --- LOGIC LỌC VÀ SẮP XẾP ---
   const filteredPayments = payments
     .filter((payment) => {
       if (!searchTerm.trim()) return true;
@@ -517,6 +528,25 @@ export const PaymentPage = () => {
       if (isAPaid !== isBPaid) return isAPaid - isBPaid;
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPayments = filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // --- HANDLERS CHO XÓA HÀNG LOẠT ---
   const toggleDeleteMode = () => {
@@ -679,7 +709,7 @@ export const PaymentPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..." // Cập nhật placeholder
+            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -740,7 +770,7 @@ export const PaymentPage = () => {
             Không có hóa đơn thanh toán nào phù hợp với tìm kiếm.
           </div>
         ) : (
-          filteredPayments.map((item) => (
+          currentPayments.map((item) => (
             <PaymentItem
               key={item.id}
               item={item}
@@ -752,6 +782,42 @@ export const PaymentPage = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredPayments.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       {/* Modal Thêm Thanh Toán (Bulk Insert) */}
       <PaymentFormModal

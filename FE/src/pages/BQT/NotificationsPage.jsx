@@ -6,6 +6,10 @@ import { FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
 // --- HÀM LẤY TOKEN ---
@@ -379,6 +383,10 @@ export const NotificationsPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // --- FETCH DATA ---
   const fetchNotifications = async () => {
     setIsLoading(true);
@@ -406,6 +414,11 @@ export const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // --- FILTER (LOGIC TÌM KIẾM MỚI) ---
   const filteredNotifications = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
@@ -418,6 +431,25 @@ export const NotificationsPage = () => {
 
     return idMatch || recipientMatch;
   });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentNotifications = filteredNotifications.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   // --- HANDLERS ADD/EDIT ---
   const handleAddClick = () => {
@@ -624,12 +656,12 @@ export const NotificationsPage = () => {
 
       {/* Danh sách thông báo */}
       <div className="space-y-4">
-        {filteredNotifications.length === 0 ? (
+        {currentNotifications.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
             Không có thông báo nào phù hợp với tìm kiếm.
           </div>
         ) : (
-          filteredNotifications.map((item) => (
+          currentNotifications.map((item) => (
             <NotificationItem
               key={item.id}
               item={item}
@@ -641,6 +673,42 @@ export const NotificationsPage = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredNotifications.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       {/* Form Modal (Add & Edit) */}
       <NotificationFormModal
