@@ -664,6 +664,7 @@ export const PaymentPage = () => {
     }
   };
 
+  // --- HÀM XỬ LÝ FILE EXCEL VỚI LOG CHI TIẾT ---
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -672,6 +673,14 @@ export const PaymentPage = () => {
     const reader = new FileReader();
 
     reader.onload = async (evt) => {
+      console.log("--- BẮT ĐẦU IMPORT ---");
+      // Log danh sách cư dân hiện tại để kiểm tra
+      console.log(
+        "Danh sách cư dân hiện có (Residents State):",
+        residents.length,
+        residents
+      );
+
       try {
         const buffer = evt.target.result;
         await workbook.xlsx.load(buffer);
@@ -682,24 +691,21 @@ export const PaymentPage = () => {
         const dataToImport = [];
 
         // Tìm dòng header
-        let headerRowNumber = 1; // Mặc định là 1, nhưng nên kiểm tra
-        let colMap = {}; // Map tên cột -> index
+        let headerRowNumber = 1;
+        let colMap = {};
 
         worksheet.eachRow((row, rowNumber) => {
-          if (Object.keys(colMap).length > 0) return; // Đã tìm thấy header
+          if (Object.keys(colMap).length > 0) return;
 
-          const rowValues = row.values; // Mảng giá trị của row (index 1-based)
-
+          const rowValues = row.values;
           if (Array.isArray(rowValues)) {
-            // Kiểm tra xem dòng này có chứa các header cần thiết không
-            // Chuẩn hóa text để so sánh (lowercase)
-            // --- FIX LỖI: THÊM KIỂM TRA v TỒN TẠI TRƯỚC KHI GỌI TRIM ---
+            // Log rowValues để debug
+            console.log(`[Tìm Header] Row ${rowNumber}:`, rowValues);
+
             const normalizedCells = rowValues.map((v) =>
               v ? String(v).trim().toLowerCase() : ""
             );
 
-            // Check các cột yêu cầu
-            // --- FIX LỖI: THÊM KIỂM TRA v TỒN TẠI TRƯỚC KHI GỌI INCLUDES ---
             const idxApartment = normalizedCells.findIndex(
               (v) => v === "số căn hộ"
             );
@@ -709,8 +715,6 @@ export const PaymentPage = () => {
             const idxAmount = normalizedCells.findIndex(
               (v) => v && v.includes("số tiền")
             );
-            // "Hạn đóng" - tìm cột chứa từ khóa này, nhưng sẽ không gửi lên API nếu API chưa hỗ trợ
-            // nhưng code vẫn cần nhận diện
             const idxDueDate = normalizedCells.findIndex(
               (v) => v && v.includes("hạn đóng")
             );
@@ -718,43 +722,39 @@ export const PaymentPage = () => {
             if (idxApartment !== -1 && idxFeeType !== -1 && idxAmount !== -1) {
               headerRowNumber = rowNumber;
               colMap = {
-                apartment: idxApartment, // index trong rowValues
+                apartment: idxApartment,
                 feetype: idxFeeType,
                 amount: idxAmount,
-                duedate: idxDueDate, // Có thể là -1 nếu không có
+                duedate: idxDueDate,
               };
+              console.log("-> Đã tìm thấy Header tại dòng:", rowNumber);
+              console.log("-> Mapping Cột:", colMap);
             }
           }
         });
 
         if (Object.keys(colMap).length === 0) {
           throw new Error(
-            "Không tìm thấy các cột: 'Số căn hộ', 'Loại phí', 'Số tiền (VNĐ)' trong file Excel."
+            "Không tìm thấy các cột: 'Số căn hộ', 'Loại phí', 'Số tiền (VNĐ)'"
           );
         }
 
-        // Đọc dữ liệu từ dòng headerRowNumber + 1
+        // Đọc dữ liệu
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
-            // ExcelJS row.values là sparse array, index bắt đầu từ 1.
-            // Nếu rowValues[1] là cột A. colMap lưu index khớp với rowValues.
-
             const apartmentVal = rowValues[colMap.apartment];
             const feetypeVal = rowValues[colMap.feetype];
             const amountVal = rowValues[colMap.amount];
 
-            // Xử lý dữ liệu thô
             const apartment_id = apartmentVal
               ? String(apartmentVal).trim()
               : "";
             const feetype = feetypeVal ? String(feetypeVal).trim() : "";
-            // Amount có thể là number hoặc string có dấu phẩy
             let amount = 0;
             if (amountVal) {
               if (typeof amountVal === "number") amount = amountVal;
               else {
-                // Remove non-numeric chars except dot/comma
                 const cleanStr = String(amountVal)
                   .replace(/[^0-9.,]/g, "")
                   .replace(",", ".");
@@ -765,25 +765,60 @@ export const PaymentPage = () => {
             if (apartment_id && feetype && amount > 0) {
               dataToImport.push({ apartment_id, feetype, amount });
             } else {
-              failCount++; // Dòng thiếu dữ liệu
+              console.warn(
+                `[Bỏ qua dòng ${rowNumber}] Thiếu dữ liệu hoặc amount <= 0.`,
+                { apartment_id, feetype, amount }
+              );
+              failCount++;
             }
           }
         });
 
+        console.log("-> Dữ liệu thô chuẩn bị import:", dataToImport);
+
         // Xử lý call API
         const token = getToken();
         await Promise.all(
-          dataToImport.map(async (item) => {
-            // Tìm resident_id từ residents state
-            const resident = residents.find(
+          dataToImport.map(async (item, index) => {
+            console.log(
+              `\n[Xử lý Item ${index + 1}] Căn hộ: "${item.apartment_id}"`
+            );
+
+            // LOGIC TÌM CƯ DÂN & DEBUG
+            // 1. Tìm chính xác
+            let resident = residents.find(
               (r) =>
                 r.apartment_id === item.apartment_id && r.state === "active"
             );
 
             if (!resident) {
+              // 2. Thử tìm lỏng lẻo (case-insensitive) để log gợi ý lỗi
+              const foundLoose = residents.find(
+                (r) =>
+                  String(r.apartment_id).trim().toLowerCase() ===
+                    String(item.apartment_id).trim().toLowerCase() &&
+                  r.state === "active"
+              );
+
+              if (foundLoose) {
+                console.error(
+                  `-> [LỖI TÌM KIẾM] Tìm thấy căn hộ "${foundLoose.apartment_id}" nhưng không khớp chính xác Hoa/Thường với Excel "${item.apartment_id}".`
+                );
+              } else {
+                console.error(
+                  `-> [LỖI TÌM KIẾM] Không tìm thấy cư dân active cho căn hộ "${item.apartment_id}".`
+                );
+                // Log thử 5 căn hộ đầu tiên trong DB để so sánh
+                console.log(
+                  "-> Sample DB Apartments:",
+                  residents.slice(0, 5).map((r) => r.apartment_id)
+                );
+              }
               failCount++;
               return;
             }
+
+            console.log(`-> Tìm thấy Resident ID: ${resident.id}`);
 
             const payload = {
               resident_id: resident.id,
@@ -803,24 +838,26 @@ export const PaymentPage = () => {
               });
 
               if (res.ok) {
+                console.log("-> API Success");
                 successCount++;
               } else {
+                const errText = await res.text();
+                console.error("-> API Failed:", errText);
                 failCount++;
               }
             } catch (err) {
+              console.error("-> Network Error:", err);
               failCount++;
             }
           })
         );
 
-        // Reset file input
         if (fileInputRef.current) fileInputRef.current.value = "";
 
-        // Reload & Show Status
         fetchPayments();
-        setModalStatus("success"); // Luôn hiện icon success nhưng nội dung chi tiết
+        setModalStatus("success");
         setStatusMessage(
-          `Kết quả nhập dữ liệu:\nThành công: ${successCount}\nThất bại: ${failCount}`
+          `Kết quả nhập dữ liệu:\nThành công: ${successCount}\nThất bại: ${failCount}\n(Xem Console để biết chi tiết lỗi)`
         );
         setIsStatusModalOpen(true);
       } catch (err) {
