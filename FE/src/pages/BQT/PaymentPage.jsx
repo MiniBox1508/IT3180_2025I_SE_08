@@ -693,24 +693,26 @@ export const PaymentPage = () => {
           if (Array.isArray(rowValues)) {
             // Kiểm tra xem dòng này có chứa các header cần thiết không
             // Chuẩn hóa text để so sánh (lowercase)
+            // --- FIX LỖI: THÊM KIỂM TRA v TỒN TẠI TRƯỚC KHI GỌI TRIM ---
             const normalizedCells = rowValues.map((v) =>
               v ? String(v).trim().toLowerCase() : ""
             );
 
             // Check các cột yêu cầu
+            // --- FIX LỖI: THÊM KIỂM TRA v TỒN TẠI TRƯỚC KHI GỌI INCLUDES ---
             const idxApartment = normalizedCells.findIndex(
               (v) => v === "số căn hộ"
             );
-            const idxFeeType = normalizedCells.findIndex((v) =>
-              v.includes("loại phí")
+            const idxFeeType = normalizedCells.findIndex(
+              (v) => v && v.includes("loại phí")
             );
-            const idxAmount = normalizedCells.findIndex((v) =>
-              v.includes("số tiền")
+            const idxAmount = normalizedCells.findIndex(
+              (v) => v && v.includes("số tiền")
             );
             // "Hạn đóng" - tìm cột chứa từ khóa này, nhưng sẽ không gửi lên API nếu API chưa hỗ trợ
             // nhưng code vẫn cần nhận diện
-            const idxDueDate = normalizedCells.findIndex((v) =>
-              v.includes("hạn đóng")
+            const idxDueDate = normalizedCells.findIndex(
+              (v) => v && v.includes("hạn đóng")
             );
 
             if (idxApartment !== -1 && idxFeeType !== -1 && idxAmount !== -1) {
@@ -948,7 +950,6 @@ export const PaymentPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..."
             placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
