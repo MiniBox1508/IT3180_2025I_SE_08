@@ -10,7 +10,7 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 import ExcelJS from "exceljs";
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // === Khai báo API Base URL
@@ -494,7 +494,7 @@ export const PaymentPage = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
+
   // --- STATE PHÂN TRANG (MỚI) ---
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
@@ -549,14 +549,11 @@ export const PaymentPage = () => {
     fetchResidents();
   }, []);
 
-<<<<<<< HEAD
-=======
   // --- RESET TRANG KHI TÌM KIẾM ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
->>>>>>> f858a809d9ed51f5aeb8baecb4266ae8532b5f72
   // --- LOGIC LỌC VÀ SẮP XẾP ---
   const filteredPayments = payments
     .filter((payment) => {
@@ -583,7 +580,10 @@ export const PaymentPage = () => {
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentPayments = filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
+  const currentPayments = filteredPayments.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
 
   // --- HANDLER CHUYỂN TRANG ---
@@ -948,11 +948,8 @@ export const PaymentPage = () => {
           </span>
           <input
             type="search"
-<<<<<<< HEAD
             placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..."
-=======
-            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..." 
->>>>>>> f858a809d9ed51f5aeb8baecb4266ae8532b5f72
+            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -1047,10 +1044,16 @@ export const PaymentPage = () => {
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
           {/* Thanh hiển thị số trang */}
@@ -1067,10 +1070,16 @@ export const PaymentPage = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
