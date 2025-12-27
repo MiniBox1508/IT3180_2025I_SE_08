@@ -3,6 +3,10 @@ import axios from "axios";
 import dayjs from "dayjs";
 import ExcelJS from "exceljs";
 
+// --- IMPORT HÌNH ẢNH MŨI TÊN (Thêm vào để làm phân trang) ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 // --- FEEDBACK DROPDOWN & SUBMODAL ---
 const PROBLEM_OPTIONS = [
   "Không vấn đề",
@@ -908,6 +912,10 @@ const ResidentService = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // --- FETCH DATA ---
   const fetchData = async () => {
     try {
@@ -946,6 +954,11 @@ const ResidentService = () => {
     };
     initData();
   }, []);
+
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const uniqueApartments = useMemo(() => {
     if (!residents) return [];
@@ -1365,6 +1378,25 @@ const ResidentService = () => {
       String(item.id).includes(searchTerm)
   );
 
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentServices = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen text-gray-800">
       <div className="flex justify-start items-center mb-8">
@@ -1457,10 +1489,10 @@ const ResidentService = () => {
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <p className="text-white text-center">Đang tải...</p>
-        ) : filteredList.length === 0 ? (
+        ) : currentServices.length === 0 ? (
           <p className="text-white text-center">Chưa có dịch vụ nào.</p>
         ) : (
-          filteredList.map((item) => (
+          currentServices.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
@@ -1725,6 +1757,42 @@ const ResidentService = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS (GIAO DIỆN PHÂN TRANG) --- */}
+      {filteredList.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       <RegisterServiceModal
         isOpen={isRegisterModalOpen}
