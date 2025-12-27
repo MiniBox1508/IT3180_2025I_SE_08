@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 // === Import Layout
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
@@ -6,6 +6,8 @@ import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 import { FiCheckCircle, FiXCircle, FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
+// === Import ExcelJS
+import ExcelJS from "exceljs";
 
 // === Khai báo API Base URL
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -34,9 +36,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  // Một số hệ thống mã hóa tiếng Việt bằng tổ hợp ký tự
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
 };
 
@@ -51,7 +52,6 @@ const PaymentFormModal = ({
   error,
   setError,
 }) => {
-  // Tạo danh sách căn hộ duy nhất từ residentOptions để hiển thị trong Dropdown
   const uniqueApartments = useMemo(() => {
     if (!residentOptions) return [];
     const apartments = residentOptions
@@ -60,51 +60,60 @@ const PaymentFormModal = ({
     return [...new Set(apartments)].sort();
   }, [residentOptions]);
 
-  // State quản lý danh sách các dòng (rows)
   const [rows, setRows] = useState([
-    { id: Date.now(), apartment_id: "", feetype: "", amount: "", due_date: "" }
+    { id: Date.now(), apartment_id: "", feetype: "", amount: "", due_date: "" },
   ]);
 
-  // Reset form khi mở modal
   useEffect(() => {
     if (isOpen) {
-      setRows([{ id: Date.now(), apartment_id: "", feetype: "", amount: "", due_date: "" }]);
+      setRows([
+        {
+          id: Date.now(),
+          apartment_id: "",
+          feetype: "",
+          amount: "",
+          due_date: "",
+        },
+      ]);
       setError("");
     }
   }, [isOpen, setError]);
 
-  // Handler thay đổi giá trị trong dòng
   const handleRowChange = (id, field, value) => {
     setRows((prevRows) =>
       prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     );
   };
 
-  // Thêm dòng mới
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: Date.now(), apartment_id: "", feetype: "", amount: "", due_date: "" },
+      {
+        id: Date.now(),
+        apartment_id: "",
+        feetype: "",
+        amount: "",
+        due_date: "",
+      },
     ]);
   };
 
-  // Xóa dòng
   const removeRow = (id) => {
     if (rows.length > 1) {
       setRows((prev) => prev.filter((row) => row.id !== id));
     }
   };
 
-  // Xử lý Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // 1. Validate dữ liệu từng dòng
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (!row.apartment_id || !row.feetype || !row.amount) {
-        setError(`Dòng ${i + 1}: Vui lòng chọn Căn hộ, nhập Loại phí và Số tiền.`);
+        setError(
+          `Dòng ${i + 1}: Vui lòng chọn Căn hộ, nhập Loại phí và Số tiền.`
+        );
         return;
       }
       if (parseFloat(row.amount) <= 0) {
@@ -115,42 +124,45 @@ const PaymentFormModal = ({
 
     try {
       const token = getToken();
-      
-      // 2. Gửi API song song cho tất cả các dòng
-      await Promise.all(rows.map(async (row) => {
-        // Tìm resident_id tương ứng với apartment_id được chọn
-        const resident = residentOptions.find(
-          r => r.apartment_id === row.apartment_id && r.state === 'active'
-        );
 
-        if (!resident) {
-          throw new Error(`Không tìm thấy cư dân cho căn hộ ${row.apartment_id}`);
-        }
+      await Promise.all(
+        rows.map(async (row) => {
+          const resident = residentOptions.find(
+            (r) => r.apartment_id === row.apartment_id && r.state === "active"
+          );
 
-        const dataToSend = {
-          resident_id: resident.id,
-          amount: parseFloat(row.amount),
-          feetype: row.feetype,
-          payment_form: "Chuyển khoản QR", 
-        };
+          if (!resident) {
+            throw new Error(
+              `Không tìm thấy cư dân cho căn hộ ${row.apartment_id}`
+            );
+          }
 
-        const response = await fetch(`${API_BASE_URL}/payments`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(dataToSend),
-        });
+          const dataToSend = {
+            resident_id: resident.id,
+            amount: parseFloat(row.amount),
+            feetype: row.feetype,
+            payment_form: "Chuyển khoản QR",
+          };
 
-        if (!response.ok) {
-          const result = await response.json().catch(() => ({}));
-          throw new Error(result.error || `Lỗi khi tạo hóa đơn cho ${row.apartment_id}`);
-        }
-      }));
+          const response = await fetch(`${API_BASE_URL}/payments`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(dataToSend),
+          });
 
-      // 3. Thành công
-      onSave(); 
+          if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            throw new Error(
+              result.error || `Lỗi khi tạo hóa đơn cho ${row.apartment_id}`
+            );
+          }
+        })
+      );
+
+      onSave();
       onClose();
     } catch (err) {
       console.error("API Error:", err);
@@ -162,10 +174,14 @@ const PaymentFormModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col" style={{ maxHeight: '90vh' }}>
-        
-        <h2 className="text-xl font-bold mb-4 text-gray-800">Thêm hóa đơn mới</h2>
-        
+      <div
+        className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        <h2 className="text-xl font-bold mb-4 text-gray-800">
+          Thêm hóa đơn mới
+        </h2>
+
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 text-sm">
             {error}
@@ -173,18 +189,25 @@ const PaymentFormModal = ({
         )}
 
         <div className="flex-1 overflow-hidden flex flex-col border border-gray-200 rounded-lg">
-          {/* Table Header */}
           <div className="overflow-y-auto custom-scrollbar flex-1">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">Số căn hộ</th>
-                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[25%]">Loại phí</th>
-                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">Số tiền (VNĐ)</th>
-                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[25%]">Hạn đóng</th>
+                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">
+                    Số căn hộ
+                  </th>
+                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[25%]">
+                    Loại phí
+                  </th>
+                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">
+                    Số tiền (VNĐ)
+                  </th>
+                  <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[25%]">
+                    Hạn đóng
+                  </th>
                   <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[10%] text-center">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={addRow}
                       className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto shadow-md"
                       title="Thêm dòng mới"
@@ -196,55 +219,67 @@ const PaymentFormModal = ({
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                    {/* Cột 1: Căn hộ */}
+                  <tr
+                    key={row.id}
+                    className="hover:bg-blue-50 transition-colors"
+                  >
                     <td className="p-2">
                       <select
                         value={row.apartment_id}
-                        onChange={(e) => handleRowChange(row.id, "apartment_id", e.target.value)}
+                        onChange={(e) =>
+                          handleRowChange(
+                            row.id,
+                            "apartment_id",
+                            e.target.value
+                          )
+                        }
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                       >
                         <option value="">-- Chọn --</option>
                         {uniqueApartments.map((apt) => (
-                          <option key={apt} value={apt}>{apt}</option>
+                          <option key={apt} value={apt}>
+                            {apt}
+                          </option>
                         ))}
                       </select>
                     </td>
-                    
-                    {/* Cột 2: Loại phí */}
+
                     <td className="p-2">
                       <input
                         type="text"
                         value={row.feetype}
-                        onChange={(e) => handleRowChange(row.id, "feetype", e.target.value)}
+                        onChange={(e) =>
+                          handleRowChange(row.id, "feetype", e.target.value)
+                        }
                         placeholder="VD: Phí QL T10"
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </td>
 
-                    {/* Cột 3: Số tiền */}
                     <td className="p-2">
                       <input
                         type="number"
                         value={row.amount}
-                        onChange={(e) => handleRowChange(row.id, "amount", e.target.value)}
+                        onChange={(e) =>
+                          handleRowChange(row.id, "amount", e.target.value)
+                        }
                         placeholder="0"
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         min="0"
                       />
                     </td>
 
-                    {/* Cột 4: Hạn đóng */}
                     <td className="p-2">
                       <input
                         type="date"
                         value={row.due_date}
-                        onChange={(e) => handleRowChange(row.id, "due_date", e.target.value)}
+                        onChange={(e) =>
+                          handleRowChange(row.id, "due_date", e.target.value)
+                        }
                         className="w-full p-2 border border-gray-300 rounded text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </td>
 
-                    {/* Cột 5: Xóa */}
                     <td className="p-2 text-center">
                       {rows.length > 1 && (
                         <button
@@ -264,7 +299,6 @@ const PaymentFormModal = ({
           </div>
         </div>
 
-        {/* Footer Buttons */}
         <div className="flex justify-end space-x-4 pt-6 mt-2 border-t border-gray-100">
           <button
             type="button"
@@ -360,7 +394,13 @@ const ChangeStatusModal = ({ isOpen, onClose, payment, onConfirm }) => {
 // ===================================================
 
 // === COMPONENT: PAYMENT ITEM (Giữ nguyên giao diện cũ) ===
-const PaymentItem = ({ item, onStatusClick, isDeleteMode, isSelected, onToggleSelect }) => {
+const PaymentItem = ({
+  item,
+  onStatusClick,
+  isDeleteMode,
+  isSelected,
+  onToggleSelect,
+}) => {
   const isPaid = item.status_text === "Đã thanh toán";
   const formattedPaymentDate = item.payment_date
     ? new Date(item.payment_date).toLocaleDateString("vi-VN")
@@ -381,7 +421,7 @@ const PaymentItem = ({ item, onStatusClick, isDeleteMode, isSelected, onToggleSe
       )}
 
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-      
+
       {/* Grid thông tin */}
       <div className="flex-1 grid grid-cols-6 gap-4 items-center pl-8">
         <div className="text-center">
@@ -448,9 +488,12 @@ export const PaymentPage = () => {
 
   // --- STATE MỚI CHO CHỨC NĂNG XÓA ---
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]); 
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   // ------------------------------------
+
+  // --- REF CHO INPUT FILE EXCEL ---
+  const fileInputRef = useRef(null);
 
   // Hàm Fetch dữ liệu Thanh toán
   const fetchPayments = async () => {
@@ -499,15 +542,19 @@ export const PaymentPage = () => {
     fetchResidents();
   }, []);
 
-  // --- LOGIC LỌC VÀ SẮP XẾP (ĐÃ CẬP NHẬT) ---
+  // --- LOGIC LỌC VÀ SẮP XẾP ---
   const filteredPayments = payments
     .filter((payment) => {
       if (!searchTerm.trim()) return true;
       const term = removeVietnameseTones(searchTerm.trim());
-      
+
       const idMatch = String(payment.id).toLowerCase().includes(term);
-      const feeMatch = removeVietnameseTones(payment.feetype || "").includes(term);
-      const apartmentMatch = removeVietnameseTones(payment.apartment_id || "").includes(term);
+      const feeMatch = removeVietnameseTones(payment.feetype || "").includes(
+        term
+      );
+      const apartmentMatch = removeVietnameseTones(
+        payment.apartment_id || ""
+      ).includes(term);
 
       return idMatch || feeMatch || apartmentMatch;
     })
@@ -521,7 +568,7 @@ export const PaymentPage = () => {
   // --- HANDLERS CHO XÓA HÀNG LOẠT ---
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
-    setSelectedIds([]); 
+    setSelectedIds([]);
   };
 
   const handleToggleSelect = (id) => {
@@ -532,13 +579,13 @@ export const PaymentPage = () => {
 
   const handleDeleteSelectedClick = () => {
     if (selectedIds.length > 0) {
-      setShowConfirmModal(true); 
+      setShowConfirmModal(true);
     }
   };
 
   const handleConfirmDelete = async () => {
     setShowConfirmModal(false);
-    
+
     if (selectedIds.length === 0) return;
 
     try {
@@ -558,17 +605,15 @@ export const PaymentPage = () => {
       );
 
       fetchPayments(); // Reload list
-      setModalStatus("success"); // Sử dụng icon success
+      setModalStatus("success");
       setStatusMessage(`Đã xóa ${selectedIds.length} khoản phí thành công!`);
       setIsStatusModalOpen(true);
-      
-      // Reset trạng thái
+
       setIsDeleteMode(false);
       setSelectedIds([]);
-
     } catch (err) {
       console.error("Delete Error:", err);
-      setModalStatus("failure"); // Sử dụng icon failure
+      setModalStatus("failure");
       setStatusMessage("Có lỗi xảy ra khi xóa. Vui lòng thử lại.");
       setIsStatusModalOpen(true);
     }
@@ -577,7 +622,183 @@ export const PaymentPage = () => {
   const handleCancelDelete = () => {
     setShowConfirmModal(false);
   };
-  // ----------------------------------
+
+  // --- LOGIC NHẬP EXCEL ---
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target.result;
+        await workbook.xlsx.load(buffer);
+        const worksheet = workbook.getWorksheet(1); // Lấy sheet đầu tiên
+
+        let successCount = 0;
+        let failCount = 0;
+        const dataToImport = [];
+
+        // Tìm dòng header
+        let headerRowNumber = 1; // Mặc định là 1, nhưng nên kiểm tra
+        let colMap = {}; // Map tên cột -> index
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (Object.keys(colMap).length > 0) return; // Đã tìm thấy header
+
+          const rowValues = row.values; // Mảng giá trị của row (index 1-based)
+
+          if (Array.isArray(rowValues)) {
+            // Kiểm tra xem dòng này có chứa các header cần thiết không
+            // Chuẩn hóa text để so sánh (lowercase)
+            const normalizedCells = rowValues.map((v) =>
+              v ? String(v).trim().toLowerCase() : ""
+            );
+
+            // Check các cột yêu cầu
+            const idxApartment = normalizedCells.findIndex(
+              (v) => v === "số căn hộ"
+            );
+            const idxFeeType = normalizedCells.findIndex((v) =>
+              v.includes("loại phí")
+            );
+            const idxAmount = normalizedCells.findIndex((v) =>
+              v.includes("số tiền")
+            );
+            // "Hạn đóng" - tìm cột chứa từ khóa này, nhưng sẽ không gửi lên API nếu API chưa hỗ trợ
+            // nhưng code vẫn cần nhận diện
+            const idxDueDate = normalizedCells.findIndex((v) =>
+              v.includes("hạn đóng")
+            );
+
+            if (idxApartment !== -1 && idxFeeType !== -1 && idxAmount !== -1) {
+              headerRowNumber = rowNumber;
+              colMap = {
+                apartment: idxApartment, // index trong rowValues
+                feetype: idxFeeType,
+                amount: idxAmount,
+                duedate: idxDueDate, // Có thể là -1 nếu không có
+              };
+            }
+          }
+        });
+
+        if (Object.keys(colMap).length === 0) {
+          throw new Error(
+            "Không tìm thấy các cột: 'Số căn hộ', 'Loại phí', 'Số tiền (VNĐ)' trong file Excel."
+          );
+        }
+
+        // Đọc dữ liệu từ dòng headerRowNumber + 1
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > headerRowNumber) {
+            const rowValues = row.values;
+            // ExcelJS row.values là sparse array, index bắt đầu từ 1.
+            // Nếu rowValues[1] là cột A. colMap lưu index khớp với rowValues.
+
+            const apartmentVal = rowValues[colMap.apartment];
+            const feetypeVal = rowValues[colMap.feetype];
+            const amountVal = rowValues[colMap.amount];
+
+            // Xử lý dữ liệu thô
+            const apartment_id = apartmentVal
+              ? String(apartmentVal).trim()
+              : "";
+            const feetype = feetypeVal ? String(feetypeVal).trim() : "";
+            // Amount có thể là number hoặc string có dấu phẩy
+            let amount = 0;
+            if (amountVal) {
+              if (typeof amountVal === "number") amount = amountVal;
+              else {
+                // Remove non-numeric chars except dot/comma
+                const cleanStr = String(amountVal)
+                  .replace(/[^0-9.,]/g, "")
+                  .replace(",", ".");
+                amount = parseFloat(cleanStr);
+              }
+            }
+
+            if (apartment_id && feetype && amount > 0) {
+              dataToImport.push({ apartment_id, feetype, amount });
+            } else {
+              failCount++; // Dòng thiếu dữ liệu
+            }
+          }
+        });
+
+        // Xử lý call API
+        const token = getToken();
+        await Promise.all(
+          dataToImport.map(async (item) => {
+            // Tìm resident_id từ residents state
+            const resident = residents.find(
+              (r) =>
+                r.apartment_id === item.apartment_id && r.state === "active"
+            );
+
+            if (!resident) {
+              failCount++;
+              return;
+            }
+
+            const payload = {
+              resident_id: resident.id,
+              amount: item.amount,
+              feetype: item.feetype,
+              payment_form: "Chuyển khoản QR",
+            };
+
+            try {
+              const res = await fetch(`${API_BASE_URL}/payments`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+              });
+
+              if (res.ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch (err) {
+              failCount++;
+            }
+          })
+        );
+
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        // Reload & Show Status
+        fetchPayments();
+        setModalStatus("success"); // Luôn hiện icon success nhưng nội dung chi tiết
+        setStatusMessage(
+          `Kết quả nhập dữ liệu:\nThành công: ${successCount}\nThất bại: ${failCount}`
+        );
+        setIsStatusModalOpen(true);
+      } catch (err) {
+        console.error("Excel Error:", err);
+        setModalStatus("failure");
+        setStatusMessage(`Lỗi xử lý file: ${err.message}`);
+        setIsStatusModalOpen(true);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  // ------------------------------------
 
   // --- HÀM XỬ LÝ MODAL TRẠNG THÁI ---
   const handleCloseStatusModal = () => {
@@ -590,13 +811,14 @@ export const PaymentPage = () => {
     if (!modalStatus) return null;
 
     // Logic icon thống nhất
-    const isSuccess = modalStatus === "success" || modalStatus === "update_success";
+    const isSuccess =
+      modalStatus === "success" || modalStatus === "update_success";
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
-    
+
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">
+        <p className="text-xl font-semibold text-center text-gray-800 whitespace-pre-line">
           {statusMessage}
         </p>
       </div>
@@ -607,9 +829,7 @@ export const PaymentPage = () => {
   const handleAddPaymentSuccess = () => {
     fetchPayments();
     setModalStatus("success");
-    setStatusMessage(
-      "Thêm các khoản phí mới thành công!"
-    );
+    setStatusMessage("Thêm các khoản phí mới thành công!");
     setIsStatusModalOpen(true);
   };
 
@@ -665,21 +885,36 @@ export const PaymentPage = () => {
     }
   };
 
-  if (isLoading) return <div className="text-white text-lg p-4">Đang tải danh sách...</div>;
-  if (error) return <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>;
+  if (isLoading)
+    return <div className="text-white text-lg p-4">Đang tải danh sách...</div>;
+  if (error)
+    return (
+      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
+    );
 
   return (
     <>
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </span>
           <input
             type="search"
-            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..." // Cập nhật placeholder
+            placeholder="Tìm kiếm theo ID, Căn hộ, Loại phí..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -690,11 +925,25 @@ export const PaymentPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Danh sách Thanh toán</h1>
         <div className="flex space-x-4">
-          
           {/* Cụm nút chuyển đổi giữa các chế độ */}
           {!isDeleteMode ? (
-            // Chế độ thường: Hiện Thêm + Xóa (để vào chế độ xóa)
+            // Chế độ thường
             <>
+              {/* Input file ẩn cho chức năng Import */}
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <button
+                onClick={handleImportClick}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center space-x-2"
+              >
+                <span>Nhập hoá đơn</span>
+              </button>
+
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors flex items-center space-x-2"
@@ -709,7 +958,7 @@ export const PaymentPage = () => {
               </button>
             </>
           ) : (
-            // Chế độ xóa: Hiện Xóa đã chọn + Hủy
+            // Chế độ xóa
             <>
               <button
                 onClick={handleDeleteSelectedClick}
@@ -730,7 +979,6 @@ export const PaymentPage = () => {
               </button>
             </>
           )}
-
         </div>
       </div>
 
@@ -761,7 +1009,6 @@ export const PaymentPage = () => {
         residentOptions={residents}
         error={addModalError}
         setError={setAddModalError}
-        invoiceData={null} // Chế độ Thêm
       />
 
       {/* Change Status Modal */}
@@ -787,4 +1034,4 @@ export const PaymentPage = () => {
       </StatusModal>
     </>
   );
-}
+};
