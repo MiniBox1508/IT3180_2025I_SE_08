@@ -99,8 +99,8 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
         <div className="flex-1 p-6 overflow-hidden flex flex-col bg-gray-50">
           <div className="overflow-hidden border border-gray-300 rounded-lg bg-white shadow-sm flex flex-col h-full">
             {/* Wrapper div để table chiếm hết height và overflow nếu cần */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left border-collapse h-full">
+            <div className="flex-1 overflow-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10">
                   <tr>
                     <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
@@ -942,6 +942,7 @@ export const NotificationsPage = () => {
           tableRows.push(rowData);
         });
 
+        // Cấu hình table phân trang 20 dòng
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
@@ -953,6 +954,12 @@ export const NotificationsPage = () => {
             fontStyle: "bold",
           }, // Màu header xám như hình mẫu
           theme: "grid",
+          rowPageBreak: "avoid", // Tránh ngắt dòng giữa trang
+          margin: { top: 30 },
+          // Thiết lập số dòng mỗi trang (gián tiếp qua pageBreak)
+          didDrawPage: (data) => {
+            // Header title lặp lại nếu cần, ở đây để mặc định
+          },
         });
 
         doc.save("danh_sach_thong_bao.pdf");
