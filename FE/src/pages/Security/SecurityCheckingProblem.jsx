@@ -472,7 +472,7 @@ export const SecurityProblem = () => {
                 apartment_id: apartment,
                 content: content,
                 request_date: dateVal,
-                service_type: "Sự cố",
+                service_type: "Khiếu nại",
                 status: "Chờ xử lý",
               });
               validSuccessCount++;
