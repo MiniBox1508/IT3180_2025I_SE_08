@@ -2,15 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 
-// --- THÊM IMPORT THƯ VIỆN PDF ---
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { FiPrinter } from "react-icons/fi"; // Icon in
-
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
+
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -193,6 +192,10 @@ export const SecurityProblem = () => {
     message: "",
   });
 
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+
   // --- FETCH DATA TỪ API ---
   const fetchIncidents = async () => {
     setIsLoading(true);
@@ -239,108 +242,10 @@ export const SecurityProblem = () => {
     fetchIncidents();
   }, []);
 
-  // --- FILTER (LOGIC TÌM KIẾM MỚI: ID + NỘI DUNG + CĂN HỘ + KHÔNG DẤU) ---
-  const filteredList = incidents.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const term = removeVietnameseTones(searchTerm.trim());
-
-    const contentStr = removeVietnameseTones(item.content || "");
-    const idStr = String(item.id).toLowerCase();
-    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
-
-    return (
-      idStr.includes(term) ||
-      contentStr.includes(term) ||
-      apartmentStr.includes(term)
-    );
-  });
-
-  // --- LOGIC XUẤT PDF ---
-  const handleExportPDF = async () => {
-    if (filteredList.length === 0) {
-      setStatusModal({
-        open: true,
-        type: "failure",
-        message: "Không có dữ liệu để xuất!",
-      });
-      return;
-    }
-
-    try {
-      const doc = new jsPDF();
-
-      // 1. Tải Font Roboto từ CDN để hỗ trợ tiếng Việt
-      const fontUrl =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
-      const fontResponse = await fetch(fontUrl);
-      const fontBlob = await fontResponse.blob();
-
-      const reader = new FileReader();
-      reader.readAsDataURL(fontBlob);
-      reader.onloadend = () => {
-        const base64data = reader.result.split(",")[1];
-
-        // Add font
-        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
-        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-        doc.setFont("Roboto");
-
-        // 2. Tạo nội dung PDF
-        doc.setFontSize(18);
-        doc.text("DANH SÁCH SỰ CỐ AN NINH", 105, 20, { align: "center" });
-
-        doc.setFontSize(11);
-        doc.text(
-          `Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
-          105,
-          30,
-          { align: "center" }
-        );
-
-        // Định nghĩa cột
-        const tableColumn = [
-          "ID",
-          "Căn hộ",
-          "Nội dung",
-          "Ngày gửi",
-          "Trạng thái",
-          "Ngày xử lý",
-        ];
-        const tableRows = [];
-
-        filteredList.forEach((item) => {
-          const rowData = [
-            item.id,
-            item.apartment_id,
-            item.content,
-            item.date_sent,
-            item.status,
-            item.date_processed || "--/--/----",
-          ];
-          tableRows.push(rowData);
-        });
-
-        // Tạo bảng
-        autoTable(doc, {
-          startY: 40,
-          head: [tableColumn],
-          body: tableRows,
-          styles: { font: "Roboto", fontStyle: "normal" },
-          headStyles: { fillColor: [59, 130, 246] }, // Blue header
-        });
-
-        // Lưu file
-        doc.save(`Su_co_an_ninh_${dayjs().format("DDMMYYYY")}.pdf`);
-      };
-    } catch (error) {
-      console.error("Lỗi xuất PDF:", error);
-      setStatusModal({
-        open: true,
-        type: "failure",
-        message: "Xuất PDF thất bại!",
-      });
-    }
-  };
+  // --- RESET TRANG KHI TÌM KIẾM ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // --- HANDLERS ---
 
@@ -357,7 +262,7 @@ export const SecurityProblem = () => {
       setSelectedIds([]);
     } else {
       setIsBatchMode(true);
-      // Pre-select những item đã xử lý (logic cũ)
+      // Pre-select những item đã xử lý
       const processedIds = incidents
         .filter((item) => item.status === "Đã xử lý")
         .map((item) => item.id);
@@ -413,6 +318,41 @@ export const SecurityProblem = () => {
     }
   };
 
+  // --- FILTER (LOGIC TÌM KIẾM: ID + NỘI DUNG + CĂN HỘ + KHÔNG DẤU) ---
+  const filteredList = incidents.filter((item) => {
+    if (!searchTerm.trim()) return true;
+    const term = removeVietnameseTones(searchTerm.trim());
+
+    const contentStr = removeVietnameseTones(item.content || "");
+    const idStr = String(item.id).toLowerCase();
+    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
+
+    return (
+      idStr.includes(term) ||
+      contentStr.includes(term) ||
+      apartmentStr.includes(term)
+    );
+  });
+
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentList = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen">
       {/* 1. THANH TÌM KIẾM */}
@@ -437,22 +377,12 @@ export const SecurityProblem = () => {
 
         {/* Nút Chuyển chế độ */}
         {!isBatchMode ? (
-          <div className="flex gap-3">
-            {/* NÚT XUẤT PDF MỚI THÊM */}
-            <button
-              onClick={handleExportPDF}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors flex items-center"
-            >
-              <FiPrinter className="mr-2" /> Xuất PDF
-            </button>
-
-            <button
-              onClick={toggleBatchMode}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
-            >
-              Xử lý
-            </button>
-          </div>
+          <button
+            onClick={toggleBatchMode}
+            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+          >
+            Xử lý
+          </button>
         ) : (
           <div className="flex space-x-3">
             <button
@@ -480,10 +410,10 @@ export const SecurityProblem = () => {
       <div className="space-y-4 pb-10">
         {isLoading ? (
           <div className="text-white text-center">Đang tải dữ liệu...</div>
-        ) : filteredList.length === 0 ? (
+        ) : currentList.length === 0 ? (
           <div className="text-white text-center">Không tìm thấy sự cố nào.</div>
         ) : (
-          filteredList.map((item) => (
+          currentList.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
@@ -599,6 +529,42 @@ export const SecurityProblem = () => {
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {filteredList.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       {/* --- MODAL SECTIONS --- */}
 
