@@ -751,6 +751,9 @@ export const NotificationsPage = () => {
           0
         );
 
+        let successCount = 0;
+        let failCount = 0;
+
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
@@ -775,13 +778,14 @@ export const NotificationsPage = () => {
                 content: content,
                 notification_date: notiDate,
               });
+            } else {
+              failCount++; // Dữ liệu thiếu thì tính là thất bại
             }
           }
         });
 
         // Call API Create
         const token = getToken();
-        let successCount = 0;
         await Promise.all(
           dataToImport.map((item) =>
             fetch(`${API_BASE_URL}/notifications`, {
@@ -790,21 +794,37 @@ export const NotificationsPage = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify(item), // ID tự tăng do BE xử lý
+              body: JSON.stringify(item),
             })
               .then((res) => {
                 if (res.ok) successCount++;
+                else failCount++;
               })
-              .catch(() => {})
+              .catch(() => {
+                failCount++;
+              })
           )
         );
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchNotifications();
-        setModalStatus("addSuccess");
-        setStatusMessage(
-          `Đã nhập thành công ${successCount} thông báo từ Excel!`
-        );
+
+        // --- CẬP NHẬT TRẠNG THÁI ---
+        if (failCount === 0 && successCount > 0) {
+          setModalStatus("addSuccess");
+          setStatusMessage(
+            `Đã nhập thành công ${successCount} thông báo từ Excel!`
+          );
+        } else if (successCount > 0 && failCount > 0) {
+          setModalStatus("addSuccess"); // Vẫn hiện icon success nhưng báo chi tiết
+          setStatusMessage(
+            `Nhập hoàn tất:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}`
+          );
+        } else {
+          setModalStatus("addFailure");
+          setStatusMessage(`Nhập thất bại toàn bộ (${failCount} dòng lỗi).`);
+        }
+
         setIsStatusModalOpen(true);
       } catch (err) {
         console.error("Excel Import Error:", err);
@@ -888,29 +908,33 @@ export const NotificationsPage = () => {
           theme: "grid",
         });
 
-        // === FOOTER PAGINATION (Auto added by autoTable or Manual) ===
-        // autoTable handles pagination visually in PDF pages.
-        // But let's add a simple footer text if needed like "Trang 1 / X" via hook if strictly required like image.
-        // For simplicity, standard jsPDF pagination is implicit.
-        // Here we just save/print.
-
         doc.save("danh_sach_thong_bao.pdf");
         setShowPreviewModal(false); // Đóng preview sau khi in
+
+        // --- CẬP NHẬT TRẠNG THÁI XUẤT ---
+        setModalStatus("addSuccess"); // Dùng chung icon success
+        setStatusMessage(
+          `Xuất thành công ${filteredNotifications.length} thông báo ra file PDF!`
+        );
+        setIsStatusModalOpen(true);
       };
     } catch (err) {
       console.error("PDF Export Error:", err);
-      alert("Lỗi xuất PDF");
+      setModalStatus("addFailure");
+      setStatusMessage("Lỗi xuất PDF: " + err.message);
+      setIsStatusModalOpen(true);
     }
   };
 
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
+    // Check keyword để chọn icon (bao gồm cả trạng thái update từ logic Import)
     const isSuccess = modalStatus.toLowerCase().includes("success");
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">
+        <p className="text-xl font-semibold text-center text-gray-800 whitespace-pre-line">
           {statusMessage}
         </p>
       </div>
@@ -980,7 +1004,7 @@ export const NotificationsPage = () => {
 
               <button
                 onClick={handleExportClick}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
               >
                 <FiPrinter size={18} />
                 <span>Xuất thông báo</span>
