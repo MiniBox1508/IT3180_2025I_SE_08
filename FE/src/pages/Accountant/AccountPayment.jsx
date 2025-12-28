@@ -6,6 +6,10 @@ import { FiPlus, FiX } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
+// --- IMPORTS CHO PHÂN TRANG (MỚI) ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
 // --- NEW IMPORT: EXCEL EXPORT ---
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -289,6 +293,10 @@ export const AccountPayment = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   
+  // --- STATE PHÂN TRANG (MỚI) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Số lượng item / 1 trang
+
   const fileInputRef = useRef(null); 
 
   const fetchData = async () => {
@@ -318,14 +326,38 @@ export const AccountPayment = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // --- RESET TRANG KHI TÌM KIẾM (MỚI) ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const filteredInvoices = invoices.filter((item) => {
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.trim().toLowerCase();
     return String(item.id).toLowerCase().includes(searchLower) || (item.apartment_id && String(item.apartment_id).toLowerCase().includes(searchLower));
   });
 
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION - MỚI) ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredInvoices.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+
+  // --- HANDLER CHUYỂN TRANG (MỚI) ---
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
   const handleExportExcel = async () => {
-    const dataToExport = filteredInvoices;
+    const dataToExport = filteredInvoices; // Xuất toàn bộ dữ liệu lọc, không chỉ trang hiện tại
 
     if (dataToExport.length === 0) {
       setModalStatus("failure");
@@ -584,7 +616,6 @@ export const AccountPayment = () => {
 
   const handleCancelDelete = () => { setShowConfirmModal(false); };
   
-  // --- SỬA LOGIC KHI ĐÓNG STATUS MODAL ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     
@@ -657,14 +688,53 @@ export const AccountPayment = () => {
       </div>
 
       <div className="space-y-4">
-        {filteredInvoices.length === 0 ? (
-          <div className="bg-white p-6 rounded-lg text-center text-gray-500">Không có hóa đơn nào phù hợp với tìm kiếm.</div>
+        {currentItems.length === 0 ? (
+          <div className="bg-white p-6 rounded-lg text-center text-gray-500">
+             {filteredInvoices.length === 0 ? "Không có hóa đơn nào phù hợp với tìm kiếm." : "Trang này không có dữ liệu."}
+          </div>
         ) : (
-          filteredInvoices.map((item) => (
+          // Thay đổi: Render currentItems thay vì filteredInvoices
+          currentItems.map((item) => (
             <InvoiceItem key={item.id} item={item} isDeleteMode={isDeleteMode} onEditClick={handleEditClick} isSelected={selectedIds.includes(item.id)} onToggleSelect={handleSelect} />
           ))
         )}
       </div>
+
+      {/* --- PAGINATION CONTROLS (MỚI - ĐƯỢC THÊM VÀO) --- */}
+      {filteredInvoices.length > 0 && (
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-6">
+          {/* Nút Prev */}
+          <button
+            onClick={goToPrevPage}
+            disabled={currentPage === 1}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+          </button>
+
+          {/* Thanh hiển thị số trang */}
+          <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
+            <span className="text-lg">Trang</span>
+            <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
+              {currentPage}
+            </div>
+            <span className="text-lg">/ {totalPages}</span>
+          </div>
+
+          {/* Nút Next */}
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+            }`}
+          >
+            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
+      )}
 
       <InvoiceFormModal
         isOpen={isAddModalOpen || isEditModalOpen}
