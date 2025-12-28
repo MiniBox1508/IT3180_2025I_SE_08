@@ -633,17 +633,10 @@ export const SecurityProblem = () => {
     setIsDetailModalOpen(true);
   };
 
+  // --- SỬA LOGIC: TOGGLE BATCH MODE ---
   const toggleBatchMode = () => {
-    if (isBatchMode) {
-      setIsBatchMode(false);
-      setSelectedIds([]);
-    } else {
-      setIsBatchMode(true);
-      const processedIds = incidents
-        .filter((item) => item.status === "Đã xử lý")
-        .map((item) => item.id);
-      setSelectedIds(processedIds);
-    }
+    setIsBatchMode(!isBatchMode);
+    setSelectedIds([]); // Luôn reset danh sách chọn về rỗng khi bật/tắt chế độ
   };
 
   const handleSelect = (id) =>
@@ -851,31 +844,40 @@ export const SecurityProblem = () => {
                 </div>
                 <div className="col-span-2 flex justify-end items-center">
                   {isBatchMode ? (
-                    <div
-                      onClick={() => handleSelect(item.id)}
-                      className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
-                        selectedIds.includes(item.id)
-                          ? "bg-blue-500 shadow-blue-500/50"
-                          : "bg-gray-200 hover:bg-gray-300"
-                      }`}
-                    >
-                      {selectedIds.includes(item.id) && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </div>
+                    // --- SỬA LOGIC HIỂN THỊ: Nếu đã xử lý thì không cho chọn ---
+                    item.status === "Đã xử lý" ? (
+                      <div className="flex items-center justify-center h-10 px-2 border border-gray-200 rounded-xl bg-gray-50">
+                        <span className="text-gray-400 font-bold text-xs italic">
+                          Đã xong
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => handleSelect(item.id)}
+                        className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                          selectedIds.includes(item.id)
+                            ? "bg-blue-500 shadow-blue-500/50"
+                            : "bg-gray-200 hover:bg-gray-300"
+                        }`}
+                      >
+                        {selectedIds.includes(item.id) && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <div className="flex flex-col items-end">
                       <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
