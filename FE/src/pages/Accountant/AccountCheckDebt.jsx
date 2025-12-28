@@ -3,7 +3,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom"; 
 
-// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+// --- IMPORTS CHO PHÂN TRANG (MỚI) ---
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
@@ -67,33 +67,23 @@ export const AccountCheckDebt = () => {
         });
         const processedData = response.data.map(item => {
           const createdDate = dayjs(item.created_at);
-          const now = dayjs();
-          const isOverdue = item.state === 0 && now.diff(createdDate, 'day') > 30;
-
-          let statusText = "Chưa thanh toán";
-          let statusColor = "text-orange-500";
-
-          if (item.state === 1) {
-            statusText = "Đã thanh toán";
-            statusColor = "text-green-500";
-          } else if (isOverdue) {
-            statusText = "Quá hạn";
-            statusColor = "text-red-500";
-          }
-
+          
           return {
             ...item,
             period: `T${createdDate.format("MM/YYYY")}`,
             paid_amount: item.state === 1 ? item.amount : 0,
-            status_text: statusText,
-            status_color: statusColor,
             payment_date_display: item.payment_date ? dayjs(item.payment_date).format("DD/MM/YYYY") : "---",
             can_print: item.state === 1 
           };
         });
 
-        processedData.sort((a, b) => a.state - b.state || new Date(b.created_at) - new Date(a.created_at));
-        setDebts(processedData);
+        // Chỉ lọc lấy hóa đơn đã thanh toán (state === 1)
+        const paidDebts = processedData.filter(item => item.state === 1);
+
+        // Sắp xếp theo thời gian tạo mới nhất
+        paidDebts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        setDebts(paidDebts);
       } catch (error) {
         console.error("Lỗi tải công nợ:", error);
       } finally {
@@ -104,7 +94,7 @@ export const AccountCheckDebt = () => {
     fetchDebts();
   }, []);
 
-  // --- RESET TRANG KHI TÌM KIẾM ---
+  // --- RESET TRANG KHI TÌM KIẾM (MỚI) ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -118,7 +108,6 @@ export const AccountCheckDebt = () => {
   const handleSelect = (item) => {
     if (!item.can_print) return;
 
-    // Logic chọn nhiều: Nếu có rồi thì bỏ, chưa có thì thêm
     if (selectedIds.includes(item.id)) {
       setSelectedIds(prev => prev.filter(id => id !== item.id));
     } else {
@@ -129,7 +118,7 @@ export const AccountCheckDebt = () => {
   const handleExportClick = () => {
     if (selectedIds.length === 0) return;
     
-    // Lọc ra danh sách các object hóa đơn dựa trên ID đã chọn
+    // Lọc ra danh sách các object hóa đơn dựa trên ID đã chọn (từ danh sách gốc debts)
     const selectedInvoices = debts.filter(d => selectedIds.includes(d.id));
     
     // Truyền mảng dữ liệu sang trang in
@@ -153,13 +142,13 @@ export const AccountCheckDebt = () => {
     return idMatch || apartmentMatch || feetypeMatch;
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION - MỚI) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentList = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
+  // --- HANDLER CHUYỂN TRANG (MỚI) ---
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
@@ -192,7 +181,7 @@ export const AccountCheckDebt = () => {
 
       {/* 2. TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6 relative z-10">
-        <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý hóa đơn</h1>
         
         {!isSelectionMode ? (
            <button
@@ -222,14 +211,15 @@ export const AccountCheckDebt = () => {
         )}
       </div>
 
-      {/* 3. DANH SÁCH CÔNG NỢ */}
-      <div className="space-y-4 pb-10">
+      {/* 3. DANH SÁCH CÔNG NỢ (CHỈ HIỆN ĐÃ THANH TOÁN) */}
+      <div className="space-y-4 pb-4">
         {isLoading ? (
           <p className="text-white text-center">Đang tải dữ liệu...</p>
-        ) : currentList.length === 0 ? (
-          <p className="text-white text-center">Không tìm thấy dữ liệu công nợ phù hợp.</p>
+        ) : currentItems.length === 0 ? (
+          <p className="text-white text-center">Không tìm thấy dữ liệu hóa đơn đã thanh toán phù hợp.</p>
         ) : (
-          currentList.map((item) => (
+          // Thay đổi: Render currentItems thay vì filteredList
+          currentItems.map((item) => (
             <div 
                 key={item.id} 
                 className={`bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px] transition-all ${
@@ -237,9 +227,8 @@ export const AccountCheckDebt = () => {
                     selectedIds.includes(item.id) ? "ring-2 ring-blue-400 bg-blue-50" : ""
                 }`}
             >
-              <div className={`absolute left-6 top-4 bottom-4 w-1 rounded-full ${
-                  item.state === 1 ? 'bg-green-500' : 'bg-orange-500'
-              }`}></div>
+              {/* Vạch màu trạng thái */}
+              <div className="absolute left-6 top-4 bottom-4 w-1 rounded-full bg-green-500"></div>
 
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
                 <div className="col-span-1">
@@ -267,31 +256,23 @@ export const AccountCheckDebt = () => {
                   <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
                 </div>
 
+                {/* CỘT CUỐI: Checkbox chọn in */}
                 <div className="col-span-2 flex flex-col items-end justify-center">
-                   {isSelectionMode ? (
-                        item.can_print ? (
-                            <div 
-                                onClick={() => handleSelect(item)}
-                                className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
-                                    selectedIds.includes(item.id) 
-                                    ? "bg-blue-500 border-blue-500" 
-                                    : "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                                }`}
-                            >
-                                {selectedIds.includes(item.id) && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </div>
-                        ) : (
-                            <span className="text-xs text-red-400 italic">Chưa TT</span>
-                        )
-                   ) : (
-                        <>
-                            <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trạng thái</p>
-                            <p className={`text-xs font-bold ${item.status_color}`}>{item.status_text}</p>
-                        </>
+                   {isSelectionMode && item.can_print && (
+                        <div 
+                            onClick={() => handleSelect(item)}
+                            className={`w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center border transition-all ${
+                                selectedIds.includes(item.id) 
+                                ? "bg-blue-500 border-blue-500" 
+                                : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                            }`}
+                        >
+                            {selectedIds.includes(item.id) && (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                        </div>
                    )}
                 </div>
               </div>
@@ -300,9 +281,9 @@ export const AccountCheckDebt = () => {
         )}
       </div>
 
-      {/* --- PAGINATION CONTROLS --- */}
+      {/* --- PAGINATION CONTROLS (MỚI - ĐƯỢC THÊM VÀO) --- */}
       {filteredList.length > 0 && (
-        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-10">
           {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
