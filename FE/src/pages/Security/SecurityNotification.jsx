@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import * as XLSX from "xlsx";
+
+// --- THAY THẾ THƯ VIỆN EXPORT ---
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
 
 // --- IMPORT ICONS (Dùng cho Modal Bulk) ---
-import { FiPlus, FiX } from "react-icons/fi";
+import { FiPlus, FiX, FiPrinter } from "react-icons/fi"; // Thêm icon máy in
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
@@ -426,14 +431,13 @@ export const SecurityNotification = () => {
     setShowFormModal(true);
   };
 
-  // --- HANDLER SUBMIT FORM (XỬ LÝ CẢ ĐƠN VÀ ĐA) ---
+  // --- HANDLER SUBMIT FORM ---
   const handleSubmitForm = async (data) => {
     setShowFormModal(false);
     try {
       const token = getToken();
       
       if (Array.isArray(data)) {
-        // === XỬ LÝ THÊM NHIỀU (BULK ADD) ===
         await Promise.all(
           data.map((item) =>
             axios.post(`${API_BASE_URL}/notifications`, item, {
@@ -448,10 +452,9 @@ export const SecurityNotification = () => {
         });
 
       } else if (editingItem) {
-        // === XỬ LÝ SỬA (EDIT SINGLE) ===
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          data, // data là object { apartment_id, content }
+          data, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStatusModal({
@@ -520,65 +523,145 @@ export const SecurityNotification = () => {
   const filteredList = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
-    
     const idMatch = String(item.id).toLowerCase().includes(term);
     const contentMatch = removeVietnameseTones(item.content || "").includes(term);
-
     return idMatch || contentMatch;
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  // --- PAGINATION LOGIC ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentNotifications = filteredList.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
   const goToPrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // --- HANDLER EXPORT EXCEL (GIỮ NGUYÊN TỪ PHIÊN BẢN TRƯỚC) ---
-  const handleExportExcel = () => {
-    const dataToExport = selectedIds.length > 0 
-        ? notifications.filter(item => selectedIds.includes(item.id))
-        : filteredList; // Export theo danh sách lọc, không phải trang hiện tại
+  // --- EXPORT EXCEL (ExcelJS) ---
+  const handleExportExcel = async () => {
+    // Ưu tiên xuất danh sách đã chọn, nếu không thì xuất danh sách đã lọc (tất cả trang)
+    const dataToExport = selectedIds.length > 0
+      ? notifications.filter((item) => selectedIds.includes(item.id))
+      : filteredList;
 
     if (dataToExport.length === 0) {
-        setStatusModal({
-            open: true,
-            type: "failure",
-            message: "Không có dữ liệu để xuất!",
-        });
-        return;
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Không có dữ liệu để xuất!",
+      });
+      return;
     }
 
-    const formattedData = dataToExport.map(item => ({
-        "ID Thông báo": item.id,
-        "Người nhận (Căn hộ)": item.apartment_id,
-        "Nội dung": item.content,
-        "Ngày gửi": item.notification_date 
-            ? dayjs(item.notification_date).format("DD/MM/YYYY HH:mm:ss") 
-            : "",
-        "Ngày tạo": item.created_at 
-            ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm:ss")
-            : ""
-    }));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("DanhSachThongBao");
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachThongBao");
+    // Định nghĩa cột
+    worksheet.columns = [
+      { header: "ID", key: "id", width: 10 },
+      { header: "Người nhận", key: "apartment_id", width: 20 },
+      { header: "Nội dung", key: "content", width: 50 },
+      { header: "Ngày gửi", key: "notification_date", width: 20 },
+      { header: "Ngày tạo", key: "created_at", width: 20 },
+    ];
 
-    const fileName = `DanhSachThongBao_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    // Style Header
+    worksheet.getRow(1).font = { bold: true };
+
+    // Add Data
+    dataToExport.forEach((item) => {
+      worksheet.addRow({
+        id: item.id,
+        apartment_id: item.apartment_id,
+        content: item.content,
+        notification_date: item.notification_date ? dayjs(item.notification_date).format("DD/MM/YYYY") : "",
+        created_at: item.created_at ? dayjs(item.created_at).format("DD/MM/YYYY") : "",
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, `Security_Notifications_${dayjs().format("DDMMYYYY")}.xlsx`);
+  };
+
+  // --- EXPORT PDF (jsPDF) ---
+  const handleExportPDF = async () => {
+    // Ưu tiên xuất danh sách đã chọn, nếu không thì xuất danh sách đã lọc (tất cả trang)
+    const dataToExport = selectedIds.length > 0
+      ? notifications.filter((item) => selectedIds.includes(item.id))
+      : filteredList;
+
+    if (dataToExport.length === 0) {
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Không có dữ liệu để xuất!",
+      });
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+
+      // Load font Roboto (hỗ trợ tiếng Việt)
+      const fontUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
+      
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+        
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
+
+        // Tiêu đề
+        doc.setFontSize(18);
+        doc.text("DANH SÁCH THÔNG BÁO BẢO VỆ", 105, 20, { align: "center" });
+        
+        doc.setFontSize(11);
+        doc.text(`Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}`, 105, 30, { align: "center" });
+
+        // Bảng dữ liệu
+        const tableColumn = ["ID", "Người nhận", "Nội dung", "Ngày gửi"];
+        const tableRows = [];
+
+        dataToExport.forEach((item) => {
+          const rowData = [
+            item.id,
+            item.apartment_id || "All",
+            item.content || "",
+            item.notification_date ? dayjs(item.notification_date).format("DD/MM/YYYY") : ""
+          ];
+          tableRows.push(rowData);
+        });
+
+        autoTable(doc, {
+          startY: 40,
+          head: [tableColumn],
+          body: tableRows,
+          styles: { font: "Roboto", fontStyle: "normal" },
+          headStyles: { fillColor: [22, 160, 133] },
+        });
+
+        doc.save(`Security_Notifications_${dayjs().format("DDMMYYYY")}.pdf`);
+      };
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Lỗi xuất file PDF!",
+      });
+    }
   };
 
   return (
@@ -605,13 +688,23 @@ export const SecurityNotification = () => {
 
         <div className="flex space-x-4">
           {!isDeleteMode && (
-            <button
-              onClick={handleExportExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
-            >
-              <DownloadIcon />
-              Xuất Excel
-            </button>
+            <>
+              {/* NÚT XUẤT PDF MỚI */}
+              <button
+                onClick={handleExportPDF}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
+              >
+                <FiPrinter className="mr-2" /> Xuất PDF
+              </button>
+
+              <button
+                onClick={handleExportExcel}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
+              >
+                <DownloadIcon />
+                Xuất Excel
+              </button>
+            </>
           )}
 
           {!isDeleteMode ? (
@@ -742,7 +835,6 @@ export const SecurityNotification = () => {
       {/* --- PAGINATION CONTROLS --- */}
       {filteredList.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -753,7 +845,6 @@ export const SecurityNotification = () => {
             <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
           </button>
 
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -762,7 +853,6 @@ export const SecurityNotification = () => {
             <span className="text-lg">/ {totalPages}</span>
           </div>
 
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
@@ -785,14 +875,14 @@ export const SecurityNotification = () => {
         initialData={editingItem}
       />
 
-      {/* 2. Modal Xác nhận Xóa (Custom giống ảnh) */}
+      {/* 2. Modal Xác nhận Xóa */}
       <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
-      {/* 3. Modal Trạng thái (Success/Fail) */}
+      {/* 3. Modal Trạng thái */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
