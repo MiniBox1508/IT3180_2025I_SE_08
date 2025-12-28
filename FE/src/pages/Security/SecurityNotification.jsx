@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import * as XLSX from "xlsx";
+// Bỏ import XLSX vì chuyển sang PDF
+// import * as XLSX from "xlsx"; 
+
+// --- IMPORT THƯ VIỆN PDF ---
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
 
-// --- IMPORT ICONS (Dùng cho Modal Bulk) ---
-import { FiPlus, FiX } from "react-icons/fi";
+// --- IMPORT ICONS ---
+import { FiPlus, FiX, FiPrinter } from "react-icons/fi"; // Thêm FiPrinter
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
@@ -16,7 +21,7 @@ import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- ICONS ---
+// --- ICONS SVG CÓ SẴN TRONG FILE CŨ ---
 const SearchIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -51,23 +56,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const DownloadIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    className="h-5 w-5 mr-2" 
-    fill="none" 
-    viewBox="0 0 24 24" 
-    stroke="currentColor"
-  >
-    <path 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      strokeWidth={2} 
-      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
-    />
-  </svg>
-);
-
 const WarningIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -97,6 +85,159 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); 
   str = str.replace(/\u02C6|\u0306|\u031B/g, ""); 
   return str;
+};
+
+// =========================================================================
+// === PREVIEW PDF MODAL (MỚI: Giống NotificationsPage) ===
+// =========================================================================
+const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
+  // State phân trang cho Popup
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7; // Tối đa 7 dòng/trang trong popup
+
+  // Reset về trang 1 khi mở modal hoặc data thay đổi
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentPage(1);
+    }
+  }, [isOpen, data]);
+
+  if (!isOpen) return null;
+
+  // Logic phân trang
+  const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Tính số dòng trống cần bù vào để bảng không bị co lại
+  const emptyRows = itemsPerPage - currentItems.length;
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
+        {/* Header Modal */}
+        <div className="p-6 border-b border-gray-200 flex justify-center relative">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Xem trước danh sách thông báo an ninh
+          </h2>
+        </div>
+
+        {/* Content Table Preview */}
+        <div className="p-8 bg-gray-50 flex flex-col">
+          <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                    Mã số
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                    Người nhận
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
+                    Nội dung
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                    Ngày gửi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {currentItems.map((item, index) => (
+                  <tr key={index} className="hover:bg-blue-50 h-[50px]">
+                    <td className="p-3 text-sm text-gray-700">{item.id}</td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.apartment_id}
+                    </td>
+                    <td
+                      className="p-3 text-sm text-gray-700 truncate max-w-xs"
+                      title={item.content}
+                    >
+                      {item.content}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.notification_date
+                        ? new Date(item.notification_date).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : ""}
+                    </td>
+                  </tr>
+                ))}
+                {/* Tạo các dòng trống để giữ layout cố định */}
+                {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
+                  <tr key={`empty-${i}`} className="h-[50px]">
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls trong Popup */}
+          <div className="flex justify-center items-center mt-6 space-x-4">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === 1
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowLeft} className="w-4 h-4" alt="Prev" />
+            </button>
+            <div className="bg-gray-300 px-4 py-1 rounded-full text-gray-700 font-semibold text-sm">
+              Trang{" "}
+              <span className="bg-gray-400 text-white px-2 py-0.5 rounded ml-1">
+                {currentPage}
+              </span>{" "}
+              / {totalPages}
+            </div>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === totalPages
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowRight} className="w-4 h-4" alt="Next" />
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="p-6 border-t border-gray-200 flex justify-between items-center bg-white rounded-b-2xl">
+          <button
+            onClick={onClose}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors"
+          >
+            Thoát
+          </button>
+          <button
+            onClick={onPrint}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors flex items-center gap-2"
+          >
+            <span>In danh sách</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // --- MODAL THÊM/SỬA (HỖ TRỢ BULK INSERT) ---
@@ -149,10 +290,8 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   // --- HANDLER SUBMIT ---
   const handleSubmit = () => {
     if (isEditing) {
-      // Logic Sửa
       onSubmit(formData);
     } else {
-      // Logic Thêm Nhiều
       const validRows = rows.map(({ apartment_id, content }) => ({
         apartment_id,
         content,
@@ -165,7 +304,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      {/* Điều chỉnh độ rộng modal tùy theo chế độ */}
       <div
         className={`bg-white rounded-2xl p-8 relative shadow-2xl ${
           isEditing ? "w-full max-w-lg" : "w-full max-w-4xl"
@@ -254,7 +392,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                       key={row.id}
                       className="hover:bg-blue-50 transition-colors"
                     >
-                      {/* Cột 1: Người nhận */}
                       <td className="p-2 align-top">
                         <input
                           type="text"
@@ -266,7 +403,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                           className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </td>
-                      {/* Cột 2: Nội dung */}
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
@@ -283,7 +419,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                           }}
                         />
                       </td>
-                      {/* Cột 3: Xóa */}
                       <td className="p-2 text-center align-top pt-3">
                         {rows.length > 1 && (
                           <button
@@ -348,6 +483,20 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
 // --- MAIN PAGE ---
 export const SecurityNotification = () => {
   const getToken = () => localStorage.getItem("token");
+  
+  // Hàm lấy user hiện tại (để in vào PDF)
+  const getCurrentUserEmail = () => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.email || "security@bluemoon.com";
+      } catch (e) {
+        return "security@bluemoon.com";
+      }
+    }
+    return "security@bluemoon.com";
+  };
 
   // State Data
   const [notifications, setNotifications] = useState([]);
@@ -363,6 +512,9 @@ export const SecurityNotification = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
+  // --- PREVIEW PDF STATE (MỚI) ---
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
   // Status Modal
   const [statusModal, setStatusModal] = useState({
     open: false,
@@ -372,9 +524,9 @@ export const SecurityNotification = () => {
   const [acceptIconSrc, setAcceptIconSrc] = useState(null);
   const [notAcceptIconSrc, setNotAcceptIconSrc] = useState(null);
 
-  // --- STATE PHÂN TRANG (MỚI) ---
+  // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+  const itemsPerPage = 10; 
 
   useEffect(() => {
     import("../../images/accept_icon.png").then((m) =>
@@ -426,14 +578,13 @@ export const SecurityNotification = () => {
     setShowFormModal(true);
   };
 
-  // --- HANDLER SUBMIT FORM (XỬ LÝ CẢ ĐƠN VÀ ĐA) ---
+  // --- HANDLER SUBMIT FORM ---
   const handleSubmitForm = async (data) => {
     setShowFormModal(false);
     try {
       const token = getToken();
       
       if (Array.isArray(data)) {
-        // === XỬ LÝ THÊM NHIỀU (BULK ADD) ===
         await Promise.all(
           data.map((item) =>
             axios.post(`${API_BASE_URL}/notifications`, item, {
@@ -448,10 +599,9 @@ export const SecurityNotification = () => {
         });
 
       } else if (editingItem) {
-        // === XỬ LÝ SỬA (EDIT SINGLE) ===
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          data, // data là object { apartment_id, content }
+          data, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStatusModal({
@@ -527,13 +677,12 @@ export const SecurityNotification = () => {
     return idMatch || contentMatch;
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  // --- PAGINATION LOGIC ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentNotifications = filteredList.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
@@ -546,39 +695,104 @@ export const SecurityNotification = () => {
     }
   };
 
-  // --- HANDLER EXPORT EXCEL (GIỮ NGUYÊN TỪ PHIÊN BẢN TRƯỚC) ---
-  const handleExportExcel = () => {
-    const dataToExport = selectedIds.length > 0 
-        ? notifications.filter(item => selectedIds.includes(item.id))
-        : filteredList; // Export theo danh sách lọc, không phải trang hiện tại
+  // --- EXPORT PDF LOGIC (MỚI: Giống NotificationsPage) ---
+  const handleExportClick = () => {
+    // Nếu đang chọn item để xóa thì chỉ xuất các item đó, ngược lại xuất toàn bộ danh sách đang lọc
+    setShowPreviewModal(true);
+  };
 
-    if (dataToExport.length === 0) {
+  const handlePrintPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      // Load Font tiếng Việt (Roboto)
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
+
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
+
+        // === TITLE ===
+        doc.setFontSize(18);
+        doc.text("Danh sách thông báo An Ninh - Blue Moon", 105, 15, {
+          align: "center",
+        });
+
+        // === INFO LINE ===
+        const today = new Date().toLocaleDateString("vi-VN");
+        const currentUser = getCurrentUserEmail();
+
+        doc.setFontSize(11);
+        doc.setFont("Roboto", "normal");
+        doc.text(`Ngày in: ${today}`, 14, 25);
+        doc.text(`Người in: ${currentUser}`, 196, 25, { align: "right" });
+
+        // === TABLE ===
+        const tableColumn = [
+          "Mã số",
+          "Người nhận",
+          "Nội dung",
+          "Ngày gửi",
+        ];
+        const tableRows = [];
+
+        // Lấy dữ liệu: Nếu đang chọn checkboxes thì in cái đã chọn, không thì in danh sách lọc hiện tại
+        const dataToPrint = selectedIds.length > 0 
+            ? notifications.filter(item => selectedIds.includes(item.id))
+            : filteredList;
+
+        dataToPrint.forEach((item) => {
+          const rowData = [
+            String(item.id),
+            (item.apartment_id || "").normalize("NFC"),
+            (item.content || "").normalize("NFC"),
+            item.notification_date
+              ? new Date(item.notification_date).toLocaleDateString("vi-VN")
+              : "",
+          ];
+          tableRows.push(rowData);
+        });
+
+        // Cấu hình table
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 30,
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 10 },
+          headStyles: {
+            fillColor: [70, 130, 180], // Màu xanh cho header (khác file kia một chút để hợp theme security nếu muốn)
+            textColor: 255,
+            fontStyle: "normal",
+          },
+          theme: "grid",
+          rowPageBreak: "avoid",
+          margin: { top: 30 },
+        });
+
+        doc.save(`DanhSachThongBaoAnNinh_${dayjs().format('DDMMYYYY')}.pdf`);
+        setShowPreviewModal(false); 
+
+        // --- UPDATE STATUS ---
         setStatusModal({
             open: true,
-            type: "failure",
-            message: "Không có dữ liệu để xuất!",
+            type: "success",
+            message: `Xuất thành công ${dataToPrint.length} thông báo ra file PDF!`
         });
-        return;
+      };
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Lỗi xuất PDF: " + err.message
+      });
     }
-
-    const formattedData = dataToExport.map(item => ({
-        "ID Thông báo": item.id,
-        "Người nhận (Căn hộ)": item.apartment_id,
-        "Nội dung": item.content,
-        "Ngày gửi": item.notification_date 
-            ? dayjs(item.notification_date).format("DD/MM/YYYY HH:mm:ss") 
-            : "",
-        "Ngày tạo": item.created_at 
-            ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm:ss")
-            : ""
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachThongBao");
-
-    const fileName = `DanhSachThongBao_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
   };
 
   return (
@@ -606,11 +820,11 @@ export const SecurityNotification = () => {
         <div className="flex space-x-4">
           {!isDeleteMode && (
             <button
-              onClick={handleExportExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
+              onClick={handleExportClick}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
             >
-              <DownloadIcon />
-              Xuất Excel
+              <FiPrinter className="mr-2" size={20} />
+              Xuất thông báo
             </button>
           )}
 
@@ -742,7 +956,6 @@ export const SecurityNotification = () => {
       {/* --- PAGINATION CONTROLS --- */}
       {filteredList.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -753,7 +966,6 @@ export const SecurityNotification = () => {
             <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
           </button>
 
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -762,7 +974,6 @@ export const SecurityNotification = () => {
             <span className="text-lg">/ {totalPages}</span>
           </div>
 
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
@@ -785,14 +996,24 @@ export const SecurityNotification = () => {
         initialData={editingItem}
       />
 
-      {/* 2. Modal Xác nhận Xóa (Custom giống ảnh) */}
+      {/* 2. Modal Xác nhận Xóa */}
       <DeleteConfirmModal
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={executeDelete}
       />
 
-      {/* 3. Modal Trạng thái (Success/Fail) */}
+      {/* 3. Modal Preview PDF (MỚI) */}
+      <PreviewPdfModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        data={selectedIds.length > 0 
+            ? notifications.filter(item => selectedIds.includes(item.id))
+            : filteredList}
+        onPrint={handlePrintPDF}
+      />
+
+      {/* 4. Modal Trạng thái (Success/Fail) */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
