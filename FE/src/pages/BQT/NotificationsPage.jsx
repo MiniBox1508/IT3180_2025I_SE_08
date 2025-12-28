@@ -980,7 +980,7 @@ export const NotificationsPage = () => {
 
               <button
                 onClick={handleExportClick}
-                className="bg-orange-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
+                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
               >
                 <FiPrinter size={18} />
                 <span>Xuất thông báo</span>
