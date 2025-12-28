@@ -1,19 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
-// --- IMPORT ICONS CHO MODAL ---
-import { FiPlus, FiX } from "react-icons/fi"; 
+// --- IMPORT ICONS ---
+import { FiPlus, FiX, FiUpload, FiPrinter } from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
+// --- IMPORT THƯ VIỆN XỬ LÝ FILE ---
+import ExcelJS from "exceljs";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- HÀM LẤY TOKEN ---
+// --- HÀM LẤY TOKEN & USER ---
 const getToken = () => localStorage.getItem("token");
+const getCurrentUserEmail = () => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return user.email || "admin@bluemoon.com";
+    } catch (e) {
+      return "admin@bluemoon.com";
+    }
+  }
+  return "admin@bluemoon.com";
+};
 
 // --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
 const removeVietnameseTones = (str) => {
@@ -26,9 +43,123 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
+};
+
+// =========================================================================
+// === PREVIEW PDF MODAL (Popup xem trước khi in) ===
+// =========================================================================
+const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col"
+        style={{ height: "85vh" }}
+      >
+        {/* Header Modal */}
+        <div className="p-6 border-b border-gray-200 flex justify-center relative">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Danh sách thông báo
+          </h2>
+        </div>
+
+        {/* Content Table Preview */}
+        <div className="flex-1 p-6 overflow-hidden flex flex-col bg-gray-50">
+          <div className="overflow-y-auto custom-scrollbar border border-gray-300 rounded-lg bg-white shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-100 sticky top-0 z-10">
+                <tr>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                    Mã số thông báo
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                    Người nhận
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
+                    Nội dung
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                    Ngày gửi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {data.map((item, index) => (
+                  <tr key={index} className="hover:bg-blue-50">
+                    <td className="p-3 text-sm text-gray-700">{item.id}</td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.apartment_id || item.recipient}
+                    </td>
+                    <td
+                      className="p-3 text-sm text-gray-700 truncate max-w-xs"
+                      title={item.content}
+                    >
+                      {item.content}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.notification_date
+                        ? new Date(item.notification_date).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : ""}
+                    </td>
+                  </tr>
+                ))}
+                {/* Tạo các dòng trống để mô phỏng bảng full trang giống hình mẫu */}
+                {Array.from({ length: Math.max(0, 10 - data.length) }).map(
+                  (_, i) => (
+                    <tr key={`empty-${i}`} className="h-10">
+                      <td className="border-b border-gray-100"></td>
+                      <td className="border-b border-gray-100"></td>
+                      <td className="border-b border-gray-100"></td>
+                      <td className="border-b border-gray-100"></td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mock Pagination for visual matching */}
+          <div className="flex justify-center items-center mt-4 space-x-4">
+            <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center">
+              <img src={arrowLeft} className="w-4 h-4 opacity-50" />
+            </div>
+            <div className="bg-gray-300 px-4 py-1 rounded-full text-gray-700 font-semibold text-sm">
+              Trang{" "}
+              <span className="bg-gray-400 text-white px-2 py-0.5 rounded ml-1">
+                1
+              </span>{" "}
+              / 1
+            </div>
+            <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center">
+              <img src={arrowRight} className="w-4 h-4 opacity-50" />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="p-6 border-t border-gray-200 flex justify-between items-center bg-white rounded-b-2xl">
+          <button
+            onClick={onClose}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors"
+          >
+            Thoát
+          </button>
+          <button
+            onClick={onPrint}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors flex items-center gap-2"
+          >
+            <span>In danh sách</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // =========================================================================
@@ -44,41 +175,35 @@ const NotificationFormModal = ({
 }) => {
   const isEditing = !!notificationData;
 
-  // --- STATE CHO CHẾ ĐỘ SỬA (SINGLE FORM) ---
   const [singleFormData, setSingleFormData] = useState({
     apartment_id: "",
     content: "",
   });
 
-  // --- STATE CHO CHẾ ĐỘ THÊM (BULK TABLE) ---
   const [rows, setRows] = useState([
-    { id: Date.now(), apartment_id: "", content: "" }
+    { id: Date.now(), apartment_id: "", content: "" },
   ]);
 
-  // --- EFFECT: RESET DATA KHI MỞ MODAL ---
   useEffect(() => {
     if (isOpen) {
       if (notificationData) {
-        // Chế độ Edit: Fill dữ liệu cũ
         setSingleFormData({
-          apartment_id: notificationData.apartment_id || notificationData.recipient || "",
+          apartment_id:
+            notificationData.apartment_id || notificationData.recipient || "",
           content: notificationData.content || "",
         });
       } else {
-        // Chế độ Add: Reset về 1 dòng trắng
         setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
       }
       setError("");
     }
   }, [isOpen, notificationData, setError]);
 
-  // --- HANDLERS CHO EDIT (SINGLE) ---
   const handleSingleChange = (e) => {
     const { name, value } = e.target;
     setSingleFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- HANDLERS CHO ADD (BULK TABLE) ---
   const handleRowChange = (id, field, value) => {
     setRows((prevRows) =>
       prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
@@ -98,13 +223,11 @@ const NotificationFormModal = ({
     }
   };
 
-  // --- SUBMIT HANDLER ---
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
 
     if (isEditing) {
-      // === LOGIC SỬA ===
       if (!singleFormData.apartment_id || !singleFormData.content) {
         setError("Vui lòng điền đủ Người nhận và Nội dung.");
         return;
@@ -114,10 +237,7 @@ const NotificationFormModal = ({
         content: singleFormData.content,
       };
       onSave(dataToSend, notificationData.id);
-
     } else {
-      // === LOGIC THÊM NHIỀU DÒNG ===
-      // 1. Validate từng dòng
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.apartment_id || !row.content) {
@@ -125,14 +245,11 @@ const NotificationFormModal = ({
           return;
         }
       }
-
-      // 2. Chuẩn hóa dữ liệu gửi đi (Array)
-      const dataToSend = rows.map(row => ({
+      const dataToSend = rows.map((row) => ({
         apartment_id: row.apartment_id,
         content: row.content,
       }));
-
-      onSave(dataToSend, null); // null ID -> Create Mode
+      onSave(dataToSend, null);
     }
   };
 
@@ -140,32 +257,35 @@ const NotificationFormModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      {/* Điều chỉnh độ rộng Modal */}
-      <div className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${isEditing ? 'w-full max-w-md' : 'w-full max-w-4xl'}`} style={{ maxHeight: '90vh' }}>
-        
+      <div
+        className={`bg-white p-6 rounded-2xl shadow-2xl relative flex flex-col ${
+          isEditing ? "w-full max-w-md" : "w-full max-w-4xl"
+        }`}
+        style={{ maxHeight: "90vh" }}
+      >
         <h2 className="text-xl font-bold mb-4 text-gray-800">
           {isEditing ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
         </h2>
-
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 text-sm">
             {error}
           </div>
         )}
-
-        {/* ============ GIAO DIỆN 1: THÊM MỚI (DẠNG BẢNG - 2 CỘT NHẬP LIỆU) ============ */}
         {!isEditing && (
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    {/* Điều chỉnh width để cân đối */}
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[30%]">Người nhận</th>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[60%]">Nội dung</th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[30%]">
+                      Người nhận
+                    </th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[60%]">
+                      Nội dung
+                    </th>
                     <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[10%] text-center">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={addRow}
                         className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors mx-auto shadow-md"
                         title="Thêm dòng mới"
@@ -177,35 +297,42 @@ const NotificationFormModal = ({
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {rows.map((row) => (
-                    <tr key={row.id} className="hover:bg-blue-50 transition-colors group">
-                      {/* Cột 1: Người nhận */}
+                    <tr
+                      key={row.id}
+                      className="hover:bg-blue-50 transition-colors group"
+                    >
                       <td className="p-2 align-top">
                         <input
                           type="text"
                           value={row.apartment_id}
-                          onChange={(e) => handleRowChange(row.id, "apartment_id", e.target.value)}
+                          onChange={(e) =>
+                            handleRowChange(
+                              row.id,
+                              "apartment_id",
+                              e.target.value
+                            )
+                          }
                           placeholder="VD: P.101 hoặc All"
                           className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </td>
-                      
-                      {/* Cột 2: Nội dung */}
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
                           value={row.content}
-                          onChange={(e) => handleRowChange(row.id, "content", e.target.value)}
+                          onChange={(e) =>
+                            handleRowChange(row.id, "content", e.target.value)
+                          }
                           placeholder="Nội dung..."
                           className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
                           style={{ minHeight: "38px" }}
                           onInput={(e) => {
                             e.target.style.height = "auto";
-                            e.target.style.height = e.target.scrollHeight + "px";
+                            e.target.style.height =
+                              e.target.scrollHeight + "px";
                           }}
                         />
                       </td>
-                      
-                      {/* Cột 3: Xóa */}
                       <td className="p-2 text-center align-top pt-3">
                         {rows.length > 1 && (
                           <button
@@ -225,38 +352,42 @@ const NotificationFormModal = ({
             </div>
           </div>
         )}
-
-        {/* ============ GIAO DIỆN 2: CHỈNH SỬA (FORM ĐƠN - 3 Ô NHƯ CŨ) ============ */}
         {isEditing && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Thông báo ID</label>
-              <div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700 font-mono text-sm">{notificationData.id}</div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Thông báo ID
+              </label>
+              <div className="w-full bg-gray-100 rounded-md border border-gray-200 px-3 py-2 text-gray-700 font-mono text-sm">
+                {notificationData.id}
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Người nhận</label>
-              <input 
-                type="text" 
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Người nhận
+              </label>
+              <input
+                type="text"
                 name="apartment_id"
-                value={singleFormData.apartment_id} 
+                value={singleFormData.apartment_id}
                 onChange={handleSingleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
-              <textarea 
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nội dung
+              </label>
+              <textarea
                 name="content"
                 rows="4"
-                value={singleFormData.content} 
-                onChange={handleSingleChange} 
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                value={singleFormData.content}
+                onChange={handleSingleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
           </div>
         )}
-
-        {/* --- FOOTER BUTTONS --- */}
         <div className="flex justify-end space-x-3 pt-6 border-t mt-4 border-gray-100">
           <button
             type="button"
@@ -273,7 +404,6 @@ const NotificationFormModal = ({
             Xác nhận
           </button>
         </div>
-
       </div>
     </div>
   );
@@ -285,30 +415,23 @@ const NotificationItem = ({
   isDeleteMode,
   onEditClick,
   isSelected,
-  onToggleSelect
+  onToggleSelect,
 }) => {
-
   const handleEditClick = () => {
-    if (!isDeleteMode) {
-      onEditClick(item);
-    }
+    if (!isDeleteMode) onEditClick(item);
   };
 
   const truncateContent = (content, limit = 12) => {
     if (!content) return "---";
     const trimmedContent = content.trim();
-    if (trimmedContent.length > limit) {
+    if (trimmedContent.length > limit)
       return trimmedContent.substring(0, limit) + "...";
-    }
     return trimmedContent;
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
-      {/* Thanh màu bên trái */}
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-
-      {/* Nội dung thông báo */}
       <div className="flex-1 grid grid-cols-4 gap-4 items-center pl-8 pr-4 text-gray-800">
         <div className="text-center">
           <p className="text-xs text-gray-500 mb-1">Thông báo ID</p>
@@ -321,11 +444,17 @@ const NotificationItem = ({
         <div>
           <p className="text-xs text-gray-500 mb-1">Nội dung</p>
           <div className="flex flex-col">
-             {/* Nếu API có title thì hiện, không thì thôi */}
-             {item.title && <span className="font-bold text-sm text-blue-700 mb-0.5">{item.title}</span>}
-             <span className="font-medium text-gray-700 text-sm" title={item.content}>
-                {truncateContent(item.content)}
-             </span>
+            {item.title && (
+              <span className="font-bold text-sm text-blue-700 mb-0.5">
+                {item.title}
+              </span>
+            )}
+            <span
+              className="font-medium text-gray-700 text-sm"
+              title={item.content}
+            >
+              {truncateContent(item.content)}
+            </span>
           </div>
         </div>
         <div>
@@ -337,17 +466,15 @@ const NotificationItem = ({
           </p>
         </div>
       </div>
-
-      {/* Khu vực hành động */}
       <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
         {isDeleteMode ? (
           <div className="flex items-center justify-center h-full">
-             <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => onToggleSelect(item.id)}
-                className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-              />
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelect(item.id)}
+              className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+            />
           </div>
         ) : (
           <button
@@ -369,7 +496,6 @@ export const NotificationsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // States Modal (Gộp chung Add/Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
   const [formError, setFormError] = useState("");
@@ -378,16 +504,20 @@ export const NotificationsPage = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // States Delete
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // --- STATE PHÂN TRANG (MỚI) ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+  // --- PREVIEW PDF STATE ---
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
-  // --- FETCH DATA ---
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // --- REF INPUT FILE ---
+  const fileInputRef = useRef(null);
+
   const fetchNotifications = async () => {
     setIsLoading(true);
     setError(null);
@@ -398,8 +528,8 @@ export const NotificationsPage = () => {
       });
       if (!response.ok) throw new Error("Không thể tải dữ liệu thông báo.");
       const data = await response.json();
-      const sortedData = Array.isArray(data) 
-        ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) 
+      const sortedData = Array.isArray(data)
+        ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         : [];
       setNotifications(sortedData);
     } catch (err) {
@@ -414,107 +544,95 @@ export const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
-  // --- RESET TRANG KHI TÌM KIẾM ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- FILTER (LOGIC TÌM KIẾM MỚI) ---
   const filteredNotifications = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
-    
-    // Tìm theo ID
     const idMatch = String(item.id).toLowerCase().includes(term);
-    // Tìm theo Người nhận (Căn hộ)
-    const recipientMatch = removeVietnameseTones(item.apartment_id || item.recipient || "").includes(term);
-
+    const recipientMatch = removeVietnameseTones(
+      item.apartment_id || item.recipient || ""
+    ).includes(term);
     return idMatch || recipientMatch;
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentNotifications = filteredNotifications.slice(indexOfFirstItem, indexOfLastItem);
+  const currentNotifications = filteredNotifications.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
   const goToPrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // --- HANDLERS ADD/EDIT ---
   const handleAddClick = () => {
-    setEditingNotification(null); // Null = Add Mode
+    setEditingNotification(null);
     setIsModalOpen(true);
     setFormError("");
   };
 
   const handleEditClick = (notification) => {
-    setEditingNotification(notification); // Object = Edit Mode
+    setEditingNotification(notification);
     setIsModalOpen(true);
     setFormError("");
   };
 
-  // --- HANDLE SAVE (Dùng chung cho Add & Edit) ---
   const handleSave = async (data, notificationId) => {
     try {
       const token = getToken();
-
       if (notificationId) {
-        // --- LOGIC SỬA (1 Item) ---
-        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error("Lỗi cập nhật.");
-        setModalStatus("editSuccess");
-        setStatusMessage("Chỉnh sửa thông báo thành công!");
-        setIsModalOpen(false);
-
-      } else {
-        // --- LOGIC THÊM (Bulk - Nhiều dòng) ---
-        const itemsToCreate = Array.isArray(data) ? data : [data];
-        
-        await Promise.all(itemsToCreate.map(item => 
-          fetch(`${API_BASE_URL}/notifications`, {
-            method: "POST",
+        const response = await fetch(
+          `${API_BASE_URL}/notifications/${notificationId}`,
+          {
+            method: "PUT",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(item),
-          }).then(res => {
-             if (!res.ok) throw new Error("Lỗi tạo thông báo");
-             return res;
-          })
-        ));
-
+            body: JSON.stringify(data),
+          }
+        );
+        if (!response.ok) throw new Error("Lỗi cập nhật.");
+        setModalStatus("editSuccess");
+        setStatusMessage("Chỉnh sửa thông báo thành công!");
+        setIsModalOpen(false);
+      } else {
+        const itemsToCreate = Array.isArray(data) ? data : [data];
+        await Promise.all(
+          itemsToCreate.map((item) =>
+            fetch(`${API_BASE_URL}/notifications`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(item),
+            }).then((res) => {
+              if (!res.ok) throw new Error("Lỗi tạo thông báo");
+              return res;
+            })
+          )
+        );
         setModalStatus("addSuccess");
         setStatusMessage(`Đã thêm ${itemsToCreate.length} thông báo mới!`);
         setIsModalOpen(false);
       }
-
       fetchNotifications();
       setIsStatusModalOpen(true);
     } catch (err) {
-      setFormError(err.message); 
+      setFormError(err.message);
     }
   };
 
-  // --- HANDLERS DELETE ---
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
     setSelectedIds([]);
@@ -527,37 +645,33 @@ export const NotificationsPage = () => {
   };
 
   const handleDeleteSelectedClick = () => {
-    if (selectedIds.length > 0) {
-      setShowConfirmModal(true);
-    }
+    if (selectedIds.length > 0) setShowConfirmModal(true);
   };
 
   const handleConfirmDelete = async () => {
     if (selectedIds.length === 0) {
-        setShowConfirmModal(false);
-        return;
+      setShowConfirmModal(false);
+      return;
     }
     setShowConfirmModal(false);
     setError(null);
-
     try {
       const token = getToken();
       await Promise.all(
-          selectedIds.map(id =>
-              fetch(`${API_BASE_URL}/notifications/${id}`, { 
-                  method: "DELETE",
-                  headers: { "Authorization": `Bearer ${token}` }
-              }).then(res => {
-                  if (!res.ok) throw new Error(`Failed to delete ${id}`);
-                  return res;
-              })
-          )
+        selectedIds.map((id) =>
+          fetch(`${API_BASE_URL}/notifications/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((res) => {
+            if (!res.ok) throw new Error(`Failed to delete ${id}`);
+            return res;
+          })
+        )
       );
-
       fetchNotifications();
       setModalStatus("deleteSuccess");
       setStatusMessage(`Đã xóa ${selectedIds.length} thông báo thành công!`);
-      setIsDeleteMode(false); 
+      setIsDeleteMode(false);
       setSelectedIds([]);
     } catch (err) {
       console.error("API Error:", err);
@@ -576,6 +690,219 @@ export const NotificationsPage = () => {
     setStatusMessage("");
   };
 
+  // --- LOGIC NHẬP FILE EXCEL ---
+  const handleImportClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target.result;
+        await workbook.xlsx.load(buffer);
+        const worksheet = workbook.getWorksheet(1);
+
+        const dataToImport = [];
+        let headerRowNumber = 1;
+        let colMap = {};
+
+        // Tìm header
+        worksheet.eachRow((row, rowNumber) => {
+          if (Object.keys(colMap).length > 0) return;
+          const rowValues = row.values;
+          if (Array.isArray(rowValues)) {
+            const normalizedCells = rowValues.map((v) =>
+              v ? String(v).trim().toLowerCase() : ""
+            );
+            const idxRecipient = normalizedCells.findIndex(
+              (v) => v === "người nhận" || v === "căn hộ"
+            );
+            const idxContent = normalizedCells.findIndex(
+              (v) => v === "nội dung"
+            );
+            const idxDate = normalizedCells.findIndex((v) => v === "ngày gửi");
+
+            if (idxRecipient !== -1 && idxContent !== -1) {
+              headerRowNumber = rowNumber;
+              colMap = {
+                recipient: idxRecipient,
+                content: idxContent,
+                date: idxDate,
+              };
+            }
+          }
+        });
+
+        if (Object.keys(colMap).length === 0) {
+          throw new Error(
+            "Không tìm thấy cột 'Người nhận' và 'Nội dung' trong file Excel."
+          );
+        }
+
+        // TÍNH TOÁN ID TỰ ĐỘNG (Dựa trên Max ID hiện tại)
+        let maxId = notifications.reduce(
+          (max, item) => Math.max(max, Number(item.id) || 0),
+          0
+        );
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > headerRowNumber) {
+            const rowValues = row.values;
+            const recipient = rowValues[colMap.recipient]
+              ? String(rowValues[colMap.recipient]).trim()
+              : "";
+            const content = rowValues[colMap.content]
+              ? String(rowValues[colMap.content]).trim()
+              : "";
+
+            // Xử lý ngày: Excel có thể trả về object Date hoặc string
+            let notiDate = null;
+            if (colMap.date !== -1 && rowValues[colMap.date]) {
+              notiDate = rowValues[colMap.date];
+            }
+
+            if (recipient && content) {
+              maxId++; // Tăng ID lên 1
+              dataToImport.push({
+                id: maxId, // Gán ID tự tăng
+                apartment_id: recipient,
+                content: content,
+                notification_date: notiDate,
+              });
+            }
+          }
+        });
+
+        // Call API Create
+        const token = getToken();
+        let successCount = 0;
+        await Promise.all(
+          dataToImport.map((item) =>
+            fetch(`${API_BASE_URL}/notifications`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(item), // ID tự tăng do BE xử lý
+            })
+              .then((res) => {
+                if (res.ok) successCount++;
+              })
+              .catch(() => {})
+          )
+        );
+
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        fetchNotifications();
+        setModalStatus("addSuccess");
+        setStatusMessage(
+          `Đã nhập thành công ${successCount} thông báo từ Excel!`
+        );
+        setIsStatusModalOpen(true);
+      } catch (err) {
+        console.error("Excel Import Error:", err);
+        setModalStatus("addFailure");
+        setStatusMessage(`Lỗi nhập file: ${err.message}`);
+        setIsStatusModalOpen(true);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // --- LOGIC XUẤT PDF (PRINT) ---
+  const handleExportClick = () => {
+    // Chỉ mở popup preview
+    setShowPreviewModal(true);
+  };
+
+  const handlePrintPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
+
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
+
+        // === TITLE ===
+        doc.setFontSize(18);
+        doc.text("Danh sách thông báo chung cư Blue Moon", 105, 15, {
+          align: "center",
+        });
+
+        // === INFO LINE ===
+        const today = new Date().toLocaleDateString("vi-VN");
+        const currentUser = getCurrentUserEmail();
+
+        doc.setFontSize(11);
+        doc.setFont("Roboto", "normal");
+        doc.text(`Ngày in: ${today}`, 14, 25);
+        doc.text(`Người in: ${currentUser}`, 196, 25, { align: "right" });
+
+        // === TABLE ===
+        const tableColumn = [
+          "Mã số thông báo",
+          "Người nhận",
+          "Nội dung",
+          "Ngày gửi",
+        ];
+        const tableRows = [];
+
+        // Xuất toàn bộ dữ liệu đang có (hoặc đã lọc)
+        filteredNotifications.forEach((item) => {
+          const rowData = [
+            String(item.id),
+            (item.apartment_id || item.recipient || "").normalize("NFC"),
+            (item.content || "").normalize("NFC"),
+            item.notification_date
+              ? new Date(item.notification_date).toLocaleDateString("vi-VN")
+              : "",
+          ];
+          tableRows.push(rowData);
+        });
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 30,
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 10 },
+          headStyles: {
+            fillColor: [220, 220, 220],
+            textColor: 20,
+            fontStyle: "bold",
+          }, // Màu header xám như hình mẫu
+          theme: "grid",
+        });
+
+        // === FOOTER PAGINATION (Auto added by autoTable or Manual) ===
+        // autoTable handles pagination visually in PDF pages.
+        // But let's add a simple footer text if needed like "Trang 1 / X" via hook if strictly required like image.
+        // For simplicity, standard jsPDF pagination is implicit.
+        // Here we just save/print.
+
+        doc.save("danh_sach_thong_bao.pdf");
+        setShowPreviewModal(false); // Đóng preview sau khi in
+      };
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      alert("Lỗi xuất PDF");
+    }
+  };
+
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus.toLowerCase().includes("success");
@@ -583,13 +910,19 @@ export const NotificationsPage = () => {
     return (
       <div className="flex flex-col items-center">
         <img src={icon} alt={modalStatus} className="w-20 h-20 mb-6" />
-        <p className="text-xl font-semibold text-center text-gray-800">{statusMessage}</p>
+        <p className="text-xl font-semibold text-center text-gray-800">
+          {statusMessage}
+        </p>
       </div>
     );
   };
 
-  if (isLoading) return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
-  if (error) return <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>;
+  if (isLoading)
+    return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
+  if (error)
+    return (
+      <div className="text-red-400 text-lg p-4">Lỗi tải dữ liệu: {error}</div>
+    );
 
   return (
     <div>
@@ -597,8 +930,19 @@ export const NotificationsPage = () => {
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </span>
           <input
@@ -617,6 +961,31 @@ export const NotificationsPage = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
+              {/* Input Excel Ẩn */}
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+
+              <button
+                onClick={handleImportClick}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
+              >
+                <FiUpload size={18} />
+                <span>Nhập thông báo</span>
+              </button>
+
+              <button
+                onClick={handleExportClick}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
+              >
+                <FiPrinter size={18} />
+                <span>Xuất thông báo</span>
+              </button>
+
               <button
                 onClick={handleAddClick}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
@@ -636,8 +1005,8 @@ export const NotificationsPage = () => {
                 onClick={handleDeleteSelectedClick}
                 disabled={selectedIds.length === 0}
                 className={`font-semibold py-2 px-4 rounded-md transition-colors duration-200 ${
-                    selectedIds.length === 0 
-                    ? "bg-gray-400 cursor-not-allowed text-white" 
+                  selectedIds.length === 0
+                    ? "bg-gray-400 cursor-not-allowed text-white"
                     : "bg-red-500 hover:bg-red-600 text-white"
                 }`}
               >
@@ -677,18 +1046,22 @@ export const NotificationsPage = () => {
       {/* --- PAGINATION CONTROLS --- */}
       {filteredNotifications.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -697,15 +1070,20 @@ export const NotificationsPage = () => {
             <span className="text-lg">/ {totalPages}</span>
           </div>
 
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
@@ -727,8 +1105,8 @@ export const NotificationsPage = () => {
         onConfirm={handleConfirmDelete}
         title="Chú ý: Xóa thông báo!!!"
         message={
-            selectedIds.length > 0 
-            ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} thông báo đã chọn không?` 
+          selectedIds.length > 0
+            ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} thông báo đã chọn không?`
             : "Vui lòng chọn ít nhất một thông báo để xóa."
         }
       />
@@ -737,6 +1115,14 @@ export const NotificationsPage = () => {
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
+
+      {/* Preview PDF Modal */}
+      <PreviewPdfModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        data={filteredNotifications}
+        onPrint={handlePrintPDF}
+      />
     </div>
   );
 };
