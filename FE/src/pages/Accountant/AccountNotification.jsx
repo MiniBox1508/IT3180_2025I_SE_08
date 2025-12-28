@@ -6,15 +6,11 @@ import dayjs from "dayjs";
 import { StatusModal } from "../../layouts/StatusModal";
 
 // --- IMPORT ICONS CHO MODAL BULK ---
-import { FiPlus, FiX, FiPrinter } from "react-icons/fi"; // Đã thêm FiPrinter
+import { FiPlus, FiX } from "react-icons/fi";
 
-// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+// --- IMPORTS CHO PHÂN TRANG (MỚI) ---
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
-
-// --- IMPORT THƯ VIỆN PDF ---
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -142,6 +138,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       onSubmit(formData);
     } else {
       // Logic Thêm Nhiều: Gửi mảng rows
+      // Lọc bỏ các trường không cần thiết nếu cần
       const validRows = rows.map(({ apartment_id, content }) => ({
         apartment_id,
         content,
@@ -365,7 +362,7 @@ export const AccountantNotification = () => {
 
   // --- STATE PHÂN TRANG (MỚI) ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+  const itemsPerPage = 10; // Số lượng item / 1 trang
 
   useEffect(() => {
     import("../../images/accept_icon.png").then((m) =>
@@ -403,7 +400,7 @@ export const AccountantNotification = () => {
     fetchNotifications();
   }, []);
 
-  // --- RESET TRANG KHI TÌM KIẾM ---
+  // --- RESET TRANG KHI TÌM KIẾM (MỚI) ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -533,13 +530,13 @@ export const AccountantNotification = () => {
     return idStr.includes(term) || contentStr.includes(term);
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION - MỚI) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentNotifications = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
+  // --- HANDLER CHUYỂN TRANG (MỚI) ---
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
@@ -549,77 +546,6 @@ export const AccountantNotification = () => {
   const goToPrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage((prev) => prev - 1);
-    }
-  };
-
-  // --- LOGIC XUẤT PDF ---
-  const handleExportPDF = async () => {
-    if (filteredList.length === 0) {
-      setStatusModal({
-        open: true,
-        type: "failure",
-        message: "Không có dữ liệu để in!",
-      });
-      return;
-    }
-
-    try {
-      const doc = new jsPDF();
-
-      // 1. Tải Font Roboto (Hỗ trợ tiếng Việt)
-      const fontUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
-      const fontResponse = await fetch(fontUrl);
-      const fontBlob = await fontResponse.blob();
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(fontBlob);
-      reader.onloadend = () => {
-        const base64data = reader.result.split(",")[1];
-        
-        // Add font
-        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
-        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-        doc.setFont("Roboto");
-
-        // 2. Tạo nội dung PDF
-        doc.setFontSize(18);
-        doc.text("DANH SÁCH THÔNG BÁO", 105, 20, { align: "center" });
-        
-        doc.setFontSize(11);
-        doc.text(`Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}`, 105, 30, { align: "center" });
-
-        // Cột bảng
-        const tableColumn = ["ID", "Người nhận", "Nội dung", "Ngày gửi"];
-        const tableRows = [];
-
-        filteredList.forEach(item => {
-          const rowData = [
-            item.id,
-            item.apartment_id || "All",
-            item.content || "",
-            item.sent_date ? dayjs(item.sent_date).format("DD/MM/YYYY") : (item.notification_date ? dayjs(item.notification_date).format("DD/MM/YYYY") : "")
-          ];
-          tableRows.push(rowData);
-        });
-
-        autoTable(doc, {
-          startY: 40,
-          head: [tableColumn],
-          body: tableRows,
-          styles: { font: "Roboto", fontStyle: "normal" },
-          headStyles: { fillColor: [59, 130, 246] }, // Blue color header
-        });
-
-        // 3. Lưu file
-        doc.save(`Danh_Sach_Thong_Bao_${dayjs().format("DDMMYYYY")}.pdf`);
-      };
-    } catch (error) {
-      console.error("Export Error:", error);
-      setStatusModal({
-        open: true,
-        type: "failure",
-        message: "Lỗi xuất file PDF!",
-      });
     }
   };
 
@@ -633,7 +559,7 @@ export const AccountantNotification = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Loại thông báo..."
+            placeholder="Tìm theo ID hoặc Loại thông báo..." // Cập nhật placeholder
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -648,14 +574,6 @@ export const AccountantNotification = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
-              {/* NÚT IN PDF MỚI */}
-              <button
-                onClick={handleExportPDF}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
-              >
-                <FiPrinter className="mr-2" /> In PDF
-              </button>
-
               <button
                 onClick={handleAddClick}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold flex items-center shadow-lg transition-colors"
@@ -693,15 +611,16 @@ export const AccountantNotification = () => {
       </div>
 
       {/* Danh sách Card Thông báo */}
-      <div className="space-y-4 pb-10">
+      <div className="space-y-4 pb-4">
         {isLoading ? (
           <p className="text-white text-center">Đang tải dữ liệu...</p>
-        ) : currentNotifications.length === 0 ? (
+        ) : currentItems.length === 0 ? (
           <p className="text-white text-center">
-            Không tìm thấy thông báo nào.
+            {filteredList.length === 0 ? "Không tìm thấy thông báo nào." : "Trang này không có dữ liệu."}
           </p>
         ) : (
-          currentNotifications.map((item) => (
+          // Thay đổi: Render currentItems thay vì filteredList
+          currentItems.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
@@ -789,9 +708,9 @@ export const AccountantNotification = () => {
         )}
       </div>
 
-      {/* --- PAGINATION CONTROLS --- */}
+      {/* --- PAGINATION CONTROLS (MỚI - ĐƯỢC THÊM VÀO) --- */}
       {filteredList.length > 0 && (
-        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-10">
           {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
