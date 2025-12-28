@@ -946,15 +946,12 @@ export const NotificationsPage = () => {
           headStyles: {
             fillColor: [220, 220, 220],
             textColor: 20,
-            fontStyle: "bold",
-          }, // Màu header xám như hình mẫu
-          theme: "grid",
-          rowPageBreak: "avoid", // Tránh ngắt dòng giữa trang
-          margin: { top: 30 },
-          // Thiết lập số dòng mỗi trang (gián tiếp qua pageBreak)
-          didDrawPage: (data) => {
-            // Header title lặp lại nếu cần, ở đây để mặc định
+            fontStyle: "normal", // <--- FIX LỖI FONT HEADER (chuyển từ bold sang normal)
           },
+          theme: "grid",
+          rowPageBreak: "avoid",
+          margin: { top: 30 },
+          didDrawPage: (data) => {},
         });
 
         doc.save("danh_sach_thong_bao.pdf");
