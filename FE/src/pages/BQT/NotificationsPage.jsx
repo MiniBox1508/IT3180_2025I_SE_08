@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // --- IMPORT ICONS ---
@@ -52,7 +52,35 @@ const removeVietnameseTones = (str) => {
 // === PREVIEW PDF MODAL (Popup xem trước khi in) ===
 // =========================================================================
 const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
+  // State phân trang cho Popup
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7; // Yêu cầu: Tối đa 7 dòng/trang trong popup
+
+  // Reset về trang 1 khi mở modal hoặc data thay đổi
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentPage(1);
+    }
+  }, [isOpen, data]);
+
   if (!isOpen) return null;
+
+  // Logic phân trang
+  const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Tính số dòng trống cần bù vào để bảng không bị co lại (giữ height cố định)
+  const emptyRows = itemsPerPage - currentItems.length;
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
@@ -69,76 +97,95 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
         {/* Content Table Preview */}
         <div className="flex-1 p-6 overflow-hidden flex flex-col bg-gray-50">
-          <div className="overflow-y-auto custom-scrollbar border border-gray-300 rounded-lg bg-white shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-100 sticky top-0 z-10">
-                <tr>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
-                    Mã số thông báo
-                  </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
-                    Người nhận
-                  </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
-                    Nội dung
-                  </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
-                    Ngày gửi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {data.map((item, index) => (
-                  <tr key={index} className="hover:bg-blue-50">
-                    <td className="p-3 text-sm text-gray-700">{item.id}</td>
-                    <td className="p-3 text-sm text-gray-700">
-                      {item.apartment_id || item.recipient}
-                    </td>
-                    <td
-                      className="p-3 text-sm text-gray-700 truncate max-w-xs"
-                      title={item.content}
-                    >
-                      {item.content}
-                    </td>
-                    <td className="p-3 text-sm text-gray-700">
-                      {item.notification_date
-                        ? new Date(item.notification_date).toLocaleDateString(
-                            "vi-VN"
-                          )
-                        : ""}
-                    </td>
+          <div className="overflow-hidden border border-gray-300 rounded-lg bg-white shadow-sm flex flex-col h-full">
+            {/* Wrapper div để table chiếm hết height và overflow nếu cần */}
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse h-full">
+                <thead className="bg-gray-100 sticky top-0 z-10">
+                  <tr>
+                    <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                      Mã số thông báo
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                      Người nhận
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
+                      Nội dung
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                      Ngày gửi
+                    </th>
                   </tr>
-                ))}
-                {/* Tạo các dòng trống để mô phỏng bảng full trang giống hình mẫu */}
-                {Array.from({ length: Math.max(0, 10 - data.length) }).map(
-                  (_, i) => (
-                    <tr key={`empty-${i}`} className="h-10">
-                      <td className="border-b border-gray-100"></td>
-                      <td className="border-b border-gray-100"></td>
-                      <td className="border-b border-gray-100"></td>
-                      <td className="border-b border-gray-100"></td>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {currentItems.map((item, index) => (
+                    <tr key={index} className="hover:bg-blue-50 h-[50px]">
+                      <td className="p-3 text-sm text-gray-700">{item.id}</td>
+                      <td className="p-3 text-sm text-gray-700">
+                        {item.apartment_id || item.recipient}
+                      </td>
+                      <td
+                        className="p-3 text-sm text-gray-700 truncate max-w-xs"
+                        title={item.content}
+                      >
+                        {item.content}
+                      </td>
+                      <td className="p-3 text-sm text-gray-700">
+                        {item.notification_date
+                          ? new Date(item.notification_date).toLocaleDateString(
+                              "vi-VN"
+                            )
+                          : ""}
+                      </td>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+                  ))}
+                  {/* Tạo các dòng trống để giữ layout cố định */}
+                  {Array.from({ length: Math.max(0, emptyRows) }).map(
+                    (_, i) => (
+                      <tr key={`empty-${i}`} className="h-[50px]">
+                        <td className="border-b border-gray-100"></td>
+                        <td className="border-b border-gray-100"></td>
+                        <td className="border-b border-gray-100"></td>
+                        <td className="border-b border-gray-100"></td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Mock Pagination for visual matching */}
+          {/* Pagination Controls trong Popup */}
           <div className="flex justify-center items-center mt-4 space-x-4">
-            <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center">
-              <img src={arrowLeft} className="w-4 h-4 opacity-50" />
-            </div>
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === 1
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowLeft} className="w-4 h-4" alt="Prev" />
+            </button>
             <div className="bg-gray-300 px-4 py-1 rounded-full text-gray-700 font-semibold text-sm">
               Trang{" "}
               <span className="bg-gray-400 text-white px-2 py-0.5 rounded ml-1">
-                1
+                {currentPage}
               </span>{" "}
-              / 1
+              / {totalPages}
             </div>
-            <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center">
-              <img src={arrowRight} className="w-4 h-4 opacity-50" />
-            </div>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === totalPages
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowRight} className="w-4 h-4" alt="Next" />
+            </button>
           </div>
         </div>
 
@@ -1004,7 +1051,7 @@ export const NotificationsPage = () => {
 
               <button
                 onClick={handleExportClick}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
+                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
               >
                 <FiPrinter size={18} />
                 <span>Xuất thông báo</span>
