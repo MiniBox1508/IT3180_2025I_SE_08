@@ -1,18 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 
+// --- IMPORT THƯ VIỆN XỬ LÝ FILE (PATTERN) ---
+import ExcelJS from "exceljs";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+// --- IMPORT ICONS ---
+import { FiUpload, FiPrinter } from "react-icons/fi"; // Thêm icon Upload, Printer
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+import acceptIconImg from "../../images/accept_icon.png";
+import notAcceptIconImg from "../../images/not_accept_icon.png";
+
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
-import acceptIcon from "../../images/accept_icon.png";
-import notAcceptIcon from "../../images/not_accept_icon.png";
-
-// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
-import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
+
+// --- HELPER: Lấy User Email ---
+const getCurrentUserEmail = () => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return user.email || "security@bluemoon.com";
+    } catch (e) {
+      return "security@bluemoon.com";
+    }
+  }
+  return "security@bluemoon.com";
+};
 
 // --- ICONS ---
 const SearchIcon = () => (
@@ -49,7 +69,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
+// --- HELPER: Xóa dấu tiếng Việt ---
 const removeVietnameseTones = (str) => {
   if (!str) return "";
   str = str.toLowerCase();
@@ -60,9 +80,156 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // huyền, sắc, hỏi, ngã, nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // mũ â (ê), mũ ă, mũ ơ (ư)
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
+};
+
+// =========================================================================
+// === PREVIEW PDF MODAL (MẪU IMPORT/EXPORT) ===
+// =========================================================================
+const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
+
+  useEffect(() => {
+    if (isOpen) setCurrentPage(1);
+  }, [isOpen, data]);
+
+  if (!isOpen) return null;
+
+  const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+  const emptyRows = itemsPerPage - currentItems.length;
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      {/* Width max-w-6xl để chứa đủ 6 cột */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col h-auto">
+        <div className="p-6 border-b border-gray-200 flex justify-center relative">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Xem trước danh sách sự cố
+          </h2>
+        </div>
+        <div className="p-8 bg-gray-50 flex flex-col">
+          <div className="border border-gray-300 rounded-lg bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[10%]">
+                    Mã sự cố
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
+                    Mã căn hộ
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[30%]">
+                    Nội dung
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
+                    Ngày gửi
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
+                    Trạng thái
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
+                    Ngày xử lý
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {currentItems.map((item, index) => (
+                  <tr key={index} className="hover:bg-blue-50 h-[50px]">
+                    <td className="p-3 text-sm text-gray-700">{item.id}</td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.apartment_id}
+                    </td>
+                    <td
+                      className="p-3 text-sm text-gray-700 truncate max-w-xs"
+                      title={item.content}
+                    >
+                      {item.content}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.date_sent}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          item.status === "Đã xử lý"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.date_processed || "--/--/----"}
+                    </td>
+                  </tr>
+                ))}
+                {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
+                  <tr key={`empty-${i}`} className="h-[50px]">
+                    <td colSpan={6}></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-center items-center mt-6 space-x-4">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === 1
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowLeft} className="w-4 h-4" alt="Prev" />
+            </button>
+            <div className="bg-gray-300 px-4 py-1 rounded-full text-gray-700 font-semibold text-sm">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center ${
+                currentPage === totalPages
+                  ? "opacity-30 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+            >
+              <img src={arrowRight} className="w-4 h-4" alt="Next" />
+            </button>
+          </div>
+        </div>
+        <div className="p-6 border-t border-gray-200 flex justify-between items-center bg-white rounded-b-2xl">
+          <button
+            onClick={onClose}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors"
+          >
+            Thoát
+          </button>
+          <button
+            onClick={onPrint}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors flex items-center gap-2"
+          >
+            <span>In danh sách</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // --- COMPONENT: MODAL CHI TIẾT ---
@@ -72,7 +239,6 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl w-full max-w-2xl p-8 relative shadow-2xl animate-fade-in-up">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Chi tiết</h2>
           <button
@@ -82,10 +248,7 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
             <CloseIcon />
           </button>
         </div>
-
-        {/* Content Form */}
         <div className="space-y-6">
-          {/* Row 1: ID - Căn hộ - Ngày gửi */}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
@@ -112,8 +275,6 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
               </div>
             </div>
           </div>
-
-          {/* Row 2: Nội dung */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
               Nội dung
@@ -122,8 +283,6 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
               {data.content}
             </div>
           </div>
-
-          {/* Row 3: Trạng thái - Ngày xử lý */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
@@ -146,8 +305,6 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
               </div>
             </div>
           </div>
-
-          {/* Row 4: Ghi chú */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
               Ghi chú
@@ -167,21 +324,12 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
 
 // --- MAIN PAGE ---
 export const SecurityProblem = () => {
-  // Hàm lấy JWT token
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
-
-  // State dữ liệu chính
+  const getToken = () => localStorage.getItem("token");
   const [incidents, setIncidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // States cho Modal Chi tiết
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
-  // States cho Chế độ Xử lý hàng loạt (Batch Mode)
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
@@ -192,44 +340,40 @@ export const SecurityProblem = () => {
     message: "",
   });
 
-  // --- STATE PHÂN TRANG (MỚI) ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+  // State Import/Export (MẪU MỚI)
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const fileInputRef = useRef(null);
 
-  // --- FETCH DATA TỪ API ---
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // --- FETCH DATA ---
   const fetchIncidents = async () => {
     setIsLoading(true);
     try {
       const token = getToken();
-      // Gọi API lấy danh sách services (sự cố/khiếu nại)
       const response = await axios.get(`${API_BASE_URL}/services`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const rawData = response.data;
-
-      // Map dữ liệu từ Backend sang format của UI
       const mappedData = Array.isArray(rawData)
         ? rawData.map((item) => ({
             id: item.id,
             content: item.content,
             apartment_id: item.apartment_id,
-            // Format ngày gửi
             date_sent: item.created_at
               ? dayjs(item.created_at).format("DD/MM/YYYY")
               : "",
             status: item.servicestatus || "Đã ghi nhận",
-            // Format ngày xử lý
             date_processed: item.handle_date
               ? dayjs(item.handle_date).format("DD/MM/YYYY")
               : "",
             note: item.note,
+            raw_created_at: item.created_at, // Giữ lại để xử lý export nếu cần
           }))
         : [];
-
-      // Sắp xếp mới nhất lên đầu
-      const sortedData = mappedData.sort((a, b) => b.id - a.id);
-      setIncidents(sortedData);
+      setIncidents(mappedData.sort((a, b) => b.id - a.id));
     } catch (error) {
       console.error("Lỗi khi tải danh sách sự cố:", error);
     } finally {
@@ -237,32 +381,248 @@ export const SecurityProblem = () => {
     }
   };
 
-  // Gọi API khi component mount
   useEffect(() => {
     fetchIncidents();
   }, []);
-
-  // --- RESET TRANG KHI TÌM KIẾM ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- HANDLERS ---
+  // --- LOGIC NHẬP FILE EXCEL (MẪU IMPORT) ---
+  const handleImportClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
 
-  // Mở chi tiết
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target.result;
+        await workbook.xlsx.load(buffer);
+        const worksheet = workbook.getWorksheet(1);
+        const dataToImport = [];
+        let headerRowNumber = 1;
+        let colMap = {};
+
+        // 1. Tìm Header
+        worksheet.eachRow((row, rowNumber) => {
+          if (Object.keys(colMap).length > 0) return;
+          const rowValues = row.values;
+          if (Array.isArray(rowValues)) {
+            const normalizedCells = rowValues.map((v) =>
+              v ? String(v).trim().toLowerCase() : ""
+            );
+            const idxApartment = normalizedCells.findIndex(
+              (v) => v === "mã số căn hộ"
+            );
+            const idxContent = normalizedCells.findIndex(
+              (v) => v === "nội dung"
+            );
+            const idxDate = normalizedCells.findIndex((v) => v === "ngày gửi");
+
+            if (idxApartment !== -1 && idxContent !== -1) {
+              headerRowNumber = rowNumber;
+              colMap = {
+                apartment_id: idxApartment,
+                content: idxContent,
+                date: idxDate,
+              };
+            }
+          }
+        });
+
+        if (Object.keys(colMap).length === 0)
+          throw new Error("Không tìm thấy cột 'Mã số căn hộ' và 'Nội dung'.");
+
+        // 2. Tìm Max ID để Auto-increment
+        let currentMaxId = incidents.reduce(
+          (max, item) => Math.max(max, Number(item.id) || 0),
+          0
+        );
+
+        // 3. Đọc dữ liệu
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > headerRowNumber) {
+            const rowValues = row.values;
+            const apartment = rowValues[colMap.apartment_id]
+              ? String(rowValues[colMap.apartment_id]).trim()
+              : "";
+            const content = rowValues[colMap.content]
+              ? String(rowValues[colMap.content]).trim()
+              : "";
+            const dateVal =
+              colMap.date !== -1 && rowValues[colMap.date]
+                ? rowValues[colMap.date]
+                : new Date();
+
+            if (apartment && content) {
+              currentMaxId++;
+              dataToImport.push({
+                id: currentMaxId,
+                apartment_id: apartment,
+                content: content,
+                request_date: dateVal,
+                service_type: "Sự cố", // Tự động gán loại
+                status: "Chờ xử lý", // Tự động gán trạng thái
+              });
+            }
+          }
+        });
+
+        // 4. Gọi API
+        const token = getToken();
+        let successCount = 0;
+        let failCount = 0;
+
+        await Promise.all(
+          dataToImport.map((item) =>
+            axios
+              .post(`${API_BASE_URL}/services`, item, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              .then(() => successCount++)
+              .catch(() => failCount++)
+          )
+        );
+
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        fetchIncidents();
+
+        let message = "";
+        let type = "success";
+        if (failCount === 0 && successCount > 0)
+          message = `Nhập thành công ${successCount} sự cố mới!`;
+        else if (successCount > 0 && failCount > 0)
+          message = `Thành công: ${successCount}, Lỗi: ${failCount}`;
+        else {
+          message = "Nhập thất bại toàn bộ.";
+          type = "failure";
+        }
+
+        setStatusModal({ open: true, type, message });
+      } catch (err) {
+        setStatusModal({
+          open: true,
+          type: "failure",
+          message: "Lỗi file: " + err.message,
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // --- LOGIC XUẤT PDF (MẪU EXPORT) ---
+  const handleExportClick = () => setShowPreviewModal(true);
+
+  const handlePrintPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
+
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
+
+        // Header
+        doc.setFontSize(18);
+        doc.text("Danh sách sự cố an ninh chung cư Blue Moon", 105, 15, {
+          align: "center",
+        });
+
+        const today = new Date().toLocaleDateString("vi-VN");
+        doc.setFontSize(11);
+        doc.setFont("Roboto", "normal");
+        doc.text(`Ngày in: ${today}`, 14, 25);
+        doc.text(`Người in: ${getCurrentUserEmail()}`, 196, 25, {
+          align: "right",
+        });
+
+        // Table Data
+        const tableColumn = [
+          "Mã sự cố",
+          "Mã căn hộ",
+          "Nội dung",
+          "Ngày gửi",
+          "Trạng thái",
+          "Ngày xử lý",
+        ];
+        const tableRows = [];
+
+        filteredList.forEach((item) => {
+          const rowData = [
+            String(item.id),
+            (item.apartment_id || "").normalize("NFC"),
+            (item.content || "").normalize("NFC"),
+            item.date_sent,
+            (item.status || "Chờ xử lý").normalize("NFC"),
+            item.date_processed || "---",
+          ];
+          tableRows.push(rowData);
+        });
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 30,
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 10 },
+          headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: 255,
+            fontStyle: "normal",
+          }, // Blue Header
+          theme: "grid",
+          margin: { top: 30 },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: "auto" },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 30 },
+            5: { cellWidth: 25 },
+          },
+        });
+
+        doc.save("danh_sach_su_co.pdf");
+        setShowPreviewModal(false);
+        setStatusModal({
+          open: true,
+          type: "success",
+          message: `Xuất thành công ${filteredList.length} dòng dữ liệu!`,
+        });
+      };
+    } catch (err) {
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Lỗi xuất PDF: " + err.message,
+      });
+    }
+  };
+
+  // --- HANDLERS KHÁC ---
   const handleViewDetail = (item) => {
     setSelectedIncident(item);
     setIsDetailModalOpen(true);
   };
 
-  // Toggle chế độ hàng loạt
   const toggleBatchMode = () => {
     if (isBatchMode) {
       setIsBatchMode(false);
       setSelectedIds([]);
     } else {
       setIsBatchMode(true);
-      // Pre-select những item đã xử lý
       const processedIds = incidents
         .filter((item) => item.status === "Đã xử lý")
         .map((item) => item.id);
@@ -270,46 +630,33 @@ export const SecurityProblem = () => {
     }
   };
 
-  // Chọn item
-  const handleSelect = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
-    } else {
-      setSelectedIds([...selectedIds, id]);
-    }
-  };
+  const handleSelect = (id) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
 
-  // Xử lý hàng loạt (GỌI API THỰC TẾ)
   const handleBatchProcess = async () => {
     if (selectedIds.length === 0) return;
-
     try {
       const token = getToken();
-      
-      // Gửi nhiều request cập nhật song song
       await Promise.all(
         selectedIds.map((id) =>
           axios.patch(
             `${API_BASE_URL}/services/${id}`,
-            { servicestatus: "Đã xử lý" }, // Cập nhật trạng thái
+            { servicestatus: "Đã xử lý" },
             { headers: { Authorization: `Bearer ${token}` } }
           )
         )
       );
-
       setStatusModal({
         open: true,
         type: "success",
         message: "Đã cập nhật trạng thái thành công!",
       });
-      
-      // Reload lại dữ liệu sau khi cập nhật
       fetchIncidents();
-      
       setIsBatchMode(false);
       setSelectedIds([]);
     } catch (error) {
-      console.error("Lỗi cập nhật hàng loạt:", error);
       setStatusModal({
         open: true,
         type: "failure",
@@ -318,39 +665,27 @@ export const SecurityProblem = () => {
     }
   };
 
-  // --- FILTER (LOGIC TÌM KIẾM: ID + NỘI DUNG + CĂN HỘ + KHÔNG DẤU) ---
+  // --- FILTER & PAGINATION ---
   const filteredList = incidents.filter((item) => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
-
-    const contentStr = removeVietnameseTones(item.content || "");
-    const idStr = String(item.id).toLowerCase();
-    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
-
     return (
-      idStr.includes(term) ||
-      contentStr.includes(term) ||
-      apartmentStr.includes(term)
+      String(item.id).toLowerCase().includes(term) ||
+      removeVietnameseTones(item.content || "").includes(term) ||
+      removeVietnameseTones(item.apartment_id || "").includes(term)
     );
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentList = filteredList.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
-
   const goToPrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
   return (
@@ -375,35 +710,64 @@ export const SecurityProblem = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Quản lý sự cố</h1>
 
-        {/* Nút Chuyển chế độ */}
-        {!isBatchMode ? (
-          <button
-            onClick={toggleBatchMode}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
-          >
-            Xử lý
-          </button>
-        ) : (
-          <div className="flex space-x-3">
-            <button
-              onClick={handleBatchProcess}
-              disabled={selectedIds.length === 0}
-              className={`px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-white ${
-                selectedIds.length > 0
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Xác nhận xử lý ({selectedIds.length})
-            </button>
+        <div className="flex space-x-3 items-center">
+          {/* Input File Ẩn */}
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+
+          {/* Nút Import/Export MỚI */}
+          {!isBatchMode && (
+            <>
+              <button
+                onClick={handleImportClick}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-colors"
+              >
+                <FiUpload size={18} /> <span>Nhập Excel</span>
+              </button>
+              <button
+                onClick={handleExportClick}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-colors"
+              >
+                <FiPrinter size={18} /> <span>Xuất PDF</span>
+              </button>
+            </>
+          )}
+
+          {/* Nút Chuyển chế độ Batch cũ */}
+          {!isBatchMode ? (
             <button
               onClick={toggleBatchMode}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
             >
-              Hủy
+              Xử lý
             </button>
-          </div>
-        )}
+          ) : (
+            <>
+              <button
+                onClick={handleBatchProcess}
+                disabled={selectedIds.length === 0}
+                className={`px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors text-white ${
+                  selectedIds.length > 0
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                Xác nhận xử lý ({selectedIds.length})
+              </button>
+              <button
+                onClick={toggleBatchMode}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+              >
+                Hủy
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 3. DANH SÁCH SỰ CỐ */}
@@ -411,37 +775,34 @@ export const SecurityProblem = () => {
         {isLoading ? (
           <div className="text-white text-center">Đang tải dữ liệu...</div>
         ) : currentList.length === 0 ? (
-          <div className="text-white text-center">Không tìm thấy sự cố nào.</div>
+          <div className="text-white text-center">
+            Không tìm thấy sự cố nào.
+          </div>
         ) : (
           currentList.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
             >
-              {/* Thanh xanh bên trái */}
               <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
-
-              {/* Grid Content */}
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-                {/* ID */}
                 <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Sự cố ID
                   </p>
                   <p className="text-xl font-bold text-gray-900">{item.id}</p>
                 </div>
-
-                {/* Nội dung */}
                 <div className="col-span-3">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Nội dung
                   </p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p
+                    className="text-sm font-semibold text-gray-900 truncate pr-2"
+                    title={item.content}
+                  >
                     {item.content}
                   </p>
                 </div>
-
-                {/* Số căn hộ */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Số căn hộ
@@ -450,8 +811,6 @@ export const SecurityProblem = () => {
                     {item.apartment_id}
                   </p>
                 </div>
-
-                {/* Ngày gửi */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Ngày gửi
@@ -460,8 +819,6 @@ export const SecurityProblem = () => {
                     {item.date_sent}
                   </p>
                 </div>
-
-                {/* Trạng thái */}
                 <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Trạng thái
@@ -476,10 +833,7 @@ export const SecurityProblem = () => {
                     {item.status}
                   </p>
                 </div>
-
-                {/* Ngày xử lý / Action */}
                 <div className="col-span-2 flex justify-end items-center">
-                  {/* Nếu ở chế độ Batch: Hiện Checkbox */}
                   {isBatchMode ? (
                     <div
                       onClick={() => handleSelect(item.id)}
@@ -507,7 +861,6 @@ export const SecurityProblem = () => {
                       )}
                     </div>
                   ) : (
-                    // Chế độ thường: Hiện nút Xem chi tiết hoặc Ngày xử lý
                     <div className="flex flex-col items-end">
                       <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                         Ngày xử lý
@@ -530,21 +883,24 @@ export const SecurityProblem = () => {
         )}
       </div>
 
-      {/* --- PAGINATION CONTROLS --- */}
+      {/* Pagination */}
       {filteredList.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
-
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -552,37 +908,46 @@ export const SecurityProblem = () => {
             </div>
             <span className="text-lg">/ {totalPages}</span>
           </div>
-
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
 
-      {/* --- MODAL SECTIONS --- */}
-
-      {/* 1. Detail Modal */}
+      {/* Modals */}
       <IncidentDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         data={selectedIncident}
       />
+      <PreviewPdfModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        data={filteredList}
+        onPrint={handlePrintPDF}
+      />
 
-      {/* 2. Status Modal */}
       <StatusModal
         isOpen={statusModal.open}
         onClose={() => setStatusModal({ ...statusModal, open: false })}
       >
         <div className="flex flex-col items-center justify-center p-4">
           <img
-            src={statusModal.type === "success" ? acceptIcon : notAcceptIcon}
+            src={
+              statusModal.type === "success" ? acceptIconImg : notAcceptIconImg
+            }
             alt="Status"
             className="w-20 h-20 mb-4"
           />
