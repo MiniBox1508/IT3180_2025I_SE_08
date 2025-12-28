@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 
+// --- THÊM IMPORT THƯ VIỆN PDF ---
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { FiPrinter } from "react-icons/fi"; // Icon in
+
 // --- Components Layout/Modal ---
 import { StatusModal } from "../../layouts/StatusModal";
 import acceptIcon from "../../images/accept_icon.png";
@@ -201,8 +206,6 @@ export const SecurityProblem = () => {
       const rawData = response.data;
 
       // Map dữ liệu từ Backend sang format của UI
-      // Backend: created_at, servicestatus, handle_date
-      // UI: date_sent, status, date_processed
       const mappedData = Array.isArray(rawData)
         ? rawData.map((item) => ({
             id: item.id,
@@ -236,6 +239,109 @@ export const SecurityProblem = () => {
     fetchIncidents();
   }, []);
 
+  // --- FILTER (LOGIC TÌM KIẾM MỚI: ID + NỘI DUNG + CĂN HỘ + KHÔNG DẤU) ---
+  const filteredList = incidents.filter((item) => {
+    if (!searchTerm.trim()) return true;
+    const term = removeVietnameseTones(searchTerm.trim());
+
+    const contentStr = removeVietnameseTones(item.content || "");
+    const idStr = String(item.id).toLowerCase();
+    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
+
+    return (
+      idStr.includes(term) ||
+      contentStr.includes(term) ||
+      apartmentStr.includes(term)
+    );
+  });
+
+  // --- LOGIC XUẤT PDF ---
+  const handleExportPDF = async () => {
+    if (filteredList.length === 0) {
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Không có dữ liệu để xuất!",
+      });
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+
+      // 1. Tải Font Roboto từ CDN để hỗ trợ tiếng Việt
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontResponse = await fetch(fontUrl);
+      const fontBlob = await fontResponse.blob();
+
+      const reader = new FileReader();
+      reader.readAsDataURL(fontBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+
+        // Add font
+        doc.addFileToVFS("Roboto-Regular.ttf", base64data);
+        doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
+
+        // 2. Tạo nội dung PDF
+        doc.setFontSize(18);
+        doc.text("DANH SÁCH SỰ CỐ AN NINH", 105, 20, { align: "center" });
+
+        doc.setFontSize(11);
+        doc.text(
+          `Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+          105,
+          30,
+          { align: "center" }
+        );
+
+        // Định nghĩa cột
+        const tableColumn = [
+          "ID",
+          "Căn hộ",
+          "Nội dung",
+          "Ngày gửi",
+          "Trạng thái",
+          "Ngày xử lý",
+        ];
+        const tableRows = [];
+
+        filteredList.forEach((item) => {
+          const rowData = [
+            item.id,
+            item.apartment_id,
+            item.content,
+            item.date_sent,
+            item.status,
+            item.date_processed || "--/--/----",
+          ];
+          tableRows.push(rowData);
+        });
+
+        // Tạo bảng
+        autoTable(doc, {
+          startY: 40,
+          head: [tableColumn],
+          body: tableRows,
+          styles: { font: "Roboto", fontStyle: "normal" },
+          headStyles: { fillColor: [59, 130, 246] }, // Blue header
+        });
+
+        // Lưu file
+        doc.save(`Su_co_an_ninh_${dayjs().format("DDMMYYYY")}.pdf`);
+      };
+    } catch (error) {
+      console.error("Lỗi xuất PDF:", error);
+      setStatusModal({
+        open: true,
+        type: "failure",
+        message: "Xuất PDF thất bại!",
+      });
+    }
+  };
+
   // --- HANDLERS ---
 
   // Mở chi tiết
@@ -251,7 +357,7 @@ export const SecurityProblem = () => {
       setSelectedIds([]);
     } else {
       setIsBatchMode(true);
-      // Pre-select những item đã xử lý (logic cũ của bạn, có thể giữ hoặc bỏ)
+      // Pre-select những item đã xử lý (logic cũ)
       const processedIds = incidents
         .filter((item) => item.status === "Đã xử lý")
         .map((item) => item.id);
@@ -307,22 +413,6 @@ export const SecurityProblem = () => {
     }
   };
 
-  // --- FILTER (LOGIC TÌM KIẾM MỚI: ID + NỘI DUNG + CĂN HỘ + KHÔNG DẤU) ---
-  const filteredList = incidents.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const term = removeVietnameseTones(searchTerm.trim());
-
-    const contentStr = removeVietnameseTones(item.content || "");
-    const idStr = String(item.id).toLowerCase();
-    const apartmentStr = removeVietnameseTones(item.apartment_id || "");
-
-    return (
-      idStr.includes(term) ||
-      contentStr.includes(term) ||
-      apartmentStr.includes(term)
-    );
-  });
-
   return (
     <div className="w-full min-h-screen">
       {/* 1. THANH TÌM KIẾM */}
@@ -333,7 +423,7 @@ export const SecurityProblem = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm kiếm theo ID, Nội dung, Số căn hộ..." // Cập nhật placeholder
+            placeholder="Tìm kiếm theo ID, Nội dung, Số căn hộ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -347,12 +437,22 @@ export const SecurityProblem = () => {
 
         {/* Nút Chuyển chế độ */}
         {!isBatchMode ? (
-          <button
-            onClick={toggleBatchMode}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
-          >
-            Xử lý
-          </button>
+          <div className="flex gap-3">
+            {/* NÚT XUẤT PDF MỚI THÊM */}
+            <button
+              onClick={handleExportPDF}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors flex items-center"
+            >
+              <FiPrinter className="mr-2" /> Xuất PDF
+            </button>
+
+            <button
+              onClick={toggleBatchMode}
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors"
+            >
+              Xử lý
+            </button>
+          </div>
         ) : (
           <div className="flex space-x-3">
             <button
