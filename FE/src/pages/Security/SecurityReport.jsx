@@ -225,7 +225,7 @@ export const SecurityReport = () => {
     ],
   };
 
-  // --- CHỨC NĂNG XUẤT PDF (Giống NotificationsPage) ---
+  // --- CHỨC NĂNG XUẤT PDF (ĐÃ SỬA LỖI FONT) ---
   const handleExportReport = async () => {
     setIsExporting(true);
     try {
@@ -241,9 +241,12 @@ export const SecurityReport = () => {
       reader.readAsDataURL(fontBlob);
       reader.onloadend = () => {
         const base64data = reader.result.split(",")[1];
+        // Thêm font vào VFS của jsPDF
         doc.addFileToVFS("Roboto-Regular.ttf", base64data);
         doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-        doc.setFont("Roboto");
+        
+        // Set font mặc định cho toàn document
+        doc.setFont("Roboto", "normal"); 
 
         // 2. Header PDF
         doc.setFontSize(22);
@@ -264,7 +267,7 @@ export const SecurityReport = () => {
 
         // 3. Phần 1: Thống kê Cư dân
         doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0); // Đen
+        doc.setTextColor(0, 0, 0); 
         doc.text("1. Thống kê Cư dân & Nhân sự", 14, 45);
 
         autoTable(doc, {
@@ -275,20 +278,28 @@ export const SecurityReport = () => {
             ["Khách tạm trú", statistics.residentStats.tamTru],
             ["Nhân viên Kế toán", statistics.residentStats.keToan],
             ["Công an / Bảo vệ", statistics.residentStats.congAn],
-            // Dòng tổng cộng
             [
               { 
                 content: "Tổng cộng", 
-                styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } 
+                styles: { fillColor: [240, 240, 240] } // Bỏ fontStyle bold để tránh lỗi
               },
               {
                  content: statistics.residentStats.cuDan + statistics.residentStats.tamTru + statistics.residentStats.keToan + statistics.residentStats.congAn,
-                 styles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
+                 styles: { fillColor: [240, 240, 240] }
               }
             ]
           ],
-          styles: { font: "Roboto", fontSize: 11 },
-          headStyles: { fillColor: [59, 130, 246] }, // Màu xanh dương giống chart
+          // --- CẤU HÌNH QUAN TRỌNG ĐỂ KHÔNG LỖI FONT ---
+          styles: { 
+            font: "Roboto", 
+            fontStyle: "normal", // Bắt buộc dùng normal vì chỉ nạp font Regular
+            fontSize: 11 
+          },
+          headStyles: { 
+            fillColor: [59, 130, 246],
+            font: "Roboto", // Khai báo lại font cho header
+            fontStyle: "normal" // QUAN TRỌNG: Header mặc định là bold, phải chuyển về normal
+          },
           theme: 'grid'
         });
 
@@ -305,8 +316,16 @@ export const SecurityReport = () => {
             ["Vận chuyển đồ", statistics.serviceStats.vanChuyen],
             ["Dọn dẹp vệ sinh", statistics.serviceStats.donDep],
           ],
-          styles: { font: "Roboto", fontSize: 11 },
-          headStyles: { fillColor: [139, 92, 246] }, // Màu tím giống chart
+          styles: { 
+            font: "Roboto", 
+            fontStyle: "normal",
+            fontSize: 11 
+          },
+          headStyles: { 
+            fillColor: [139, 92, 246],
+            font: "Roboto",
+            fontStyle: "normal" // QUAN TRỌNG
+          },
           theme: 'grid'
         });
 
@@ -321,8 +340,16 @@ export const SecurityReport = () => {
             ["Mất tài sản cá nhân", statistics.complaintStats.matTaiSan],
             ["Hư hại tài sản chung", statistics.complaintStats.taiSanChung],
           ],
-          styles: { font: "Roboto", fontSize: 11 },
-          headStyles: { fillColor: [239, 68, 68] }, // Màu đỏ giống chart
+          styles: { 
+            font: "Roboto", 
+            fontStyle: "normal",
+            fontSize: 11 
+          },
+          headStyles: { 
+            fillColor: [239, 68, 68],
+            font: "Roboto",
+            fontStyle: "normal" // QUAN TRỌNG
+          },
           theme: 'grid'
         });
 
