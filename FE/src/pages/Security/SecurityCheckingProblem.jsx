@@ -8,7 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // --- IMPORT ICONS ---
-import { FiUpload, FiPrinter } from "react-icons/fi"; // Thêm icon Upload, Printer
+import { FiUpload, FiPrinter } from "react-icons/fi";
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 import acceptIconImg from "../../images/accept_icon.png";
@@ -113,7 +113,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      {/* Width max-w-6xl để chứa đủ 6 cột */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col h-auto">
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
           <h2 className="text-2xl font-bold text-gray-800">
@@ -388,7 +387,7 @@ export const SecurityProblem = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- LOGIC NHẬP FILE EXCEL (MẪU IMPORT) ---
+  // --- LOGIC NHẬP FILE EXCEL (ĐÃ SỬA) ---
   const handleImportClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -405,7 +404,8 @@ export const SecurityProblem = () => {
         const buffer = evt.target.result;
         await workbook.xlsx.load(buffer);
         const worksheet = workbook.getWorksheet(1);
-        const dataToImport = [];
+
+        let dataToImport = [];
         let headerRowNumber = 1;
         let colMap = {};
 
@@ -445,7 +445,10 @@ export const SecurityProblem = () => {
           0
         );
 
-        // 3. Đọc dữ liệu
+        let validSuccessCount = 0; // Đếm số dòng hợp lệ trong file
+        let invalidDataCount = 0; // Đếm số dòng thiếu dữ liệu trong file
+
+        // 3. Đọc dữ liệu và Lọc (Filter) ngay tại đây
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
@@ -455,52 +458,65 @@ export const SecurityProblem = () => {
             const content = rowValues[colMap.content]
               ? String(rowValues[colMap.content]).trim()
               : "";
-            const dateVal =
-              colMap.date !== -1 && rowValues[colMap.date]
-                ? rowValues[colMap.date]
-                : new Date();
 
+            // KIỂM TRA QUAN TRỌNG: Chỉ thêm vào danh sách nếu có đủ dữ liệu
             if (apartment && content) {
+              const dateVal =
+                colMap.date !== -1 && rowValues[colMap.date]
+                  ? rowValues[colMap.date]
+                  : new Date();
+
               currentMaxId++;
               dataToImport.push({
                 id: currentMaxId,
                 apartment_id: apartment,
                 content: content,
                 request_date: dateVal,
-                service_type: "Sự cố", // Tự động gán loại
-                status: "Chờ xử lý", // Tự động gán trạng thái
+                service_type: "Sự cố",
+                status: "Chờ xử lý",
               });
+              validSuccessCount++;
+            } else {
+              // Nếu dòng có dữ liệu nhưng thiếu cột quan trọng -> Tính là lỗi
+              // (Chỉ đếm nếu dòng đó không hoàn toàn rỗng để tránh đếm dòng thừa cuối file)
+              if (row.hasValues) {
+                invalidDataCount++;
+              }
             }
           }
         });
 
-        // 4. Gọi API
+        // 4. Gọi API chỉ với những data đúng
         const token = getToken();
-        let successCount = 0;
-        let failCount = 0;
+        let apiSuccessCount = 0;
+        let apiFailCount = 0;
 
-        await Promise.all(
-          dataToImport.map((item) =>
-            axios
-              .post(`${API_BASE_URL}/services`, item, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-              .then(() => successCount++)
-              .catch(() => failCount++)
-          )
-        );
+        if (dataToImport.length > 0) {
+          await Promise.all(
+            dataToImport.map((item) =>
+              axios
+                .post(`${API_BASE_URL}/services`, item, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                .then(() => apiSuccessCount++)
+                .catch(() => apiFailCount++)
+            )
+          );
+        }
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchIncidents();
 
-        let message = "";
-        let type = "success";
-        if (failCount === 0 && successCount > 0)
-          message = `Nhập thành công ${successCount} sự cố mới!`;
-        else if (successCount > 0 && failCount > 0)
-          message = `Thành công: ${successCount}, Lỗi: ${failCount}`;
-        else {
-          message = "Nhập thất bại toàn bộ.";
+        // 5. Tổng hợp kết quả
+        // Tổng thất bại = Lỗi dữ liệu file (invalidDataCount) + Lỗi API (apiFailCount)
+        const totalFail = invalidDataCount + apiFailCount;
+        const totalSuccess = apiSuccessCount;
+
+        let message = `Thành công: ${totalSuccess}, Thất bại: ${totalFail}`;
+        let type = totalSuccess > 0 ? "success" : "failure";
+
+        if (totalSuccess === 0 && totalFail === 0) {
+          message = "File không có dữ liệu hợp lệ.";
           type = "failure";
         }
 
@@ -509,7 +525,7 @@ export const SecurityProblem = () => {
         setStatusModal({
           open: true,
           type: "failure",
-          message: "Lỗi file: " + err.message,
+          message: "Lỗi xử lý file: " + err.message,
         });
       }
     };
