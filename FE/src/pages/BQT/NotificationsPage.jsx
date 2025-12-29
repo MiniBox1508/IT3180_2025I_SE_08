@@ -218,24 +218,32 @@ const NotificationFormModal = ({
   const isEditing = !!notificationData;
 
   const [singleFormData, setSingleFormData] = useState({
+    receiver_name: "Cư dân", // Mặc định
     apartment_id: "",
     content: "",
   });
 
   const [rows, setRows] = useState([
-    { id: Date.now(), apartment_id: "", content: "" },
+    { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
 
   useEffect(() => {
     if (isOpen) {
       if (notificationData) {
         setSingleFormData({
-          apartment_id:
-            notificationData.apartment_id || notificationData.recipient || "",
+          receiver_name: notificationData.receiver_name || "Cư dân",
+          apartment_id: notificationData.apartment_id || "",
           content: notificationData.content || "",
         });
       } else {
-        setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
+        setRows([
+          {
+            id: Date.now(),
+            receiver_name: "Cư dân",
+            apartment_id: "",
+            content: "",
+          },
+        ]);
       }
       setError("");
     }
@@ -255,7 +263,12 @@ const NotificationFormModal = ({
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: Date.now(), apartment_id: "", content: "" },
+      {
+        id: Date.now(),
+        receiver_name: "Cư dân",
+        apartment_id: "",
+        content: "",
+      },
     ]);
   };
 
@@ -270,25 +283,49 @@ const NotificationFormModal = ({
     setError("");
 
     if (isEditing) {
-      if (!singleFormData.apartment_id || !singleFormData.content) {
-        setError("Vui lòng điền đủ Người nhận và Nội dung.");
+      // Validate
+      if (
+        singleFormData.receiver_name === "Cư dân" &&
+        !singleFormData.apartment_id
+      ) {
+        setError("Vui lòng nhập Mã căn hộ cho cư dân.");
         return;
       }
+      if (!singleFormData.content) {
+        setError("Vui lòng điền nội dung.");
+        return;
+      }
+
+      // Chuẩn bị data gửi đi
       const dataToSend = {
-        apartment_id: singleFormData.apartment_id,
+        sender_name: "Ban quản trị",
+        receiver_name: singleFormData.receiver_name,
+        // Nếu không phải cư dân, apartment_id có thể để trống hoặc "All" tùy logic, ở đây để "All" nếu ko phải cư dân
+        apartment_id:
+          singleFormData.receiver_name === "Cư dân"
+            ? singleFormData.apartment_id
+            : "All",
         content: singleFormData.content,
       };
       onSave(dataToSend, notificationData.id);
     } else {
+      // Validate từng dòng
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        if (!row.apartment_id || !row.content) {
-          setError(`Dòng ${i + 1}: Vui lòng điền đủ Người nhận và Nội dung.`);
+        if (row.receiver_name === "Cư dân" && !row.apartment_id) {
+          setError(`Dòng ${i + 1}: Vui lòng nhập Mã căn hộ.`);
+          return;
+        }
+        if (!row.content) {
+          setError(`Dòng ${i + 1}: Vui lòng điền nội dung.`);
           return;
         }
       }
+
       const dataToSend = rows.map((row) => ({
-        apartment_id: row.apartment_id,
+        sender_name: "Ban quản trị",
+        receiver_name: row.receiver_name,
+        apartment_id: row.receiver_name === "Cư dân" ? row.apartment_id : "All",
         content: row.content,
       }));
       onSave(dataToSend, null);
@@ -313,16 +350,20 @@ const NotificationFormModal = ({
             {error}
           </div>
         )}
+
         {!isEditing && (
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg flex-1">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[30%]">
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">
                       Người nhận
                     </th>
-                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[60%]">
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">
+                      Mã căn hộ
+                    </th>
+                    <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[50%]">
                       Nội dung
                     </th>
                     <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[10%] text-center">
@@ -343,21 +384,50 @@ const NotificationFormModal = ({
                       key={row.id}
                       className="hover:bg-blue-50 transition-colors group"
                     >
+                      {/* Cột 1: Loại người nhận */}
                       <td className="p-2 align-top">
-                        <input
-                          type="text"
-                          value={row.apartment_id}
+                        <select
+                          value={row.receiver_name}
                           onChange={(e) =>
                             handleRowChange(
                               row.id,
-                              "apartment_id",
+                              "receiver_name",
                               e.target.value
                             )
                           }
-                          placeholder="VD: P.101 hoặc All"
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="Cư dân">Cư dân</option>
+                          <option value="Kế toán">Kế toán</option>
+                          <option value="Công an">Công an</option>
+                          <option value="Tất cả">Tất cả</option>
+                        </select>
                       </td>
+
+                      {/* Cột 2: Mã căn hộ (Chỉ hiện khi chọn Cư dân) */}
+                      <td className="p-2 align-top">
+                        {row.receiver_name === "Cư dân" ? (
+                          <input
+                            type="text"
+                            value={row.apartment_id}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.id,
+                                "apartment_id",
+                                e.target.value
+                              )
+                            }
+                            placeholder="VD: A1-101"
+                            className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <span className="text-gray-400 italic text-sm p-2 block">
+                            ---
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Cột 3: Nội dung */}
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
@@ -366,7 +436,7 @@ const NotificationFormModal = ({
                             handleRowChange(row.id, "content", e.target.value)
                           }
                           placeholder="Nội dung..."
-                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
+                          className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
                           style={{ minHeight: "38px" }}
                           onInput={(e) => {
                             e.target.style.height = "auto";
@@ -375,6 +445,8 @@ const NotificationFormModal = ({
                           }}
                         />
                       </td>
+
+                      {/* Cột 4: Xóa */}
                       <td className="p-2 text-center align-top pt-3">
                         {rows.length > 1 && (
                           <button
@@ -394,6 +466,7 @@ const NotificationFormModal = ({
             </div>
           </div>
         )}
+
         {isEditing && (
           <div className="space-y-4">
             <div>
@@ -408,13 +481,28 @@ const NotificationFormModal = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Người nhận
               </label>
-              <input
-                type="text"
-                name="apartment_id"
-                value={singleFormData.apartment_id}
+              <select
+                name="receiver_name"
+                value={singleFormData.receiver_name}
                 onChange={handleSingleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none mb-2"
+              >
+                <option value="Cư dân">Cư dân</option>
+                <option value="Kế toán">Kế toán</option>
+                <option value="Công an">Công an</option>
+                <option value="Tất cả">Tất cả</option>
+              </select>
+
+              {singleFormData.receiver_name === "Cư dân" && (
+                <input
+                  type="text"
+                  name="apartment_id"
+                  value={singleFormData.apartment_id}
+                  onChange={handleSingleChange}
+                  placeholder="Mã căn hộ"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -451,7 +539,7 @@ const NotificationFormModal = ({
   );
 };
 
-// --- COMPONENT ITEM THÔNG BÁO ---
+// --- COMPONENT ITEM THÔNG BÁO (ĐÃ CẬP NHẬT LAYOUT) ---
 const NotificationItem = ({
   item,
   isDeleteMode,
@@ -463,51 +551,63 @@ const NotificationItem = ({
     if (!isDeleteMode) onEditClick(item);
   };
 
-  const truncateContent = (content, limit = 12) => {
-    if (!content) return "---";
-    const trimmedContent = content.trim();
-    if (trimmedContent.length > limit)
-      return trimmedContent.substring(0, limit) + "...";
-    return trimmedContent;
-  };
-
   return (
-    <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
+    <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4 min-h-[80px]">
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-      <div className="flex-1 grid grid-cols-4 gap-4 items-center pl-8 pr-4 text-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Thông báo ID</p>
-          <p className="font-semibold">{item.id}</p>
+
+      {/* Grid 12 cột */}
+      <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-8 pr-4 text-gray-800">
+        {/* Cột 1: ID - Chiếm 1/12 */}
+        <div className="col-span-1 text-center border-r border-gray-100 pr-2">
+          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+            ID
+          </p>
+          <p className="font-bold text-lg text-blue-600">{item.id}</p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Người nhận</p>
-          <p className="font-medium">{item.apartment_id || item.recipient}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Nội dung</p>
+
+        {/* Cột 2: Người nhận - Chiếm 2/12 */}
+        <div className="col-span-2">
+          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+            Người nhận
+          </p>
           <div className="flex flex-col">
-            {item.title && (
-              <span className="font-bold text-sm text-blue-700 mb-0.5">
-                {item.title}
+            <span className="font-bold text-gray-800">
+              {item.receiver_name}
+            </span>
+            {item.apartment_id && item.apartment_id !== "All" && (
+              <span className="text-xs text-gray-500">
+                ({item.apartment_id})
               </span>
             )}
-            <span
-              className="font-medium text-gray-700 text-sm"
-              title={item.content}
-            >
-              {truncateContent(item.content)}
-            </span>
           </div>
         </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày gửi</p>
-          <p className="text-gray-600">
+
+        {/* Cột 3: Nội dung - Chiếm 7/12 (Diện tích lớn nhất) */}
+        <div className="col-span-7 pl-2 border-l border-r border-gray-100">
+          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+            Nội dung
+          </p>
+          <p
+            title={item.content}
+            className="text-gray-700 text-sm font-medium line-clamp-2 leading-relaxed"
+          >
+            {item.content}
+          </p>
+        </div>
+
+        {/* Cột 4: Ngày gửi - Chiếm 2/12 */}
+        <div className="col-span-2 pl-2">
+          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+            Ngày gửi
+          </p>
+          <p className="font-medium text-gray-900 text-sm">
             {item.notification_date
               ? new Date(item.notification_date).toLocaleDateString("vi-VN")
               : "---"}
           </p>
         </div>
       </div>
+
       <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
         {isDeleteMode ? (
           <div className="flex items-center justify-center h-full">
@@ -954,7 +1054,7 @@ export const NotificationsPage = () => {
           didDrawPage: (data) => {},
         });
 
-        doc.save("DANH_SACH_THONG_BAO_BQT_BLUEMOON.pdf");
+        doc.save("danh_sach_thong_bao.pdf");
         setShowPreviewModal(false); // Đóng preview sau khi in
 
         // --- CẬP NHẬT TRẠNG THÁI XUẤT ---
