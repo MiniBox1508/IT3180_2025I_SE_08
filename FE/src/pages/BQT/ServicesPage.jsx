@@ -321,7 +321,7 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
 };
 
 // --- MAIN PAGE ---
-export const SecurityProblem = () => {
+const ServicesPage = () => {
   const getToken = () => localStorage.getItem("token");
   const [incidents, setIncidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -340,7 +340,7 @@ export const SecurityProblem = () => {
     message: "",
   });
 
-  // State Export (Đã bỏ Import)
+  // State Export
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Pagination
@@ -828,3 +828,5 @@ export const SecurityProblem = () => {
     </div>
   );
 };
+
+export default ServicesPage;
