@@ -84,6 +84,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      {/* SỬA: Bỏ fixed height, dùng h-auto để modal ôm vừa nội dung */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
         {/* Header Modal */}
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
@@ -934,6 +935,8 @@ export const NotificationsPage = () => {
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
+
+            // 1. Lấy giá trị thô từ Excel
             const rawRecipient = rowValues[colMap.recipient]
               ? String(rowValues[colMap.recipient]).trim()
               : "";
@@ -941,7 +944,7 @@ export const NotificationsPage = () => {
               ? String(rowValues[colMap.content]).trim()
               : "";
 
-            // Xử lý ngày: Excel có thể trả về object Date hoặc string
+            // Xử lý ngày
             let notiDate = null;
             if (colMap.date !== -1 && rowValues[colMap.date]) {
               notiDate = rowValues[colMap.date];
@@ -950,7 +953,7 @@ export const NotificationsPage = () => {
             if (rawRecipient && content) {
               maxId++;
 
-              // --- LOGIC PHÂN LOẠI NGƯỜI NHẬN (ĐÃ FIX) ---
+              // --- LOGIC PHÂN LOẠI NGƯỜI NHẬN ---
               let receiverName = "Cư dân";
               let apartmentId = rawRecipient;
 
@@ -960,18 +963,12 @@ export const NotificationsPage = () => {
                 "Tất cả",
                 "Ban quản trị",
               ];
-
-              // Sử dụng removeVietnameseTones để so sánh chính xác hơn (tránh lỗi font/dấu)
-              const normalizedRaw =
-                removeVietnameseTones(rawRecipient).toLowerCase();
-
               const matchRole = specialRoles.find(
-                (role) =>
-                  removeVietnameseTones(role).toLowerCase() === normalizedRaw
+                (role) => role.toLowerCase() === rawRecipient.toLowerCase()
               );
 
               if (matchRole) {
-                receiverName = matchRole; // Gán đúng tên Role (VD: "Tất cả")
+                receiverName = matchRole;
                 apartmentId = "All";
               }
 
@@ -1091,7 +1088,6 @@ export const NotificationsPage = () => {
         filteredNotifications.forEach((item) => {
           const rowData = [
             String(item.id),
-            // LOGIC HIỂN THỊ CỘT NGƯỜI NHẬN TRONG PDF
             (item.receiver_name === "Cư dân"
               ? item.apartment_id
               : item.receiver_name || ""
@@ -1141,6 +1137,7 @@ export const NotificationsPage = () => {
 
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
+    // Check keyword để chọn icon (bao gồm cả trạng thái update từ logic Import)
     const isSuccess = modalStatus.toLowerCase().includes("success");
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
