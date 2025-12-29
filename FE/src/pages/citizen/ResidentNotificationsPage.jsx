@@ -7,10 +7,10 @@ import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
-// --- Component hiển thị một mục thông báo (ĐÃ SỬA để dùng dữ liệu API) ---
+// --- Component hiển thị một mục thông báo (ĐÃ CẬP NHẬT LAYOUT) ---
 function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
   // Định dạng ngày tháng
   const formattedDate = item.notification_date
@@ -18,35 +18,85 @@ function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
     : "---";
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4">
+    <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4 min-h-[80px]">
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
-      <div className="flex-1 grid grid-cols-3 gap-4 items-center pl-8 pr-4 text-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Thông báo ID</p>
-          <p className="font-semibold">{item.id}</p>
+
+      {/* Sử dụng Grid 12 cột để phân chia không gian linh hoạt hơn */}
+      <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-8 pr-4 text-gray-800">
+        {/* Cột 1: ID - Chiếm 2/12 */}
+        <div className="col-span-2 text-center border-r border-gray-100 pr-2">
+          <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">
+            Thông báo ID
+          </p>
+          <p className="font-bold text-lg text-blue-600">{item.id}</p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Người nhận (Căn hộ)</p>
-          {/* SỬ DỤNG apartment_id TỪ API */}
-          <p className="font-medium">{item.apartment_id}</p>
+
+        {/* Cột 2: Người nhận - Chiếm 2/12 */}
+        <div className="col-span-2">
+          <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">
+            Người nhận
+          </p>
+          <p
+            className="font-medium text-gray-900 truncate"
+            title={item.apartment_id}
+          >
+            {item.apartment_id}
+          </p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Ngày gửi</p>
-          {/* SỬ DỤNG notification_date TỪ API */}
-          <p className="text-gray-600">{formattedDate}</p>
+
+        {/* Cột 3: Ngày gửi - Chiếm 2/12 */}
+        <div className="col-span-2">
+          <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">
+            Ngày gửi
+          </p>
+          <p className="font-medium text-gray-900">{formattedDate}</p>
+        </div>
+
+        {/* Cột 4: Nội dung - Chiếm 6/12 (Diện tích lớn nhất) */}
+        <div className="col-span-6 pl-2 border-l border-gray-100">
+          <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">
+            Nội dung
+          </p>
+          <div className="flex flex-col">
+            {item.title && (
+              <p className="font-bold text-sm text-blue-800 mb-0.5 truncate">
+                {item.title}
+              </p>
+            )}
+            <p
+              title={item.content}
+              className="text-gray-700 text-sm font-medium line-clamp-2 leading-relaxed"
+            >
+              {item.content}
+            </p>
+          </div>
         </div>
       </div>
-      {/* Cột hành động (chỉ giữ lại nút Xóa nếu ở chế độ xóa) */}
-      <div className="ml-auto flex-shrink-0 pr-2">
-        {/* Giả lập hành động 'Xem chi tiết' để hiển thị nội dung */}
-        <p className="text-xs text-gray-500 mb-1">Nội dung</p>
-        <p
-          title={item.content}
-          className="text-blue-600 hover:underline text-sm font-medium truncate max-w-[150px]"
-        >
-          {item.content}
-        </p>
-      </div>
+
+      {/* Cột hành động (nếu có chế độ xóa) */}
+      {isDeleteMode && (
+        <div className="ml-2 flex-shrink-0">
+          <button
+            onClick={() => onDeleteClick(item.id)}
+            className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -94,7 +144,11 @@ export const ResidentNotificationsPage = () => {
       // Lấy apartment_id từ user đang đăng nhập
       const user = JSON.parse(localStorage.getItem("user"));
       const residentApartmentId = user?.apartment_id;
-      const filteredByResident = data.filter(
+
+      // Sắp xếp giảm dần theo ID hoặc ngày tạo để tin mới nhất lên đầu
+      const sortedData = data.sort((a, b) => b.id - a.id);
+
+      const filteredByResident = sortedData.filter(
         (item) =>
           String(item.apartment_id).trim().toLowerCase() === "all" ||
           String(item.apartment_id).trim().toLowerCase() ===
@@ -124,11 +178,13 @@ export const ResidentNotificationsPage = () => {
       return true;
     }
     const searchLower = searchTerm.trim().toLowerCase();
-    
+
     // Lọc theo ID
     const idMatch = String(item.id).toLowerCase().includes(searchLower);
     // Lọc theo Người nhận (apartment_id)
-    const apartmentMatch = String(item.apartment_id).toLowerCase().includes(searchLower);
+    const apartmentMatch = String(item.apartment_id)
+      .toLowerCase()
+      .includes(searchLower);
 
     return idMatch || apartmentMatch;
   });
@@ -136,7 +192,10 @@ export const ResidentNotificationsPage = () => {
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentNotifications = filteredNotifications.slice(indexOfFirstItem, indexOfLastItem);
+  const currentNotifications = filteredNotifications.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
 
   // --- HANDLER CHUYỂN TRANG ---
@@ -229,7 +288,7 @@ export const ResidentNotificationsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thông báo hoặc Căn hộ..." // Cập nhật placeholder
+            placeholder="Tìm theo ID thông báo hoặc Căn hộ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
@@ -263,16 +322,22 @@ export const ResidentNotificationsPage = () => {
 
       {/* --- PAGINATION CONTROLS --- */}
       {filteredNotifications.length > 0 && (
-        <div className="flex justify-center items-center mt-6 space-x-6">
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
           {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
           {/* Thanh hiển thị số trang */}
@@ -289,10 +354,16 @@ export const ResidentNotificationsPage = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
