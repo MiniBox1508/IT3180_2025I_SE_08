@@ -84,6 +84,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
+      {/* SỬA: Bỏ fixed height, dùng h-auto để modal ôm vừa nội dung */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
         {/* Header Modal */}
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
@@ -93,7 +94,9 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
         </div>
 
         {/* Content Table Preview */}
+        {/* SỬA: Bỏ overflow-hidden ở container này để tránh thanh cuộn */}
         <div className="p-8 bg-gray-50 flex flex-col">
+          {/* SỬA: Bỏ overflow-auto và custom-scrollbar ở wrapper table */}
           <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100">
@@ -117,7 +120,10 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                   <tr key={index} className="hover:bg-blue-50 h-[50px]">
                     <td className="p-3 text-sm text-gray-700">{item.id}</td>
                     <td className="p-3 text-sm text-gray-700">
-                      {item.apartment_id || item.recipient}
+                      {/* LOGIC HIỂN THỊ CỘT NGƯỜI NHẬN TRONG PREVIEW */}
+                      {item.receiver_name === "Cư dân"
+                        ? item.apartment_id
+                        : item.receiver_name}
                     </td>
                     <td
                       className="p-3 text-sm text-gray-700 truncate max-w-xs"
@@ -134,6 +140,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                     </td>
                   </tr>
                 ))}
+                {/* Tạo các dòng trống để giữ layout cố định (luôn đủ 7 dòng) */}
                 {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
                   <tr key={`empty-${i}`} className="h-[50px]">
                     <td className="border-b border-gray-100"></td>
@@ -1067,7 +1074,11 @@ export const NotificationsPage = () => {
         filteredNotifications.forEach((item) => {
           const rowData = [
             String(item.id),
-            (item.apartment_id || item.recipient || "").normalize("NFC"),
+            // LOGIC HIỂN THỊ CỘT NGƯỜI NHẬN TRONG PDF
+            (item.receiver_name === "Cư dân"
+              ? item.apartment_id
+              : item.receiver_name || ""
+            ).normalize("NFC"),
             (item.content || "").normalize("NFC"),
             item.notification_date
               ? new Date(item.notification_date).toLocaleDateString("vi-VN")
