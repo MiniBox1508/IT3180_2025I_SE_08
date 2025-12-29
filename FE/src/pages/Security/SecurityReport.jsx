@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Title,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
 // --- IMPORT CÁC THƯ VIỆN ĐỂ XUẤT PDF ---
@@ -32,9 +26,14 @@ const ReportCard = ({ title, stats, chartData }) => {
         </h3>
         <div className="space-y-3">
           {stats.map((item, index) => (
-            <div key={index} className="flex justify-between items-center text-sm">
+            <div
+              key={index}
+              className="flex justify-between items-center text-sm"
+            >
               <span className="text-gray-600 font-medium">{item.label}:</span>
-              <span className="text-gray-900 font-bold text-lg">{item.value}</span>
+              <span className="text-gray-900 font-bold text-lg">
+                {item.value}
+              </span>
             </div>
           ))}
         </div>
@@ -43,22 +42,22 @@ const ReportCard = ({ title, stats, chartData }) => {
       {/* Phần Biểu đồ */}
       <div className="w-full md:w-1/2 flex justify-center items-center h-64 relative">
         <div className="w-full h-full max-w-[250px] max-h-[250px]">
-          <Pie 
-            data={chartData} 
+          <Pie
+            data={chartData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
                 legend: {
-                  position: 'bottom',
+                  position: "bottom",
                   labels: {
                     boxWidth: 12,
                     padding: 15,
-                    font: { size: 10 }
-                  }
-                }
-              }
-            }} 
+                    font: { size: 10 },
+                  },
+                },
+              },
+            }}
           />
         </div>
       </div>
@@ -126,10 +125,10 @@ export const SecurityReport = () => {
       cuDan: 0,
       tamTru: 0,
       keToan: 0,
-      congAn: 0
+      congAn: 0,
     };
 
-    residents.forEach(r => {
+    residents.forEach((r) => {
       // Chuẩn hóa role và status
       const role = r.role ? r.role.toLowerCase() : "";
       const status = r.residency_status ? r.residency_status.toLowerCase() : "";
@@ -145,16 +144,16 @@ export const SecurityReport = () => {
       theXe: 0,
       suaChua: 0,
       vanChuyen: 0,
-      donDep: 0
+      donDep: 0,
     };
 
     // 3. Thống kê Khiếu nại
     const complaintStats = {
       taiSanChung: 0,
-      matTaiSan: 0
+      matTaiSan: 0,
     };
 
-    services.forEach(s => {
+    services.forEach((s) => {
       const content = s.content ? s.content.toLowerCase() : "";
       const type = s.service_type;
 
@@ -166,8 +165,8 @@ export const SecurityReport = () => {
 
       // Đếm khiếu nại (Chỉ tính nếu loại là Khiếu nại hoặc nội dung liên quan)
       if (type === "Khiếu nại" || type === "Khiếu nại") {
-         if (content.includes("tài sản chung")) complaintStats.taiSanChung++;
-         if (content.includes("mất tài sản")) complaintStats.matTaiSan++;
+        if (content.includes("tài sản chung")) complaintStats.taiSanChung++;
+        if (content.includes("mất tài sản")) complaintStats.matTaiSan++;
       }
     });
 
@@ -175,19 +174,19 @@ export const SecurityReport = () => {
   }, [residents, services]);
 
   // --- CẤU HÌNH DỮ LIỆU BIỂU ĐỒ ---
-  
+
   // 1. Chart Cư dân
   const residentChartData = {
-    labels: ['Cư dân', 'Tạm trú', 'Kế toán', 'Công an'],
+    labels: ["Cư dân", "Tạm trú", "Kế toán", "Công an"],
     datasets: [
       {
         data: [
           statistics.residentStats.cuDan,
           statistics.residentStats.tamTru,
           statistics.residentStats.keToan,
-          statistics.residentStats.congAn
+          statistics.residentStats.congAn,
         ],
-        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'], // Blue, Green, Yellow, Red
+        backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"], // Blue, Green, Yellow, Red
         borderWidth: 1,
       },
     ],
@@ -195,16 +194,16 @@ export const SecurityReport = () => {
 
   // 2. Chart Dịch vụ
   const serviceChartData = {
-    labels: ['Thẻ xe', 'Sửa chữa', 'Vận chuyển', 'Dọn dẹp'],
+    labels: ["Thẻ xe", "Sửa chữa", "Vận chuyển", "Dọn dẹp"],
     datasets: [
       {
         data: [
           statistics.serviceStats.theXe,
           statistics.serviceStats.suaChua,
           statistics.serviceStats.vanChuyen,
-          statistics.serviceStats.donDep
+          statistics.serviceStats.donDep,
         ],
-        backgroundColor: ['#6366F1', '#8B5CF6', '#EC4899', '#14B8A6'], // Indigo, Violet, Pink, Teal
+        backgroundColor: ["#6366F1", "#8B5CF6", "#EC4899", "#14B8A6"], // Indigo, Violet, Pink, Teal
         borderWidth: 1,
       },
     ],
@@ -212,14 +211,14 @@ export const SecurityReport = () => {
 
   // 3. Chart Khiếu nại
   const complaintChartData = {
-    labels: ['Mất tài sản', 'Tài sản chung'],
+    labels: ["Mất tài sản", "Tài sản chung"],
     datasets: [
       {
         data: [
           statistics.complaintStats.matTaiSan,
-          statistics.complaintStats.taiSanChung
+          statistics.complaintStats.taiSanChung,
         ],
-        backgroundColor: ['#EF4444', '#F97316'], // Red, Orange
+        backgroundColor: ["#EF4444", "#F97316"], // Red, Orange
         borderWidth: 1,
       },
     ],
@@ -244,9 +243,9 @@ export const SecurityReport = () => {
         // Thêm font vào VFS của jsPDF
         doc.addFileToVFS("Roboto-Regular.ttf", base64data);
         doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-        
+
         // Set font mặc định cho toàn document
-        doc.setFont("Roboto", "normal"); 
+        doc.setFont("Roboto", "normal");
 
         // 2. Header PDF
         doc.setFontSize(22);
@@ -267,7 +266,7 @@ export const SecurityReport = () => {
 
         // 3. Phần 1: Thống kê Cư dân
         doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0); 
+        doc.setTextColor(0, 0, 0);
         doc.text("1. Thống kê Cư dân & Nhân sự", 14, 45);
 
         autoTable(doc, {
@@ -279,28 +278,32 @@ export const SecurityReport = () => {
             ["Nhân viên Kế toán", statistics.residentStats.keToan],
             ["Công an / Bảo vệ", statistics.residentStats.congAn],
             [
-              { 
-                content: "Tổng cộng", 
-                styles: { fillColor: [240, 240, 240] } // Bỏ fontStyle bold để tránh lỗi
+              {
+                content: "Tổng cộng",
+                styles: { fillColor: [240, 240, 240] }, // Bỏ fontStyle bold để tránh lỗi
               },
               {
-                 content: statistics.residentStats.cuDan + statistics.residentStats.tamTru + statistics.residentStats.keToan + statistics.residentStats.congAn,
-                 styles: { fillColor: [240, 240, 240] }
-              }
-            ]
+                content:
+                  statistics.residentStats.cuDan +
+                  statistics.residentStats.tamTru +
+                  statistics.residentStats.keToan +
+                  statistics.residentStats.congAn,
+                styles: { fillColor: [240, 240, 240] },
+              },
+            ],
           ],
           // --- CẤU HÌNH QUAN TRỌNG ĐỂ KHÔNG LỖI FONT ---
-          styles: { 
-            font: "Roboto", 
+          styles: {
+            font: "Roboto",
             fontStyle: "normal", // Bắt buộc dùng normal vì chỉ nạp font Regular
-            fontSize: 11 
+            fontSize: 11,
           },
-          headStyles: { 
+          headStyles: {
             fillColor: [59, 130, 246],
             font: "Roboto", // Khai báo lại font cho header
-            fontStyle: "normal" // QUAN TRỌNG: Header mặc định là bold, phải chuyển về normal
+            fontStyle: "normal", // QUAN TRỌNG: Header mặc định là bold, phải chuyển về normal
           },
-          theme: 'grid'
+          theme: "grid",
         });
 
         // 4. Phần 2: Thống kê Dịch vụ
@@ -316,17 +319,17 @@ export const SecurityReport = () => {
             ["Vận chuyển đồ", statistics.serviceStats.vanChuyen],
             ["Dọn dẹp vệ sinh", statistics.serviceStats.donDep],
           ],
-          styles: { 
-            font: "Roboto", 
+          styles: {
+            font: "Roboto",
             fontStyle: "normal",
-            fontSize: 11 
+            fontSize: 11,
           },
-          headStyles: { 
+          headStyles: {
             fillColor: [139, 92, 246],
             font: "Roboto",
-            fontStyle: "normal" // QUAN TRỌNG
+            fontStyle: "normal", // QUAN TRỌNG
           },
-          theme: 'grid'
+          theme: "grid",
         });
 
         // 5. Phần 3: Thống kê Khiếu nại
@@ -340,17 +343,17 @@ export const SecurityReport = () => {
             ["Mất tài sản cá nhân", statistics.complaintStats.matTaiSan],
             ["Hư hại tài sản chung", statistics.complaintStats.taiSanChung],
           ],
-          styles: { 
-            font: "Roboto", 
+          styles: {
+            font: "Roboto",
             fontStyle: "normal",
-            fontSize: 11 
+            fontSize: 11,
           },
-          headStyles: { 
+          headStyles: {
             fillColor: [239, 68, 68],
             font: "Roboto",
-            fontStyle: "normal" // QUAN TRỌNG
+            fontStyle: "normal", // QUAN TRỌNG
           },
-          theme: 'grid'
+          theme: "grid",
         });
 
         // 6. Footer
@@ -365,7 +368,11 @@ export const SecurityReport = () => {
         );
 
         // Lưu file
-        doc.save(`Bao_Cao_An_Ninh_${dayjs().format("DDMMYYYY_HHmm")}.pdf`);
+        doc.save(
+          `BAO_CAO_AN_NINH_CONG_AN_BLUEMOON_${dayjs().format(
+            "DDMMYYYY_HHmm"
+          )}.pdf`
+        );
         setIsExporting(false);
       };
     } catch (error) {
@@ -376,7 +383,11 @@ export const SecurityReport = () => {
   };
 
   if (isLoading) {
-    return <div className="text-white text-center mt-10 text-xl">Đang tổng hợp báo cáo...</div>;
+    return (
+      <div className="text-white text-center mt-10 text-xl">
+        Đang tổng hợp báo cáo...
+      </div>
+    );
   }
 
   return (
@@ -384,10 +395,12 @@ export const SecurityReport = () => {
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Quản lý báo cáo chung cư</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Quản lý báo cáo chung cư
+          </h1>
           <p className="text-blue-200">Tổng hợp số liệu thời gian thực</p>
         </div>
-        
+
         {/* Nút Xuất Báo Cáo */}
         <button
           onClick={handleExportReport}
@@ -403,41 +416,69 @@ export const SecurityReport = () => {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 gap-8 max-w-6xl mx-auto">
-        
         {/* 1. Báo cáo Cư dân */}
-        <ReportCard 
+        <ReportCard
           title="Chi tiết cư dân trong tòa nhà"
           stats={[
-            { label: "Tổng số người dân đang cư trú", value: statistics.residentStats.cuDan },
-            { label: "Tổng số người dân tạm trú", value: statistics.residentStats.tamTru },
-            { label: "Tổng số lượng kế toán", value: statistics.residentStats.keToan },
-            { label: "Tổng số lượng công an", value: statistics.residentStats.congAn },
+            {
+              label: "Tổng số người dân đang cư trú",
+              value: statistics.residentStats.cuDan,
+            },
+            {
+              label: "Tổng số người dân tạm trú",
+              value: statistics.residentStats.tamTru,
+            },
+            {
+              label: "Tổng số lượng kế toán",
+              value: statistics.residentStats.keToan,
+            },
+            {
+              label: "Tổng số lượng công an",
+              value: statistics.residentStats.congAn,
+            },
           ]}
           chartData={residentChartData}
         />
 
         {/* 2. Báo cáo Dịch vụ */}
-        <ReportCard 
+        <ReportCard
           title="Chi tiết các dịch vụ chung cư"
           stats={[
-            { label: "Số lượng dịch vụ làm thẻ xe", value: statistics.serviceStats.theXe },
-            { label: "Số lượng dịch vụ sửa chữa căn hộ", value: statistics.serviceStats.suaChua },
-            { label: "Số lượng dịch vụ vận chuyển đồ", value: statistics.serviceStats.vanChuyen },
-            { label: "Số lượng dịch vụ dọn dẹp căn hộ", value: statistics.serviceStats.donDep },
+            {
+              label: "Số lượng dịch vụ làm thẻ xe",
+              value: statistics.serviceStats.theXe,
+            },
+            {
+              label: "Số lượng dịch vụ sửa chữa căn hộ",
+              value: statistics.serviceStats.suaChua,
+            },
+            {
+              label: "Số lượng dịch vụ vận chuyển đồ",
+              value: statistics.serviceStats.vanChuyen,
+            },
+            {
+              label: "Số lượng dịch vụ dọn dẹp căn hộ",
+              value: statistics.serviceStats.donDep,
+            },
           ]}
           chartData={serviceChartData}
         />
 
         {/* 3. Báo cáo Khiếu nại */}
-        <ReportCard 
+        <ReportCard
           title="Chi tiết về khiếu nại"
           stats={[
-            { label: "Số lượng làm mất tài sản", value: statistics.complaintStats.matTaiSan },
-            { label: "Số lượng mất tài sản chung", value: statistics.complaintStats.taiSanChung },
+            {
+              label: "Số lượng làm mất tài sản",
+              value: statistics.complaintStats.matTaiSan,
+            },
+            {
+              label: "Số lượng mất tài sản chung",
+              value: statistics.complaintStats.taiSanChung,
+            },
           ]}
           chartData={complaintChartData}
         />
-
       </div>
     </div>
   );
