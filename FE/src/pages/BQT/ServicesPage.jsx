@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -35,7 +35,7 @@ const removeVietnameseTones = (str) => {
 const ServicesPage = () => {
   const [search, setSearch] = useState("");
   const [services, setServices] = useState([]);
-  
+
   // Multi-Select Delete Workflow states
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -74,8 +74,12 @@ const ServicesPage = () => {
     setCurrentPage(1);
   }, [search]);
 
-  // --- LOGIC TÌM KIẾM MỚI ---
+  // --- LOGIC LỌC VÀ TÌM KIẾM MỚI (ĐÃ CẬP NHẬT) ---
   const filteredServices = services.filter((item) => {
+    // 1. Chỉ hiển thị nếu ben_xu_ly là "Ban quản trị"
+    if (item.ben_xu_ly !== "Ban quản trị") return false;
+
+    // 2. Sau đó mới lọc theo từ khóa tìm kiếm
     const term = removeVietnameseTones(search).trim();
     if (!term) return true;
 
@@ -93,7 +97,10 @@ const ServicesPage = () => {
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
+  const currentServices = filteredServices.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
 
   // --- HANDLER CHUYỂN TRANG ---
@@ -452,10 +459,16 @@ const ServicesPage = () => {
               onClick={goToPrevPage}
               disabled={currentPage === 1}
               className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-                currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+                currentPage === 1
+                  ? "opacity-50 cursor-not-allowed bg-gray-200"
+                  : "cursor-pointer bg-white"
               }`}
             >
-              <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+              <img
+                src={arrowLeft}
+                alt="Previous"
+                className="w-6 h-6 object-contain"
+              />
             </button>
 
             {/* Thanh hiển thị số trang */}
@@ -472,10 +485,16 @@ const ServicesPage = () => {
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
               className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-                currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+                currentPage === totalPages
+                  ? "opacity-50 cursor-not-allowed bg-gray-200"
+                  : "cursor-pointer bg-white"
               }`}
             >
-              <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+              <img
+                src={arrowRight}
+                alt="Next"
+                className="w-6 h-6 object-contain"
+              />
             </button>
           </div>
         )}
