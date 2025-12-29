@@ -8,7 +8,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
@@ -449,7 +449,10 @@ export const ResidentsPage = () => {
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentResidents = filteredResidents.slice(indexOfFirstItem, indexOfLastItem);
+  const currentResidents = filteredResidents.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
 
   // --- HANDLER CHUYỂN TRANG ---
@@ -537,7 +540,7 @@ export const ResidentsPage = () => {
           last_name: res.last_name,
           phone: res.phone,
           apartment_id: res.apartment_id,
-          password: "", 
+          password: "",
           email: res.email || "",
           cccd: res.cccd || "",
           birth_date: res.birth_date
@@ -557,7 +560,7 @@ export const ResidentsPage = () => {
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(blob, "Danh_sach_cu_dan.xlsx");
+      saveAs(blob, "DANH_SACH_NGUOI_DUNG_BQT_BLUEMOON.xlsx");
 
       setModalStatus("success");
       setStatusMessage("Xuất dữ liệu người dùng thành công!");
@@ -654,7 +657,7 @@ export const ResidentsPage = () => {
         if (fileInputRef.current) fileInputRef.current.value = "";
 
         fetchResidents();
-        setModalStatus("success"); 
+        setModalStatus("success");
         setStatusMessage(
           `Nhập dữ liệu hoàn tất:\nThành công: ${successCount}\nThất bại: ${failCount}`
         );
@@ -968,10 +971,16 @@ export const ResidentsPage = () => {
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
           {/* Thanh hiển thị số trang */}
@@ -988,10 +997,16 @@ export const ResidentsPage = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
