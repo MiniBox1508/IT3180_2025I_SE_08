@@ -313,7 +313,9 @@ export const AccountReport = () => {
         headStyles: { fillColor: [59, 130, 246] },
       });
 
-      doc.save(`Bao_cao_thang_${selectedMonth}_${selectedYear}.pdf`);
+      doc.save(
+        `Bao_cao_thang_${selectedMonth}_${selectedYear}_KE_TOAN_BLUEMOON.pdf`
+      );
       setIsExportModalOpen(false);
     } catch (error) {
       console.error("Lỗi xuất PDF:", error);
