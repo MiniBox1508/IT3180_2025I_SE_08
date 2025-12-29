@@ -611,7 +611,7 @@ export const SecurityProblem = () => {
           },
         });
 
-        doc.save("danh_sach_su_co.pdf");
+        doc.save("DANH_SACH_SU_CO_CONG_AN_BLUEMOON.pdf");
         setShowPreviewModal(false);
         setStatusModal({
           open: true,
