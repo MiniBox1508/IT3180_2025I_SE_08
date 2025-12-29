@@ -776,7 +776,8 @@ export const AccountantNotification = () => {
         if (totalFail === 0 && successCount > 0)
           message = `Nhập thành công ${successCount} thông báo!`;
         else if (successCount > 0)
-          message = `Thành công: ${successCount}, Lỗi: ${totalFail}`;
+          message = `Nhập thành công ${successCount} thông báo!\n
+                    Nhập thất bại ${totalFail} thông báo!`;
         else {
           message = "Nhập thất bại toàn bộ.";
           type = "failure";
