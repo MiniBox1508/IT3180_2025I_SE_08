@@ -15,7 +15,6 @@ import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import dayjs from "dayjs";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -197,6 +196,8 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 // =========================================================================
 const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const isEditing = !!initialData;
+  const [apartments, setApartments] = useState([]); // State lưu danh sách căn hộ từ API
+
   const [formData, setFormData] = useState({
     receiver_name: "Cư dân",
     apartment_id: "",
@@ -205,6 +206,31 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [rows, setRows] = useState([
     { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
+
+  // --- CALL API LẤY DANH SÁCH CĂN HỘ ---
+  useEffect(() => {
+    if (isOpen) {
+      const fetchApartments = async () => {
+        try {
+          const token = getToken();
+          const response = await fetch(`${API_BASE_URL}/residents`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            // Lọc lấy danh sách mã căn hộ duy nhất và sắp xếp
+            const uniqueApts = [
+              ...new Set(data.map((r) => r.apartment_id).filter((id) => id)),
+            ].sort();
+            setApartments(uniqueApts);
+          }
+        } catch (err) {
+          console.error("Failed to fetch apartments", err);
+        }
+      };
+      fetchApartments();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -250,7 +276,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   const handleSubmit = () => {
     if (isEditing) {
-      // Chuẩn bị data gửi đi (Single)
       const dataToSend = {
         sender_name: "Kế toán",
         receiver_name: formData.receiver_name,
@@ -260,7 +285,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       };
       onSubmit(dataToSend);
     } else {
-      // Chuẩn bị data gửi đi (Bulk)
       const validRows = rows.map(
         ({ receiver_name, apartment_id, content }) => ({
           sender_name: "Kế toán",
@@ -323,16 +347,30 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                   <option value="Tất cả">Tất cả</option>
                 </select>
 
+                {/* SỬA: Thay input text bằng Select chọn mã căn hộ */}
                 {formData.receiver_name === "Cư dân" && (
-                  <input
-                    type="text"
-                    value={formData.apartment_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, apartment_id: e.target.value })
-                    }
-                    placeholder="Nhập mã căn hộ (VD: A101)"
-                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500"
-                  />
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mã căn hộ
+                    </label>
+                    <select
+                      value={formData.apartment_id}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          apartment_id: e.target.value,
+                        })
+                      }
+                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">--Chọn căn hộ--</option>
+                      {apartments.map((apt) => (
+                        <option key={apt} value={apt}>
+                          {apt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </div>
               <div>
@@ -398,10 +436,11 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                           <option value="Tất cả">Tất cả</option>
                         </select>
                       </td>
+
+                      {/* SỬA: Hiển thị Select Mã căn hộ khi chọn Cư dân */}
                       <td className="p-2 align-top">
                         {row.receiver_name === "Cư dân" ? (
-                          <input
-                            type="text"
+                          <select
                             value={row.apartment_id}
                             onChange={(e) =>
                               handleRowChange(
@@ -410,15 +449,22 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                                 e.target.value
                               )
                             }
-                            placeholder="VD: A101"
                             className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          >
+                            <option value="">--Chọn--</option>
+                            {apartments.map((apt) => (
+                              <option key={apt} value={apt}>
+                                {apt}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <div className="p-2 text-gray-400 text-sm italic text-center">
                             ---
                           </div>
                         )}
                       </td>
+
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
@@ -619,25 +665,28 @@ export const AccountantNotification = () => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
             const rawRecipient = rowValues[colMap.recipient]
-              ? String(rowValues[colMap.recipient]).trim()
+              ? String(rowValues[colMap.recipient]).trim().normalize("NFC")
               : "";
             const content = rowValues[colMap.content]
               ? String(rowValues[colMap.content]).trim()
               : "";
 
             if (rawRecipient && content) {
-              // LOGIC PHÂN LOẠI IMPORT
+              // LOGIC PHÂN LOẠI IMPORT (ĐÃ FIX UNICODE)
               let receiverName = "Cư dân";
               let apartmentId = rawRecipient;
               const specialRoles = ["Ban quản trị", "Công an", "Tất cả"];
 
               // Chuẩn hóa để so sánh
-              const normalizedRaw =
+              const normalizedRaw = rawRecipient.toLowerCase();
+              const noToneRaw =
                 removeVietnameseTones(rawRecipient).toLowerCase();
-              const matchRole = specialRoles.find(
-                (role) =>
-                  removeVietnameseTones(role).toLowerCase() === normalizedRaw
-              );
+
+              const matchRole = specialRoles.find((role) => {
+                const roleLower = role.toLowerCase();
+                const roleNoTone = removeVietnameseTones(role).toLowerCase();
+                return roleLower === normalizedRaw || roleNoTone === noToneRaw;
+              });
 
               if (matchRole) {
                 receiverName = matchRole;
@@ -645,7 +694,7 @@ export const AccountantNotification = () => {
               }
 
               dataToImport.push({
-                sender_name: "Kế toán", // Default sender cho trang này
+                sender_name: "Kế toán",
                 receiver_name: receiverName,
                 apartment_id: apartmentId,
                 content: content,
@@ -1098,6 +1147,7 @@ export const AccountantNotification = () => {
               className="w-6 h-6 object-contain"
             />
           </button>
+
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -1105,6 +1155,7 @@ export const AccountantNotification = () => {
             </div>
             <span className="text-lg">/ {totalPages}</span>
           </div>
+
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
