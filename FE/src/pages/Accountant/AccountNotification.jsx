@@ -1147,9 +1147,7 @@ export const AccountantNotification = () => {
       >
         <div className="flex flex-col items-center justify-center p-4">
           <img
-            src={
-              statusModal.type === "success" ? acceptIconImg : notAcceptIconImg
-            }
+            src={statusModal.type === "success" ? acceptIcon : notAcceptIcon}
             alt="Status"
             className="w-20 h-20 mb-4"
           />
