@@ -369,6 +369,7 @@ export const SecurityProblem = () => {
               ? dayjs(item.handle_date).format("DD/MM/YYYY")
               : "",
             note: item.note,
+            ben_xu_ly: item.ben_xu_ly, // Lấy trường ben_xu_ly để lọc
             raw_created_at: item.created_at, // Giữ lại để xử lý export nếu cần
           }))
         : [];
@@ -676,6 +677,10 @@ export const SecurityProblem = () => {
 
   // --- FILTER & PAGINATION ---
   const filteredList = incidents.filter((item) => {
+    // 1. Chỉ hiển thị nếu ben_xu_ly là "Công an"
+    if (item.ben_xu_ly !== "Công an") return false;
+
+    // 2. Sau đó mới lọc theo từ khóa tìm kiếm
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
     return (
@@ -904,6 +909,7 @@ export const SecurityProblem = () => {
       {/* Pagination */}
       {filteredList.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
+          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -919,6 +925,8 @@ export const SecurityProblem = () => {
               className="w-6 h-6 object-contain"
             />
           </button>
+
+          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -926,6 +934,8 @@ export const SecurityProblem = () => {
             </div>
             <span className="text-lg">/ {totalPages}</span>
           </div>
+
+          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
