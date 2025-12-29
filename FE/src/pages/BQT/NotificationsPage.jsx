@@ -954,7 +954,7 @@ export const NotificationsPage = () => {
           didDrawPage: (data) => {},
         });
 
-        doc.save("danh_sach_thong_bao.pdf");
+        doc.save("DANH_SACH_THONG_BAO_BQT_BLUEMOON.pdf");
         setShowPreviewModal(false); // Đóng preview sau khi in
 
         // --- CẬP NHẬT TRẠNG THÁI XUẤT ---
