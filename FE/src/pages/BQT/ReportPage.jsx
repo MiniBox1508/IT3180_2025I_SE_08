@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
 import { Pie } from "react-chartjs-2";
-import dayjs from "dayjs"; 
+import dayjs from "dayjs";
 
 // --- IMPORTS CHO PDF ---
 import jsPDF from "jspdf";
@@ -84,7 +84,7 @@ export const Report = () => {
 
   // --- 1. FETCH DATA ---
   const getToken = () => localStorage.getItem("token");
-  
+
   const getCurrentUserEmail = () => {
     const userStr = localStorage.getItem("user");
     if (userStr) {
@@ -123,16 +123,16 @@ export const Report = () => {
   const statistics = useMemo(() => {
     // A. Thống kê Cư dân
     const residentStats = {
-      cuDan: 0, 
-      tamTru: 0, 
-      keToan: 0, 
-      congAn: 0, 
-      total: 0, 
+      cuDan: 0,
+      tamTru: 0,
+      keToan: 0,
+      congAn: 0,
+      total: 0,
     };
 
     residents.forEach((r) => {
       if (r.state === "inactive") return;
-      residentStats.total++; 
+      residentStats.total++;
       const role = r.role ? r.role.toLowerCase() : "";
       const status = r.residency_status ? r.residency_status.toLowerCase() : "";
 
@@ -149,8 +149,8 @@ export const Report = () => {
 
     // B. Thống kê Dịch vụ & Phản ánh
     const serviceStats = {
-      dichVu: 0, 
-      phanAnh: 0, 
+      dichVu: 0,
+      phanAnh: 0,
     };
 
     services.forEach((s) => {
@@ -190,7 +190,8 @@ export const Report = () => {
       const doc = new jsPDF();
 
       // --- A. Tải Font Roboto ---
-      const fontUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
+      const fontUrl =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf";
       const fontResponse = await fetch(fontUrl);
       const fontBlob = await fontResponse.blob();
       const reader = new FileReader();
@@ -198,7 +199,7 @@ export const Report = () => {
       reader.readAsDataURL(fontBlob);
       reader.onloadend = () => {
         const base64data = reader.result.split(",")[1];
-        
+
         // Thêm font vào VFS của jsPDF
         doc.addFileToVFS("Roboto-Regular.ttf", base64data);
         doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
@@ -213,7 +214,9 @@ export const Report = () => {
         doc.setTextColor(100, 100, 100);
         const today = dayjs().format("DD/MM/YYYY HH:mm");
         doc.text(`Ngày xuất báo cáo: ${today}`, 14, 30);
-        doc.text(`Người thực hiện: ${getCurrentUserEmail()}`, 196, 30, { align: "right" });
+        doc.text(`Người thực hiện: ${getCurrentUserEmail()}`, 196, 30, {
+          align: "right",
+        });
 
         doc.setLineWidth(0.5);
         doc.setDrawColor(200, 200, 200);
@@ -225,22 +228,29 @@ export const Report = () => {
         doc.text("1. Thống kê Cư dân & Nhân sự", 14, 45);
 
         autoTable(doc, {
-            startY: 50,
-            head: [["Phân loại", "Số lượng (Người)"]],
-            body: [
-                ["Cư dân thường trú", statistics.residentStats.cuDan],
-                ["Cư dân tạm trú", statistics.residentStats.tamTru],
-                ["Nhân viên Kế toán", statistics.residentStats.keToan],
-                ["Công an / Bảo vệ", statistics.residentStats.congAn],
-                [
-                    { content: "Tổng cộng", styles: { fillColor: [240, 240, 240] } },
-                    { content: statistics.residentStats.total, styles: { fillColor: [240, 240, 240] } }
-                ]
+          startY: 50,
+          head: [["Phân loại", "Số lượng (Người)"]],
+          body: [
+            ["Cư dân thường trú", statistics.residentStats.cuDan],
+            ["Cư dân tạm trú", statistics.residentStats.tamTru],
+            ["Nhân viên Kế toán", statistics.residentStats.keToan],
+            ["Công an / Bảo vệ", statistics.residentStats.congAn],
+            [
+              { content: "Tổng cộng", styles: { fillColor: [240, 240, 240] } },
+              {
+                content: statistics.residentStats.total,
+                styles: { fillColor: [240, 240, 240] },
+              },
             ],
-            // Cấu hình font để tránh lỗi
-            styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
-            headStyles: { fillColor: [59, 130, 246], font: "Roboto", fontStyle: "normal" },
-            theme: 'grid'
+          ],
+          // Cấu hình font để tránh lỗi
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
+          headStyles: {
+            fillColor: [59, 130, 246],
+            font: "Roboto",
+            fontStyle: "normal",
+          },
+          theme: "grid",
         });
 
         // --- D. Phần 2: Thống kê Dịch vụ ---
@@ -248,19 +258,34 @@ export const Report = () => {
         doc.text("2. Thống kê Dịch vụ & Phản ánh", 14, finalY1 + 15);
 
         autoTable(doc, {
-            startY: finalY1 + 20,
-            head: [["Loại yêu cầu", "Số lượng"]],
-            body: [
-                ["Yêu cầu dịch vụ (Thẻ xe, Sửa chữa...)", statistics.serviceStats.dichVu],
-                ["Phản ánh / Khiếu nại", statistics.serviceStats.phanAnh],
-                [
-                    { content: "Tổng yêu cầu", styles: { fillColor: [240, 240, 240] } },
-                    { content: statistics.serviceStats.dichVu + statistics.serviceStats.phanAnh, styles: { fillColor: [240, 240, 240] } }
-                ]
+          startY: finalY1 + 20,
+          head: [["Loại yêu cầu", "Số lượng"]],
+          body: [
+            [
+              "Yêu cầu dịch vụ (Thẻ xe, Sửa chữa...)",
+              statistics.serviceStats.dichVu,
             ],
-            styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
-            headStyles: { fillColor: [99, 102, 241], font: "Roboto", fontStyle: "normal" },
-            theme: 'grid'
+            ["Phản ánh / Khiếu nại", statistics.serviceStats.phanAnh],
+            [
+              {
+                content: "Tổng yêu cầu",
+                styles: { fillColor: [240, 240, 240] },
+              },
+              {
+                content:
+                  statistics.serviceStats.dichVu +
+                  statistics.serviceStats.phanAnh,
+                styles: { fillColor: [240, 240, 240] },
+              },
+            ],
+          ],
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
+          headStyles: {
+            fillColor: [99, 102, 241],
+            font: "Roboto",
+            fontStyle: "normal",
+          },
+          theme: "grid",
         });
 
         // --- E. Phần 3: Thống kê Tài chính ---
@@ -268,36 +293,55 @@ export const Report = () => {
         doc.text("3. Tình hình Tài chính & Thanh toán", 14, finalY2 + 15);
 
         autoTable(doc, {
-            startY: finalY2 + 20,
-            head: [["Hạng mục", "Giá trị"]],
-            body: [
-                ["Tổng số hóa đơn phát hành", statistics.paymentStats.totalCount],
-                ["Hóa đơn đã thanh toán", statistics.paymentStats.paidCount],
-                ["Hóa đơn chưa thanh toán", statistics.paymentStats.unpaidCount],
-                [
-                    { content: "Tổng doanh thu ghi nhận", styles: { fillColor: [240, 240, 240], textColor: [0, 0, 255] } },
-                    { content: formatCurrency(statistics.paymentStats.totalAmount), styles: { fillColor: [240, 240, 240], textColor: [0, 0, 255] } }
-                ]
+          startY: finalY2 + 20,
+          head: [["Hạng mục", "Giá trị"]],
+          body: [
+            ["Tổng số hóa đơn phát hành", statistics.paymentStats.totalCount],
+            ["Hóa đơn đã thanh toán", statistics.paymentStats.paidCount],
+            ["Hóa đơn chưa thanh toán", statistics.paymentStats.unpaidCount],
+            [
+              {
+                content: "Tổng doanh thu ghi nhận",
+                styles: { fillColor: [240, 240, 240], textColor: [0, 0, 255] },
+              },
+              {
+                content: formatCurrency(statistics.paymentStats.totalAmount),
+                styles: { fillColor: [240, 240, 240], textColor: [0, 0, 255] },
+              },
             ],
-            styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
-            headStyles: { fillColor: [34, 197, 94], font: "Roboto", fontStyle: "normal" },
-            theme: 'grid'
+          ],
+          styles: { font: "Roboto", fontStyle: "normal", fontSize: 11 },
+          headStyles: {
+            fillColor: [34, 197, 94],
+            font: "Roboto",
+            fontStyle: "normal",
+          },
+          theme: "grid",
         });
 
         // --- F. Footer ---
         const finalY3 = doc.lastAutoTable.finalY;
         doc.setFontSize(10);
         doc.setTextColor(128, 128, 128);
-        doc.text("Hệ thống quản lý chung cư Blue Moon - Admin Report", 105, finalY3 + 20, { align: "center" });
+        doc.text(
+          "Hệ thống quản lý chung cư Blue Moon - Admin Report",
+          105,
+          finalY3 + 20,
+          { align: "center" }
+        );
 
         // Lưu file
-        doc.save(`Bao_Cao_Tong_Quan_${dayjs().format("DDMMYYYY_HHmm")}.pdf`);
+        doc.save(
+          `BAO_CAO_TONG_QUAN_BQT_BLUEMOON_${dayjs().format(
+            "DDMMYYYY_HHmm"
+          )}.pdf`
+        );
         setIsExporting(false);
-      }
+      };
     } catch (error) {
-        console.error("Lỗi xuất PDF:", error);
-        alert("Có lỗi xảy ra khi xuất báo cáo!");
-        setIsExporting(false);
+      console.error("Lỗi xuất PDF:", error);
+      alert("Có lỗi xảy ra khi xuất báo cáo!");
+      setIsExporting(false);
     }
   };
 
@@ -356,20 +400,37 @@ export const Report = () => {
       {/* Header */}
       <div className="mb-8 flex justify-between items-start">
         <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Báo cáo tổng quan</h1>
-            <p className="text-blue-200">Thống kê số liệu cư dân, dịch vụ và tài chính</p>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Báo cáo tổng quan
+          </h1>
+          <p className="text-blue-200">
+            Thống kê số liệu cư dân, dịch vụ và tài chính
+          </p>
         </div>
-        
+
         {/* Nút Xuất Báo Cáo - Gọi thẳng hàm export, không qua modal */}
         <button
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className={`bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 px-6 rounded-lg shadow-lg flex items-center transition-all ${isExporting ? "opacity-70 cursor-wait" : ""}`}
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          className={`bg-white text-blue-700 hover:bg-blue-50 font-bold py-2 px-6 rounded-lg shadow-lg flex items-center transition-all ${
+            isExporting ? "opacity-70 cursor-wait" : ""
+          }`}
         >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {isExporting ? "Đang xuất..." : "Xuất báo cáo"}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          {isExporting ? "Đang xuất..." : "Xuất báo cáo"}
         </button>
       </div>
 
@@ -378,11 +439,27 @@ export const Report = () => {
         <ReportCard
           title="Chi tiết về số lượng cư dân"
           stats={[
-            { label: "Tổng số người dân đang cư trú", value: statistics.residentStats.cuDan },
-            { label: "Tổng số người dân tạm trú", value: statistics.residentStats.tamTru },
-            { label: "Tổng số lượng kế toán", value: statistics.residentStats.keToan },
-            { label: "Tổng số lượng công an", value: statistics.residentStats.congAn },
-            { label: "Tổng số người trong tòa nhà", value: statistics.residentStats.total, color: "text-blue-600" },
+            {
+              label: "Tổng số người dân đang cư trú",
+              value: statistics.residentStats.cuDan,
+            },
+            {
+              label: "Tổng số người dân tạm trú",
+              value: statistics.residentStats.tamTru,
+            },
+            {
+              label: "Tổng số lượng kế toán",
+              value: statistics.residentStats.keToan,
+            },
+            {
+              label: "Tổng số lượng công an",
+              value: statistics.residentStats.congAn,
+            },
+            {
+              label: "Tổng số người trong tòa nhà",
+              value: statistics.residentStats.total,
+              color: "text-blue-600",
+            },
           ]}
           chartData={residentChartData}
         />
@@ -390,9 +467,21 @@ export const Report = () => {
         <ReportCard
           title="Chi tiết về dịch vụ & Phản ánh"
           stats={[
-            { label: "Số lượng dịch vụ (Thẻ xe, Sửa chữa...)", value: statistics.serviceStats.dichVu },
-            { label: "Số lượng phản ánh (Khiếu nại)", value: statistics.serviceStats.phanAnh },
-            { label: "Tổng yêu cầu xử lý", value: statistics.serviceStats.dichVu + statistics.serviceStats.phanAnh, color: "text-indigo-600" },
+            {
+              label: "Số lượng dịch vụ (Thẻ xe, Sửa chữa...)",
+              value: statistics.serviceStats.dichVu,
+            },
+            {
+              label: "Số lượng phản ánh (Khiếu nại)",
+              value: statistics.serviceStats.phanAnh,
+            },
+            {
+              label: "Tổng yêu cầu xử lý",
+              value:
+                statistics.serviceStats.dichVu +
+                statistics.serviceStats.phanAnh,
+              color: "text-indigo-600",
+            },
           ]}
           chartData={serviceChartData}
         />
@@ -400,10 +489,25 @@ export const Report = () => {
         <ReportCard
           title="Chi tiết thanh toán"
           stats={[
-            { label: "Tổng số hóa đơn tất cả", value: statistics.paymentStats.totalCount },
-            { label: "Số lượng chưa thanh toán", value: statistics.paymentStats.unpaidCount, color: "text-orange-500" },
-            { label: "Số lượng đã thanh toán", value: statistics.paymentStats.paidCount, color: "text-green-600" },
-            { label: "Tổng doanh thu", value: formatCurrency(statistics.paymentStats.totalAmount), color: "text-blue-700 text-xl" },
+            {
+              label: "Tổng số hóa đơn tất cả",
+              value: statistics.paymentStats.totalCount,
+            },
+            {
+              label: "Số lượng chưa thanh toán",
+              value: statistics.paymentStats.unpaidCount,
+              color: "text-orange-500",
+            },
+            {
+              label: "Số lượng đã thanh toán",
+              value: statistics.paymentStats.paidCount,
+              color: "text-green-600",
+            },
+            {
+              label: "Tổng doanh thu",
+              value: formatCurrency(statistics.paymentStats.totalAmount),
+              color: "text-blue-700 text-xl",
+            },
           ]}
           chartData={paymentChartData}
         />
