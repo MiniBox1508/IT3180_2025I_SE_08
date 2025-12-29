@@ -678,7 +678,7 @@ export const AccountantNotification = () => {
           margin: { top: 30 },
         });
 
-        doc.save("ds_thong_bao_ketoan.pdf");
+        doc.save("DANH_SACH_THONG_BAO_KE_TOAN_BLUEMOON.pdf");
         setShowPreviewModal(false);
         setStatusModal({
           open: true,
