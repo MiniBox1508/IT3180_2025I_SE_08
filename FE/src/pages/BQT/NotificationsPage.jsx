@@ -94,9 +94,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
         </div>
 
         {/* Content Table Preview */}
-        {/* SỬA: Bỏ overflow-hidden ở container này để tránh thanh cuộn */}
         <div className="p-8 bg-gray-50 flex flex-col">
-          {/* SỬA: Bỏ overflow-auto và custom-scrollbar ở wrapper table */}
           <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100">
@@ -120,7 +118,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                   <tr key={index} className="hover:bg-blue-50 h-[50px]">
                     <td className="p-3 text-sm text-gray-700">{item.id}</td>
                     <td className="p-3 text-sm text-gray-700">
-                      {/* LOGIC HIỂN THỊ CỘT NGƯỜI NHẬN TRONG PREVIEW */}
                       {item.receiver_name === "Cư dân"
                         ? item.apartment_id
                         : item.receiver_name}
@@ -140,7 +137,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                     </td>
                   </tr>
                 ))}
-                {/* Tạo các dòng trống để giữ layout cố định (luôn đủ 7 dòng) */}
                 {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
                   <tr key={`empty-${i}`} className="h-[50px]">
                     <td className="border-b border-gray-100"></td>
@@ -238,14 +234,11 @@ const NotificationFormModal = ({
       const fetchApartments = async () => {
         try {
           const token = getToken();
-          // Giả sử API /residents trả về danh sách cư dân có chứa apartment_id
-          // Hoặc có thể dùng API /apartments nếu có
           const response = await fetch(`${API_BASE_URL}/residents`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (response.ok) {
             const data = await response.json();
-            // Lọc lấy danh sách mã căn hộ duy nhất
             const uniqueApts = [
               ...new Set(data.map((r) => r.apartment_id).filter((id) => id)),
             ].sort();
@@ -315,7 +308,6 @@ const NotificationFormModal = ({
     setError("");
 
     if (isEditing) {
-      // Validate
       if (
         singleFormData.receiver_name === "Cư dân" &&
         !singleFormData.apartment_id
@@ -331,7 +323,6 @@ const NotificationFormModal = ({
       const dataToSend = {
         sender_name: "Ban quản trị",
         receiver_name: singleFormData.receiver_name,
-        // Nếu không phải cư dân, apartment_id có thể để trống hoặc "All"
         apartment_id:
           singleFormData.receiver_name === "Cư dân"
             ? singleFormData.apartment_id
@@ -340,7 +331,6 @@ const NotificationFormModal = ({
       };
       onSave(dataToSend, notificationData.id);
     } else {
-      // Validate từng dòng
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row.receiver_name === "Cư dân" && !row.apartment_id) {
@@ -945,29 +935,53 @@ export const NotificationsPage = () => {
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
-            const recipient = rowValues[colMap.recipient]
+
+            // 1. Lấy giá trị thô từ Excel
+            const rawRecipient = rowValues[colMap.recipient]
               ? String(rowValues[colMap.recipient]).trim()
               : "";
             const content = rowValues[colMap.content]
               ? String(rowValues[colMap.content]).trim()
               : "";
 
-            // Xử lý ngày: Excel có thể trả về object Date hoặc string
+            // Xử lý ngày
             let notiDate = null;
             if (colMap.date !== -1 && rowValues[colMap.date]) {
               notiDate = rowValues[colMap.date];
             }
 
-            if (recipient && content) {
-              maxId++; // Tăng ID lên 1
+            if (rawRecipient && content) {
+              maxId++;
+
+              // --- LOGIC PHÂN LOẠI NGƯỜI NHẬN ---
+              let receiverName = "Cư dân";
+              let apartmentId = rawRecipient;
+
+              const specialRoles = [
+                "Kế toán",
+                "Công an",
+                "Tất cả",
+                "Ban quản trị",
+              ];
+              const matchRole = specialRoles.find(
+                (role) => role.toLowerCase() === rawRecipient.toLowerCase()
+              );
+
+              if (matchRole) {
+                receiverName = matchRole;
+                apartmentId = "All";
+              }
+
               dataToImport.push({
-                id: maxId, // Gán ID tự tăng
-                apartment_id: recipient,
+                id: maxId,
+                sender_name: "Ban quản trị",
+                receiver_name: receiverName,
+                apartment_id: apartmentId,
                 content: content,
                 notification_date: notiDate,
               });
             } else {
-              failCount++; // Dữ liệu thiếu thì tính là thất bại
+              failCount++;
             }
           }
         });
@@ -1004,7 +1018,7 @@ export const NotificationsPage = () => {
             `Đã nhập thành công ${successCount} thông báo từ Excel!`
           );
         } else if (successCount > 0 && failCount > 0) {
-          setModalStatus("addSuccess"); // Vẫn hiện icon success nhưng báo chi tiết
+          setModalStatus("addSuccess");
           setStatusMessage(
             `Nhập hoàn tất:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}`
           );
@@ -1074,7 +1088,6 @@ export const NotificationsPage = () => {
         filteredNotifications.forEach((item) => {
           const rowData = [
             String(item.id),
-            // LOGIC HIỂN THỊ CỘT NGƯỜI NHẬN TRONG PDF
             (item.receiver_name === "Cư dân"
               ? item.apartment_id
               : item.receiver_name || ""
@@ -1096,7 +1109,7 @@ export const NotificationsPage = () => {
           headStyles: {
             fillColor: [220, 220, 220],
             textColor: 20,
-            fontStyle: "normal", // <--- FIX LỖI FONT HEADER (chuyển từ bold sang normal)
+            fontStyle: "normal",
           },
           theme: "grid",
           rowPageBreak: "avoid",
