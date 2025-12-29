@@ -124,7 +124,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="p-3 text-sm font-bold text-gray-700 border-b w-[10%]">
-                    Mã sự cố
+                    Mã dịch vụ
                   </th>
                   <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
                     Mã căn hộ
