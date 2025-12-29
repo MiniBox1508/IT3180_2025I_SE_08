@@ -84,7 +84,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      {/* SỬA: Bỏ fixed height, dùng h-auto để modal ôm vừa nội dung */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
         {/* Header Modal */}
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
@@ -94,9 +93,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
         </div>
 
         {/* Content Table Preview */}
-        {/* SỬA: Bỏ overflow-hidden ở container này để tránh thanh cuộn */}
         <div className="p-8 bg-gray-50 flex flex-col">
-          {/* SỬA: Bỏ overflow-auto và custom-scrollbar ở wrapper table */}
           <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100">
@@ -137,7 +134,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                     </td>
                   </tr>
                 ))}
-                {/* Tạo các dòng trống để giữ layout cố định (luôn đủ 7 dòng) */}
                 {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
                   <tr key={`empty-${i}`} className="h-[50px]">
                     <td className="border-b border-gray-100"></td>
@@ -217,8 +213,10 @@ const NotificationFormModal = ({
 }) => {
   const isEditing = !!notificationData;
 
+  const [apartments, setApartments] = useState([]); // State lưu danh sách căn hộ từ API
+
   const [singleFormData, setSingleFormData] = useState({
-    receiver_name: "Cư dân", // Mặc định
+    receiver_name: "Cư dân",
     apartment_id: "",
     content: "",
   });
@@ -226,6 +224,33 @@ const NotificationFormModal = ({
   const [rows, setRows] = useState([
     { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
+
+  // --- CALL API LẤY DANH SÁCH CĂN HỘ ---
+  useEffect(() => {
+    if (isOpen) {
+      const fetchApartments = async () => {
+        try {
+          const token = getToken();
+          // Giả sử API /residents trả về danh sách cư dân có chứa apartment_id
+          // Hoặc có thể dùng API /apartments nếu có
+          const response = await fetch(`${API_BASE_URL}/residents`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            // Lọc lấy danh sách mã căn hộ duy nhất
+            const uniqueApts = [
+              ...new Set(data.map((r) => r.apartment_id).filter((id) => id)),
+            ].sort();
+            setApartments(uniqueApts);
+          }
+        } catch (err) {
+          console.error("Failed to fetch apartments", err);
+        }
+      };
+      fetchApartments();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -288,7 +313,7 @@ const NotificationFormModal = ({
         singleFormData.receiver_name === "Cư dân" &&
         !singleFormData.apartment_id
       ) {
-        setError("Vui lòng nhập Mã căn hộ cho cư dân.");
+        setError("Vui lòng chọn Mã căn hộ cho cư dân.");
         return;
       }
       if (!singleFormData.content) {
@@ -296,11 +321,10 @@ const NotificationFormModal = ({
         return;
       }
 
-      // Chuẩn bị data gửi đi
       const dataToSend = {
         sender_name: "Ban quản trị",
         receiver_name: singleFormData.receiver_name,
-        // Nếu không phải cư dân, apartment_id có thể để trống hoặc "All" tùy logic, ở đây để "All" nếu ko phải cư dân
+        // Nếu không phải cư dân, apartment_id có thể để trống hoặc "All"
         apartment_id:
           singleFormData.receiver_name === "Cư dân"
             ? singleFormData.apartment_id
@@ -313,7 +337,7 @@ const NotificationFormModal = ({
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row.receiver_name === "Cư dân" && !row.apartment_id) {
-          setError(`Dòng ${i + 1}: Vui lòng nhập Mã căn hộ.`);
+          setError(`Dòng ${i + 1}: Vui lòng chọn Mã căn hộ.`);
           return;
         }
         if (!row.content) {
@@ -404,11 +428,10 @@ const NotificationFormModal = ({
                         </select>
                       </td>
 
-                      {/* Cột 2: Mã căn hộ (Chỉ hiện khi chọn Cư dân) */}
+                      {/* Cột 2: Mã căn hộ (Select Box từ API) */}
                       <td className="p-2 align-top">
                         {row.receiver_name === "Cư dân" ? (
-                          <input
-                            type="text"
+                          <select
                             value={row.apartment_id}
                             onChange={(e) =>
                               handleRowChange(
@@ -417,11 +440,17 @@ const NotificationFormModal = ({
                                 e.target.value
                               )
                             }
-                            placeholder="VD: A1-101"
                             className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                          >
+                            <option value="">--Chọn--</option>
+                            {apartments.map((apt) => (
+                              <option key={apt} value={apt}>
+                                {apt}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
-                          <span className="text-gray-400 italic text-sm p-2 block">
+                          <span className="text-gray-400 italic text-sm p-2 block text-center">
                             ---
                           </span>
                         )}
@@ -494,14 +523,24 @@ const NotificationFormModal = ({
               </select>
 
               {singleFormData.receiver_name === "Cư dân" && (
-                <input
-                  type="text"
-                  name="apartment_id"
-                  value={singleFormData.apartment_id}
-                  onChange={handleSingleChange}
-                  placeholder="Mã căn hộ"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                />
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mã căn hộ
+                  </label>
+                  <select
+                    name="apartment_id"
+                    value={singleFormData.apartment_id}
+                    onChange={handleSingleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">--Chọn căn hộ--</option>
+                    {apartments.map((apt) => (
+                      <option key={apt} value={apt}>
+                        {apt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
             <div>
