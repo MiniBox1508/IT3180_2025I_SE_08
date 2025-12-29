@@ -115,7 +115,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col h-auto">
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
           <h2 className="text-2xl font-bold text-gray-800">
-            Xem trước danh sách sự cố
+            Xem trước danh sách dịch vụ
           </h2>
         </div>
         <div className="p-8 bg-gray-50 flex flex-col">
@@ -451,7 +451,7 @@ const ServicesPage = () => {
 
         // Header
         doc.setFontSize(18);
-        doc.text("Danh sách sự cố an ninh chung cư Blue Moon", 105, 15, {
+        doc.text("Danh sách dịch vụ chung cư Blue Moon", 105, 15, {
           align: "center",
         });
 
@@ -465,7 +465,7 @@ const ServicesPage = () => {
 
         // Table Data
         const tableColumn = [
-          "Mã sự cố",
+          "Mã dịch vụ",
           "Mã căn hộ",
           "Nội dung",
           "Ngày gửi",
@@ -508,7 +508,7 @@ const ServicesPage = () => {
           },
         });
 
-        doc.save("danh_sach_su_co.pdf");
+        doc.save("DANH_SACH_DICH_VU_BQT_BLUEMOON.pdf");
         setShowPreviewModal(false);
         setStatusModal({
           open: true,
@@ -534,7 +534,7 @@ const ServicesPage = () => {
   // --- FILTER & PAGINATION ---
   const filteredList = incidents.filter((item) => {
     // 1. Chỉ hiển thị nếu ben_xu_ly là "Công an"
-    if (item.ben_xu_ly !== "Công an") return false;
+    if (item.ben_xu_ly !== "Ban quản trị") return false;
 
     // 2. Sau đó mới lọc theo từ khóa tìm kiếm
     if (!searchTerm.trim()) return true;
@@ -578,7 +578,7 @@ const ServicesPage = () => {
 
       {/* 2. TITLE & BUTTONS - MODULE XỬ LÝ (UI HEADER) */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý sự cố</h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý dịch vụ</h1>
 
         <div className="flex space-x-3 items-center">
           {/* Nút Import/Export */}
