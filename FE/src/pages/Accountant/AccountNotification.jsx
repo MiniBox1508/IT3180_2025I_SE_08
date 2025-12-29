@@ -648,7 +648,6 @@ export const AccountantNotification = () => {
             .filter((id) => id);
         } catch (apiErr) {
           console.error("Không thể lấy danh sách căn hộ để validate:", apiErr);
-          // Vẫn cho phép tiếp tục, nhưng có thể cảnh báo user nếu cần
         }
 
         // 2. TÌM HEADER
@@ -765,8 +764,6 @@ export const AccountantNotification = () => {
         fetchNotifications();
 
         // 5. TÍNH TOÁN KẾT QUẢ & HIỂN THỊ
-        // Số dòng lỗi = (Tổng dòng có data - Dòng hợp lệ đã lọc) + (Dòng call API lỗi)
-        // Trong đó: (Tổng dòng có data - Dòng hợp lệ) = Dòng bị sai Role/Căn hộ/Thiếu thông tin
         const invalidDataCount = totalDataRows - dataToImport.length;
         const totalFail = invalidDataCount + apiFailCount;
 
@@ -776,10 +773,9 @@ export const AccountantNotification = () => {
         if (totalFail === 0 && successCount > 0)
           message = `Nhập thành công ${successCount} thông báo!`;
         else if (successCount > 0)
-          message = `Nhập thành công ${successCount} thông báo!
-          Nhập thất bại ${totalFail} thông báo!`;
+          message = `Nhập thành công ${successCount} thông báo!\nNhập thất bại ${totalFail} thông báo!`;
         else {
-          message = "Nhập thất bại toàn bộ.";
+          message = `Nhập thất bại toàn bộ.\n(Lỗi ${totalFail} dòng)`;
           type = "failure";
         }
 
@@ -1251,7 +1247,7 @@ export const AccountantNotification = () => {
             alt="Status"
             className="w-20 h-20 mb-4"
           />
-          <h3 className="text-xl font-bold text-gray-800 text-center">
+          <h3 className="text-xl font-bold text-gray-800 text-center whitespace-pre-line">
             {statusModal.message}
           </h3>
         </div>
