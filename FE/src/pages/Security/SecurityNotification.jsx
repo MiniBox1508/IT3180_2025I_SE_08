@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 // Bỏ import XLSX vì chuyển sang PDF
-// import * as XLSX from "xlsx"; 
+// import * as XLSX from "xlsx";
 
 // --- IMPORT THƯ VIỆN PDF ---
 import jsPDF from "jspdf";
@@ -15,7 +15,7 @@ import { StatusModal } from "../../layouts/StatusModal";
 import { FiPlus, FiX, FiPrinter } from "react-icons/fi"; // Thêm FiPrinter
 
 // --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- API CONFIG ---
@@ -82,8 +82,8 @@ const removeVietnameseTones = (str) => {
   str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
   str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
   str = str.replace(/đ/g, "d");
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); 
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); 
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
   return str;
 };
 
@@ -397,7 +397,11 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                           type="text"
                           value={row.apartment_id}
                           onChange={(e) =>
-                            handleRowChange(row.id, "apartment_id", e.target.value)
+                            handleRowChange(
+                              row.id,
+                              "apartment_id",
+                              e.target.value
+                            )
                           }
                           placeholder="VD: P.101"
                           className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -415,7 +419,8 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                           style={{ minHeight: "42px" }}
                           onInput={(e) => {
                             e.target.style.height = "auto";
-                            e.target.style.height = e.target.scrollHeight + "px";
+                            e.target.style.height =
+                              e.target.scrollHeight + "px";
                           }}
                         />
                       </td>
@@ -483,7 +488,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
 // --- MAIN PAGE ---
 export const SecurityNotification = () => {
   const getToken = () => localStorage.getItem("token");
-  
+
   // Hàm lấy user hiện tại (để in vào PDF)
   const getCurrentUserEmail = () => {
     const userStr = localStorage.getItem("user");
@@ -526,7 +531,7 @@ export const SecurityNotification = () => {
 
   // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; 
+  const itemsPerPage = 10;
 
   useEffect(() => {
     import("../../images/accept_icon.png").then((m) =>
@@ -583,7 +588,7 @@ export const SecurityNotification = () => {
     setShowFormModal(false);
     try {
       const token = getToken();
-      
+
       if (Array.isArray(data)) {
         await Promise.all(
           data.map((item) =>
@@ -597,11 +602,10 @@ export const SecurityNotification = () => {
           type: "success",
           message: `Đã thêm ${data.length} thông báo mới!`,
         });
-
       } else if (editingItem) {
         await axios.put(
           `${API_BASE_URL}/notifications/${editingItem.id}`,
-          data, 
+          data,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStatusModal({
@@ -670,9 +674,11 @@ export const SecurityNotification = () => {
   const filteredList = notifications.filter((item) => {
     if (!searchTerm.trim()) return true;
     const term = removeVietnameseTones(searchTerm.trim());
-    
+
     const idMatch = String(item.id).toLowerCase().includes(term);
-    const contentMatch = removeVietnameseTones(item.content || "").includes(term);
+    const contentMatch = removeVietnameseTones(item.content || "").includes(
+      term
+    );
 
     return idMatch || contentMatch;
   });
@@ -680,7 +686,10 @@ export const SecurityNotification = () => {
   // --- PAGINATION LOGIC ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentNotifications = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const currentNotifications = filteredList.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   const goToNextPage = () => {
@@ -734,17 +743,13 @@ export const SecurityNotification = () => {
         doc.text(`Người in: ${currentUser}`, 196, 25, { align: "right" });
 
         // === TABLE ===
-        const tableColumn = [
-          "Mã số",
-          "Người nhận",
-          "Nội dung",
-          "Ngày gửi",
-        ];
+        const tableColumn = ["Mã số", "Người nhận", "Nội dung", "Ngày gửi"];
         const tableRows = [];
 
         // Lấy dữ liệu: Nếu đang chọn checkboxes thì in cái đã chọn, không thì in danh sách lọc hiện tại
-        const dataToPrint = selectedIds.length > 0 
-            ? notifications.filter(item => selectedIds.includes(item.id))
+        const dataToPrint =
+          selectedIds.length > 0
+            ? notifications.filter((item) => selectedIds.includes(item.id))
             : filteredList;
 
         dataToPrint.forEach((item) => {
@@ -775,14 +780,18 @@ export const SecurityNotification = () => {
           margin: { top: 30 },
         });
 
-        doc.save(`DanhSachThongBaoAnNinh_${dayjs().format('DDMMYYYY')}.pdf`);
-        setShowPreviewModal(false); 
+        doc.save(
+          `DANH_SACH_THONG_BAO_CONG_AN_BLUEMOON_${dayjs().format(
+            "DDMMYYYY"
+          )}.pdf`
+        );
+        setShowPreviewModal(false);
 
         // --- UPDATE STATUS ---
         setStatusModal({
-            open: true,
-            type: "success",
-            message: `Xuất thành công ${dataToPrint.length} thông báo ra file PDF!`
+          open: true,
+          type: "success",
+          message: `Xuất thành công ${dataToPrint.length} thông báo ra file PDF!`,
         });
       };
     } catch (err) {
@@ -790,7 +799,7 @@ export const SecurityNotification = () => {
       setStatusModal({
         open: true,
         type: "failure",
-        message: "Lỗi xuất PDF: " + err.message
+        message: "Lỗi xuất PDF: " + err.message,
       });
     }
   };
@@ -805,7 +814,7 @@ export const SecurityNotification = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Nội dung thông báo..." 
+            placeholder="Tìm theo ID hoặc Nội dung thông báo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -960,10 +969,16 @@ export const SecurityNotification = () => {
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
@@ -978,10 +993,16 @@ export const SecurityNotification = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
@@ -1007,9 +1028,11 @@ export const SecurityNotification = () => {
       <PreviewPdfModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
-        data={selectedIds.length > 0 
-            ? notifications.filter(item => selectedIds.includes(item.id))
-            : filteredList}
+        data={
+          selectedIds.length > 0
+            ? notifications.filter((item) => selectedIds.includes(item.id))
+            : filteredList
+        }
         onPrint={handlePrintPDF}
       />
 
