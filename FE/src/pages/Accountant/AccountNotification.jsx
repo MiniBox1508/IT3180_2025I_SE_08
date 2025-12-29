@@ -348,7 +348,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                   <option value="Tất cả">Tất cả</option>
                 </select>
 
-                {/* SỬA: Thay input text bằng Select chọn mã căn hộ */}
                 {formData.receiver_name === "Cư dân" && (
                   <div className="mt-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -614,7 +613,7 @@ export const AccountantNotification = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- LOGIC NHẬP FILE EXCEL ---
+  // --- LOGIC NHẬP FILE EXCEL (ĐÃ CẬP NHẬT: CHECK ROLE LẠ & CĂN HỘ TỒN TẠI) ---
   const handleImportClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -635,6 +634,27 @@ export const AccountantNotification = () => {
         let headerRowNumber = 1;
         let colMap = {};
 
+        // 1. CALL API LẤY DANH SÁCH CĂN HỘ HỢP LỆ
+        let validApartmentIds = [];
+        try {
+          const token = localStorage.getItem("token");
+          const res = await axios.get(`${API_BASE_URL}/residents`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          // Chuẩn hóa danh sách mã căn hộ: chữ thường, không khoảng trắng
+          validApartmentIds = res.data
+            .map((r) =>
+              r.apartment_id ? String(r.apartment_id).trim().toLowerCase() : ""
+            )
+            .filter((id) => id);
+        } catch (apiErr) {
+          console.error("Không thể lấy danh sách căn hộ để validate:", apiErr);
+          // Tùy chọn: Có thể throw error hoặc cho phép import lỏng lẻo.
+          // Ở đây giả sử nếu lỗi API thì vẫn tiếp tục nhưng không check apartment tồn tại (hoặc throw lỗi)
+          throw new Error("Lỗi kết nối server, không thể kiểm tra dữ liệu.");
+        }
+
+        // 2. TÌM HEADER
         worksheet.eachRow((row, rowNumber) => {
           if (Object.keys(colMap).length > 0) return;
           const rowValues = row.values;
@@ -644,7 +664,7 @@ export const AccountantNotification = () => {
             );
 
             const idxRecipient = normalizedCells.findIndex(
-              (v) => v === "người nhận" || v === "mã căn hộ" // Có thể là mã căn hộ hoặc loại người nhận
+              (v) => v === "người nhận" || v === "mã căn hộ"
             );
             const idxContent = normalizedCells.findIndex(
               (v) => v === "nội dung"
@@ -662,6 +682,7 @@ export const AccountantNotification = () => {
             "Không tìm thấy cột 'Người nhận/Mã căn hộ' và 'Nội dung'."
           );
 
+        // 3. DUYỆT DATA
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
@@ -673,16 +694,17 @@ export const AccountantNotification = () => {
               : "";
 
             if (rawRecipient && content) {
-              // LOGIC PHÂN LOẠI IMPORT (ĐÃ FIX UNICODE)
-              let receiverName = "Cư dân";
-              let apartmentId = rawRecipient;
-              const specialRoles = ["Ban quản trị", "Công an", "Tất cả"];
+              // --- LOGIC PHÂN LOẠI & VALIDATE ---
+              let receiverName = "";
+              let apartmentId = "";
+              let isValidRow = false;
 
-              // Chuẩn hóa để so sánh
+              const specialRoles = ["Ban quản trị", "Công an", "Tất cả"];
               const normalizedRaw = rawRecipient.toLowerCase();
               const noToneRaw =
                 removeVietnameseTones(rawRecipient).toLowerCase();
 
+              // Check 1: Có phải Role đặc biệt không?
               const matchRole = specialRoles.find((role) => {
                 const roleLower = role.toLowerCase();
                 const roleNoTone = removeVietnameseTones(role).toLowerCase();
@@ -690,24 +712,70 @@ export const AccountantNotification = () => {
               });
 
               if (matchRole) {
+                // Là Role hợp lệ
                 receiverName = matchRole;
                 apartmentId = "All";
+                isValidRow = true;
+              } else {
+                // Check 2: Không phải Role -> Có phải Mã căn hộ hợp lệ không?
+                // So sánh rawRecipient (đã lower) với danh sách validApartmentIds (đã lower)
+                if (validApartmentIds.includes(normalizedRaw)) {
+                  receiverName = "Cư dân";
+                  apartmentId = rawRecipient; // Giữ nguyên case gốc để đẹp
+                  isValidRow = true;
+                } else {
+                  // KHÔNG PHẢI ROLE, KHÔNG PHẢI CĂN HỘ -> DATA LỖI (Role lạ/Căn hộ ko tồn tại)
+                  isValidRow = false;
+                }
               }
 
-              dataToImport.push({
-                sender_name: "Kế toán",
-                receiver_name: receiverName,
-                apartment_id: apartmentId,
-                content: content,
-              });
+              if (isValidRow) {
+                dataToImport.push({
+                  sender_name: "Kế toán",
+                  receiver_name: receiverName,
+                  apartment_id: apartmentId,
+                  content: content,
+                });
+              } else {
+                // Dòng này bị lỗi (Role lạ), vòng lặp tiếp tục, không push vào dataToImport
+                // failCount sẽ tự động tăng ở bước call API do số lượng request < số dòng excel?
+                // KHÔNG, ở đây ta lọc ngay từ đầu.
+                // Để đếm failCount chính xác cho dòng này, ta cần cơ chế đếm riêng.
+                // Tuy nhiên, logic dưới đang đếm fail dựa trên request API.
+                // Để đơn giản: ta đẩy 1 item "LỖI" vào list để lát nữa call API bị fail?
+                // Hoặc tốt nhất: Đếm fail tại đây.
+                // NHƯNG, cấu trúc code hiện tại đang tính success/fail dựa trên Promise.all.
+                // CÁCH SỬA: Ta sẽ ném lỗi vào dataToImport để lát nữa API reject (hoặc filter ra đếm trước).
+                // Đơn giản nhất: Không push vào dataToImport.
+                // Và ta cần biết tổng số dòng đã duyệt để tính fail.
+                // Ở đây ta dùng biến closure bên ngoài scope này hơi khó vì async.
+                // Giải pháp: Ta đánh dấu là null trong mảng kết quả tạm, sau đó lọc.
+              }
             }
           }
         });
 
-        // Gọi API Insert
+        // TÍNH TOÁN LẠI SỐ LƯỢNG
+        // Thực tế dataToImport chỉ chứa dòng HỢP LỆ.
+        // Số dòng lỗi = (Tổng dòng Excel - Header) - dataToImport.length
+        // Tuy nhiên, ExcelJS eachRow duyệt cả dòng trống.
+        // Để chính xác, ta nên đếm thủ công trong vòng lặp.
+        // Nhưng yêu cầu là "không sửa cái khác" quá nhiều.
+        // Logic hiện tại của bạn đang đếm success/fail dựa trên kết quả API call.
+        // Nếu ta không push vào dataToImport, nó sẽ không được tính là fail, mà là "bỏ qua".
+        // ĐỂ ĐÚNG YÊU CẦU: "xem đó là data lỗi".
+        // Ta sẽ push một object rỗng hoặc invalid để API trả về lỗi (hoặc FE tự reject).
+        // Nhưng API call đang nằm sau.
+        // Sửa: Ta sẽ gọi API cho các dòng hợp lệ. Số dòng lỗi (do Role lạ) sẽ được cộng vào failCount sau.
+
+        const totalRowsScan = worksheet.rowCount - headerRowNumber;
+        const validCount = dataToImport.length;
+        const invalidDataCount = Math.max(0, totalRowsScan - validCount); // Ước lượng sơ bộ (có thể bao gồm dòng trống)
+
+        // Thực hiện import các dòng HỢP LỆ
         const token = localStorage.getItem("token");
         let successCount = 0;
-        let failCount = 0;
+        let apiFailCount = 0;
 
         await Promise.all(
           dataToImport.map((item) =>
@@ -716,21 +784,53 @@ export const AccountantNotification = () => {
                 headers: { Authorization: `Bearer ${token}` },
               })
               .then(() => successCount++)
-              .catch(() => failCount++)
+              .catch(() => apiFailCount++)
           )
         );
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchNotifications();
 
+        // Tổng hợp lỗi: Lỗi do Role lạ (không được gửi đi) + Lỗi do API trả về
+        // Lưu ý: totalRowsScan của ExcelJS đôi khi đếm thừa dòng trống cuối.
+        // Để chính xác tuyệt đối cần logic đếm kỹ hơn, nhưng tạm thời ta chỉ báo số lượng thành công/thất bại dựa trên API + filtered.
+        // Tuy nhiên, user yêu cầu "xem là data lỗi".
+        // Cách hiển thị tốt nhất:
+        // "Nhập: X. Thành công: Y. Lỗi: Z (bao gồm sai định dạng/API lỗi)"
+
+        // Đếm lại chính xác dòng có dữ liệu nhưng bị loại
+        let invalidRoleCount = 0;
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > headerRowNumber) {
+            const r = row.values;
+            const rec = r[colMap.recipient] ? String(r[colMap.recipient]) : "";
+            const con = r[colMap.content] ? String(r[colMap.content]) : "";
+            if (rec && con) {
+              // Chỉ đếm dòng có dữ liệu
+              // Logic check lại để đếm
+              const norm = removeVietnameseTones(rec).toLowerCase().trim();
+              const isSpecial = ["ban quan tri", "cong an", "tat ca"].includes(
+                norm
+              );
+              const isApt = validApartmentIds.includes(norm); // validApartmentIds scope ở trên
+              if (!isSpecial && !isApt) {
+                invalidRoleCount++;
+              }
+            }
+          }
+        });
+
+        const totalFail = apiFailCount + invalidRoleCount;
+
         let message = "";
         let type = "success";
-        if (failCount === 0 && successCount > 0)
+
+        if (totalFail === 0 && successCount > 0)
           message = `Nhập thành công ${successCount} thông báo!`;
-        else if (successCount > 0 && failCount > 0)
-          message = `Thành công: ${successCount}, Lỗi: ${failCount}`;
+        else if (successCount > 0)
+          message = `Thành công: ${successCount}, Lỗi: ${totalFail} (Sai Role/Căn hộ: ${invalidRoleCount})`;
         else {
-          message = "Nhập thất bại toàn bộ.";
+          message = `Nhập thất bại toàn bộ. (Sai Role/Căn hộ: ${invalidRoleCount})`;
           type = "failure";
         }
 
@@ -1148,7 +1248,6 @@ export const AccountantNotification = () => {
               className="w-6 h-6 object-contain"
             />
           </button>
-
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -1156,7 +1255,6 @@ export const AccountantNotification = () => {
             </div>
             <span className="text-lg">/ {totalPages}</span>
           </div>
-
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
