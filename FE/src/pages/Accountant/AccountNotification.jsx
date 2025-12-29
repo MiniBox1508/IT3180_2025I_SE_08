@@ -1,92 +1,39 @@
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import dayjs from "dayjs";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import axios from "axios"; // Đảm bảo import axios
+import { StatusModal } from "../../layouts/StatusModal";
+import { ConfirmationModal } from "../../layouts/ConfirmationModal";
+// --- IMPORT ICONS ---
+import { FiPlus, FiX, FiUpload, FiPrinter } from "react-icons/fi";
+import acceptIcon from "../../images/accept_icon.png";
+import notAcceptIcon from "../../images/not_accept_icon.png";
 
-// --- IMPORT THƯ VIỆN XỬ LÝ FILE (PATTERN) ---
+// --- IMPORT ẢNH MŨI TÊN CHO PHÂN TRANG ---
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
+import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
+// --- IMPORT THƯ VIỆN XỬ LÝ FILE ---
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// --- Components Layout/Modal ---
-import { StatusModal } from "../../layouts/StatusModal";
-
-// --- IMPORT ICONS ---
-import { FiPlus, FiX, FiUpload, FiPrinter } from "react-icons/fi"; // Thêm icon Upload, Printer
-
-// --- IMPORTS CHO PHÂN TRANG ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
-import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
-import acceptIconImg from "../../images/accept_icon.png";
-import notAcceptIconImg from "../../images/not_accept_icon.png";
-
-// --- API CONFIG ---
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
-// --- HELPER: Lấy User Email (Dùng cho Export PDF) ---
+// --- HÀM LẤY TOKEN & USER ---
+const getToken = () => localStorage.getItem("token");
 const getCurrentUserEmail = () => {
   const userStr = localStorage.getItem("user");
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      return user.email || "accountant@bluemoon.com";
+      return user.email || "admin@bluemoon.com";
     } catch (e) {
-      return "accountant@bluemoon.com";
+      return "admin@bluemoon.com";
     }
   }
-  return "accountant@bluemoon.com";
+  return "admin@bluemoon.com";
 };
 
-// --- ICONS (SVG) ---
-const SearchIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5 text-gray-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-    />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-6 w-6 text-gray-500 hover:text-gray-700"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M6 18L18 6M6 6l12 12"
-    />
-  </svg>
-);
-
-const WarningIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className="w-24 h-24 text-red-500 mx-auto mb-4"
-  >
-    <path
-      fillRule="evenodd"
-      d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
-// --- HELPER: Xóa dấu tiếng Việt ---
+// --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
 const removeVietnameseTones = (str) => {
   if (!str) return "";
   str = str.toLowerCase();
@@ -103,14 +50,16 @@ const removeVietnameseTones = (str) => {
 };
 
 // =========================================================================
-// === PREVIEW PDF MODAL (MẪU IMPORT/EXPORT) ===
+// === PREVIEW PDF MODAL (Popup xem trước khi in) ===
 // =========================================================================
 const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
 
   useEffect(() => {
-    if (isOpen) setCurrentPage(1);
+    if (isOpen) {
+      setCurrentPage(1);
+    }
   }, [isOpen, data]);
 
   if (!isOpen) return null;
@@ -124,6 +73,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
+
   const goToPrevPage = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
@@ -133,7 +83,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
           <h2 className="text-2xl font-bold text-gray-800">
-            Xem trước danh sách thông báo
+            Danh sách thông báo
           </h2>
         </div>
         <div className="p-8 bg-gray-50 flex flex-col">
@@ -141,16 +91,16 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[15%]">
-                    Mã ID
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                    Mã số thông báo
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[20%]">
-                    Mã căn hộ
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                    Người nhận
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[45%]">
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
                     Nội dung
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b w-[20%]">
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
                     Ngày gửi
                   </th>
                 </tr>
@@ -160,7 +110,9 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                   <tr key={index} className="hover:bg-blue-50 h-[50px]">
                     <td className="p-3 text-sm text-gray-700">{item.id}</td>
                     <td className="p-3 text-sm text-gray-700">
-                      {item.apartment_id || item.recipient}
+                      {item.receiver_name === "Cư dân"
+                        ? item.apartment_id
+                        : item.receiver_name}
                     </td>
                     <td
                       className="p-3 text-sm text-gray-700 truncate max-w-xs"
@@ -169,17 +121,20 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                       {item.content}
                     </td>
                     <td className="p-3 text-sm text-gray-700">
-                      {item.sent_date
-                        ? dayjs(item.sent_date).format("DD/MM/YYYY")
-                        : item.notification_date
-                        ? dayjs(item.notification_date).format("DD/MM/YYYY")
+                      {item.notification_date
+                        ? new Date(item.notification_date).toLocaleDateString(
+                            "vi-VN"
+                          )
                         : ""}
                     </td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
                   <tr key={`empty-${i}`} className="h-[50px]">
-                    <td colSpan={4}></td>
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
+                    <td className="border-b border-gray-100"></td>
                   </tr>
                 ))}
               </tbody>
@@ -198,7 +153,11 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
               <img src={arrowLeft} className="w-4 h-4" alt="Prev" />
             </button>
             <div className="bg-gray-300 px-4 py-1 rounded-full text-gray-700 font-semibold text-sm">
-              Trang {currentPage} / {totalPages}
+              Trang{" "}
+              <span className="bg-gray-400 text-white px-2 py-0.5 rounded ml-1">
+                {currentPage}
+              </span>{" "}
+              / {totalPages}
             </div>
             <button
               onClick={goToNextPage}
@@ -233,24 +192,36 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 };
 
 // =========================================================================
-// === MODAL THÊM/SỬA (HỖ TRỢ BULK INSERT) ===
+// === MODAL THÊM/SỬA (HỖ TRỢ BULK INSERT & SELECT DROPDOWN) ===
 // =========================================================================
 const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const isEditing = !!initialData;
-  const [formData, setFormData] = useState({ apartment_id: "", content: "" });
+  const [formData, setFormData] = useState({
+    receiver_name: "Cư dân",
+    apartment_id: "",
+    content: "",
+  });
   const [rows, setRows] = useState([
-    { id: Date.now(), apartment_id: "", content: "" },
+    { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
 
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
         setFormData({
+          receiver_name: initialData.receiver_name || "Cư dân",
           apartment_id: initialData.apartment_id || "",
           content: initialData.content || "",
         });
       } else {
-        setRows([{ id: Date.now(), apartment_id: "", content: "" }]);
+        setRows([
+          {
+            id: Date.now(),
+            receiver_name: "Cư dân",
+            apartment_id: "",
+            content: "",
+          },
+        ]);
       }
     }
   }, [initialData, isOpen]);
@@ -264,7 +235,12 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const addRow = () =>
     setRows((prev) => [
       ...prev,
-      { id: Date.now(), apartment_id: "", content: "" },
+      {
+        id: Date.now(),
+        receiver_name: "Cư dân",
+        apartment_id: "",
+        content: "",
+      },
     ]);
 
   const removeRow = (id) => {
@@ -272,12 +248,26 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   };
 
   const handleSubmit = () => {
-    if (isEditing) onSubmit(formData);
-    else {
-      const validRows = rows.map(({ apartment_id, content }) => ({
-        apartment_id,
-        content,
-      }));
+    if (isEditing) {
+      // Chuẩn bị data gửi đi (Single)
+      const dataToSend = {
+        sender_name: "Kế toán",
+        receiver_name: formData.receiver_name,
+        apartment_id:
+          formData.receiver_name === "Cư dân" ? formData.apartment_id : "All",
+        content: formData.content,
+      };
+      onSubmit(dataToSend);
+    } else {
+      // Chuẩn bị data gửi đi (Bulk)
+      const validRows = rows.map(
+        ({ receiver_name, apartment_id, content }) => ({
+          sender_name: "Kế toán",
+          receiver_name,
+          apartment_id: receiver_name === "Cư dân" ? apartment_id : "All",
+          content,
+        })
+      );
       onSubmit(validRows);
     }
   };
@@ -288,7 +278,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div
         className={`bg-white rounded-2xl p-8 relative shadow-2xl animate-fade-in-up ${
-          isEditing ? "w-full max-w-lg" : "w-full max-w-4xl"
+          isEditing ? "w-full max-w-lg" : "w-full max-w-5xl"
         }`}
         style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}
       >
@@ -296,7 +286,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           onClick={onClose}
           className="absolute top-6 right-6 hover:bg-gray-100 rounded-full p-1 transition-colors"
         >
-          <CloseIcon />
+          <FiX className="w-6 h-6 text-gray-500" />
         </button>
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {isEditing ? "Chỉnh sửa thông báo" : "Thêm thông báo mới"}
@@ -317,30 +307,45 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
-                  Người nhận (Mã căn hộ)
+                  Người nhận
                 </label>
-                <input
-                  type="text"
-                  value={formData.apartment_id}
+                <select
+                  value={formData.receiver_name}
                   onChange={(e) =>
-                    setFormData({ ...formData, apartment_id: e.target.value })
+                    setFormData({ ...formData, receiver_name: e.target.value })
                   }
-                  placeholder="VD: A101"
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
-                />
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 mb-3"
+                >
+                  <option value="Cư dân">Cư dân</option>
+                  <option value="Ban quản trị">Ban quản trị</option>
+                  <option value="Công an">Công an</option>
+                  <option value="Tất cả">Tất cả</option>
+                </select>
+
+                {formData.receiver_name === "Cư dân" && (
+                  <input
+                    type="text"
+                    value={formData.apartment_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, apartment_id: e.target.value })
+                    }
+                    placeholder="Nhập mã căn hộ (VD: A101)"
+                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
-                  Nội dung / Loại thông báo
+                  Nội dung
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows="4"
                   value={formData.content}
                   onChange={(e) =>
                     setFormData({ ...formData, content: e.target.value })
                   }
-                  placeholder="VD: Nợ phí điện"
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+                  placeholder="Nhập nội dung thông báo..."
+                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -349,10 +354,13 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[30%]">
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[20%]">
                       Người nhận
                     </th>
-                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[60%]">
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[20%]">
+                      Mã căn hộ
+                    </th>
+                    <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[50%]">
                       Nội dung
                     </th>
                     <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[10%] text-center">
@@ -372,29 +380,59 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                       className="hover:bg-blue-50 transition-colors"
                     >
                       <td className="p-2 align-top">
-                        <input
-                          type="text"
-                          value={row.apartment_id}
+                        <select
+                          value={row.receiver_name}
                           onChange={(e) =>
                             handleRowChange(
                               row.id,
-                              "apartment_id",
+                              "receiver_name",
                               e.target.value
                             )
                           }
-                          placeholder="VD: A101"
                           className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        >
+                          <option value="Cư dân">Cư dân</option>
+                          <option value="Ban quản trị">Ban quản trị</option>
+                          <option value="Công an">Công an</option>
+                          <option value="Tất cả">Tất cả</option>
+                        </select>
                       </td>
                       <td className="p-2 align-top">
-                        <input
-                          type="text"
+                        {row.receiver_name === "Cư dân" ? (
+                          <input
+                            type="text"
+                            value={row.apartment_id}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.id,
+                                "apartment_id",
+                                e.target.value
+                              )
+                            }
+                            placeholder="VD: A101"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <div className="p-2 text-gray-400 text-sm italic text-center">
+                            ---
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-2 align-top">
+                        <textarea
+                          rows={1}
                           value={row.content}
                           onChange={(e) =>
                             handleRowChange(row.id, "content", e.target.value)
                           }
                           placeholder="Nội dung..."
-                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                          style={{ minHeight: "38px" }}
+                          onInput={(e) => {
+                            e.target.style.height = "auto";
+                            e.target.style.height =
+                              e.target.scrollHeight + "px";
+                          }}
                         />
                       </td>
                       <td className="p-2 text-center align-top pt-3">
@@ -433,7 +471,24 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl p-8 w-full max-w-md text-center shadow-2xl animate-fade-in-up">
-        <WarningIcon />
+        {/* Warning Icon SVG */}
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <svg
+            className="h-6 w-6 text-red-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
         <h3 className="text-2xl font-bold text-gray-800 mb-2">
           Xóa các mục đã chọn
         </h3>
@@ -511,7 +566,7 @@ export const AccountantNotification = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- LOGIC NHẬP FILE EXCEL (MẪU IMPORT) ---
+  // --- LOGIC NHẬP FILE EXCEL ---
   const handleImportClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -539,41 +594,66 @@ export const AccountantNotification = () => {
             const normalizedCells = rowValues.map((v) =>
               v ? String(v).trim().toLowerCase() : ""
             );
-            // Cập nhật mapping cột cho phù hợp với trang Kế toán (apartment_id)
-            const idxApartment = normalizedCells.findIndex(
-              (v) => v === "mã căn hộ" || v === "người nhận"
+
+            const idxRecipient = normalizedCells.findIndex(
+              (v) => v === "người nhận" || v === "mã căn hộ" // Có thể là mã căn hộ hoặc loại người nhận
             );
             const idxContent = normalizedCells.findIndex(
               (v) => v === "nội dung"
             );
 
-            if (idxApartment !== -1 && idxContent !== -1) {
+            if (idxRecipient !== -1 && idxContent !== -1) {
               headerRowNumber = rowNumber;
-              colMap = { apartment_id: idxApartment, content: idxContent };
+              colMap = { recipient: idxRecipient, content: idxContent };
             }
           }
         });
 
         if (Object.keys(colMap).length === 0)
-          throw new Error("Không tìm thấy cột 'Mã căn hộ' và 'Nội dung'.");
+          throw new Error(
+            "Không tìm thấy cột 'Người nhận/Mã căn hộ' và 'Nội dung'."
+          );
 
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
-            const apartment = rowValues[colMap.apartment_id]
-              ? String(rowValues[colMap.apartment_id]).trim()
+            const rawRecipient = rowValues[colMap.recipient]
+              ? String(rowValues[colMap.recipient]).trim()
               : "";
             const content = rowValues[colMap.content]
               ? String(rowValues[colMap.content]).trim()
               : "";
 
-            if (apartment && content) {
-              dataToImport.push({ apartment_id: apartment, content: content });
+            if (rawRecipient && content) {
+              // LOGIC PHÂN LOẠI IMPORT
+              let receiverName = "Cư dân";
+              let apartmentId = rawRecipient;
+              const specialRoles = ["Ban quản trị", "Công an", "Tất cả"];
+
+              // Chuẩn hóa để so sánh
+              const normalizedRaw =
+                removeVietnameseTones(rawRecipient).toLowerCase();
+              const matchRole = specialRoles.find(
+                (role) =>
+                  removeVietnameseTones(role).toLowerCase() === normalizedRaw
+              );
+
+              if (matchRole) {
+                receiverName = matchRole;
+                apartmentId = "All";
+              }
+
+              dataToImport.push({
+                sender_name: "Kế toán", // Default sender cho trang này
+                receiver_name: receiverName,
+                apartment_id: apartmentId,
+                content: content,
+              });
             }
           }
         });
 
-        // Gọi API Insert (Sử dụng Axios để đồng bộ style)
+        // Gọi API Insert
         const token = localStorage.getItem("token");
         let successCount = 0;
         let failCount = 0;
@@ -615,7 +695,7 @@ export const AccountantNotification = () => {
     reader.readAsArrayBuffer(file);
   };
 
-  // --- LOGIC XUẤT PDF (MẪU EXPORT) ---
+  // --- LOGIC XUẤT PDF ---
   const handleExportClick = () => setShowPreviewModal(true);
 
   const handlePrintPDF = async () => {
@@ -647,13 +727,16 @@ export const AccountantNotification = () => {
           align: "right",
         });
 
-        const tableColumn = ["Mã ID", "Mã căn hộ", "Nội dung", "Ngày gửi"];
+        const tableColumn = ["Mã ID", "Người nhận", "Nội dung", "Ngày gửi"];
         const tableRows = [];
 
         filteredList.forEach((item) => {
           const rowData = [
             String(item.id),
-            (item.apartment_id || item.recipient || "").normalize("NFC"),
+            (item.receiver_name === "Cư dân"
+              ? item.apartment_id
+              : item.receiver_name || ""
+            ).normalize("NFC"),
             (item.content || "").normalize("NFC"),
             item.sent_date
               ? dayjs(item.sent_date).format("DD/MM/YYYY")
@@ -889,7 +972,7 @@ export const AccountantNotification = () => {
         </div>
       </div>
 
-      {/* Danh sách Card Thông báo */}
+      {/* Danh sách Card Thông báo - GRID LAYOUT 12 COLUMNS */}
       <div className="space-y-4 pb-4">
         {isLoading ? (
           <p className="text-white text-center">Đang tải dữ liệu...</p>
@@ -902,8 +985,10 @@ export const AccountantNotification = () => {
               className="bg-white rounded-[20px] p-5 flex items-center shadow-md relative min-h-[90px]"
             >
               <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
+
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-                <div className="col-span-3 sm:col-span-2">
+                {/* ID - 2/12 */}
+                <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Thông báo ID
                   </p>
@@ -911,9 +996,23 @@ export const AccountantNotification = () => {
                     {item.id}
                   </p>
                 </div>
-                <div className="col-span-5 sm:col-span-6">
+
+                {/* Người nhận - 2/12 */}
+                <div className="col-span-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                    Loại thông báo
+                    Người nhận
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {item.receiver_name === "Cư dân"
+                      ? item.apartment_id
+                      : item.receiver_name}
+                  </p>
+                </div>
+
+                {/* Nội dung - 6/12 */}
+                <div className="col-span-6">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                    Nội dung
                   </p>
                   <p
                     className="text-sm font-semibold text-gray-900 truncate pr-4"
@@ -922,7 +1021,9 @@ export const AccountantNotification = () => {
                     {item.content || "Nội dung thông báo"}
                   </p>
                 </div>
-                <div className="col-span-3 sm:col-span-2">
+
+                {/* Ngày gửi - 2/12 */}
+                <div className="col-span-2 text-right">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Ngày gửi
                   </p>
@@ -934,51 +1035,53 @@ export const AccountantNotification = () => {
                       : "---"}
                   </p>
                 </div>
-                <div className="col-span-1 sm:col-span-2 flex justify-end items-center">
-                  {!isDeleteMode ? (
-                    <button
-                      onClick={() => handleEditClick(item)}
-                      className="text-blue-500 font-bold text-sm hover:underline"
-                    >
-                      Chỉnh sửa
-                    </button>
-                  ) : (
-                    <div
-                      onClick={() => handleSelect(item.id)}
-                      className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
-                        selectedIds.includes(item.id)
-                          ? "bg-blue-500 shadow-blue-500/50"
-                          : "bg-gray-300 hover:bg-gray-400"
-                      }`}
-                    >
-                      {selectedIds.includes(item.id) && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="ml-4 flex items-center">
+                {!isDeleteMode ? (
+                  <button
+                    onClick={() => handleEditClick(item)}
+                    className="text-blue-500 font-bold text-sm hover:underline"
+                  >
+                    Chỉnh sửa
+                  </button>
+                ) : (
+                  <div
+                    onClick={() => handleSelect(item.id)}
+                    className={`w-10 h-10 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-200 ${
+                      selectedIds.includes(item.id)
+                        ? "bg-blue-500 shadow-blue-500/50"
+                        : "bg-gray-300 hover:bg-gray-400"
+                    }`}
+                  >
+                    {selectedIds.includes(item.id) && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Pagination Controls */}
+      {/* --- PAGINATION CONTROLS --- */}
       {filteredList.length > 0 && (
-        <div className="flex justify-center items-center mt-6 space-x-6 pb-10">
+        <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -1058,3 +1161,20 @@ export const AccountantNotification = () => {
     </div>
   );
 };
+
+const SearchIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 text-gray-400"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </svg>
+);
