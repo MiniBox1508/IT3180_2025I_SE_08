@@ -74,7 +74,7 @@ const InvoiceFormModal = ({
   residents,
   error,
   setError,
-  importedData, // PROPS: Dữ liệu từ Excel
+  importedData,
 }) => {
   const isEditing = !!invoiceData;
 
@@ -107,7 +107,6 @@ const InvoiceFormModal = ({
   useEffect(() => {
     if (isOpen) {
       if (invoiceData) {
-        // Mode: Edit Single
         const paymentDate = invoiceData.payment_date
           ? new Date(invoiceData.payment_date).toISOString().split("T")[0]
           : "";
@@ -119,10 +118,8 @@ const InvoiceFormModal = ({
           state: invoiceData.state !== undefined ? invoiceData.state : 0,
         });
       } else if (importedData && importedData.length > 0) {
-        // Mode: Import Excel -> Fill Rows
         setRows(importedData);
       } else {
-        // Mode: Add New Empty
         setRows([
           {
             id: Date.now(),
@@ -444,6 +441,7 @@ const InvoiceFormModal = ({
 const InvoiceItem = ({
   item,
   isDeleteMode,
+  isBatchPaymentMode, // --- NEW PROP: Chế độ xác nhận thanh toán
   onEditClick,
   isSelected,
   onToggleSelect,
@@ -495,8 +493,11 @@ const InvoiceItem = ({
           </p>
         </div>
       </div>
+
+      {/* KHU VỰC ACTION BUTTONS */}
       <div className="ml-auto flex-shrink-0 pr-2 w-24 flex justify-end">
-        {isDeleteMode ? (
+        {/* Trường hợp 1: Chế độ Xóa */}
+        {isDeleteMode && (
           <div className="flex items-center justify-center h-full">
             <input
               type="checkbox"
@@ -505,7 +506,29 @@ const InvoiceItem = ({
               className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
             />
           </div>
-        ) : (
+        )}
+
+        {/* Trường hợp 2: Chế độ Xác nhận Thanh toán Hàng loạt */}
+        {isBatchPaymentMode &&
+          (isPaid ? (
+            <div className="flex items-center justify-center h-full">
+              <span className="text-gray-400 font-bold text-sm italic border border-gray-200 bg-gray-50 px-2 py-1 rounded">
+                Đã xong
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleSelect(item.id)}
+                className="w-6 h-6 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+              />
+            </div>
+          ))}
+
+        {/* Trường hợp 3: Chế độ Bình thường (Cả 2 mode trên đều tắt) */}
+        {!isDeleteMode && !isBatchPaymentMode && (
           <button
             onClick={() => onEditClick(item)}
             className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
@@ -538,13 +561,17 @@ export const AccountPayment = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
+  // States: Delete Mode
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+  // States: Batch Payment Mode
+  const [isBatchPaymentMode, setIsBatchPaymentMode] = useState(false);
+
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // --- STATE PHÂN TRANG (MỚI) ---
+  // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng item / 1 trang
+  const itemsPerPage = 10;
 
   const fileInputRef = useRef(null);
 
@@ -582,7 +609,6 @@ export const AccountPayment = () => {
     fetchData();
   }, []);
 
-  // --- RESET TRANG KHI TÌM KIẾM (MỚI) ---
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -597,7 +623,6 @@ export const AccountPayment = () => {
     );
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION - MỚI) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredInvoices.slice(
@@ -606,7 +631,6 @@ export const AccountPayment = () => {
   );
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG (MỚI) ---
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
@@ -620,7 +644,7 @@ export const AccountPayment = () => {
   };
 
   const handleExportExcel = async () => {
-    const dataToExport = filteredInvoices; // Xuất toàn bộ dữ liệu lọc, không chỉ trang hiện tại
+    const dataToExport = filteredInvoices;
 
     if (dataToExport.length === 0) {
       setModalStatus("failure");
@@ -687,7 +711,6 @@ export const AccountPayment = () => {
     fileInputRef.current.click();
   };
 
-  // --- LOGIC ĐỌC FILE VÀ CHECK LỖI ---
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -704,7 +727,7 @@ export const AccountPayment = () => {
       );
 
       worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return; // Skip header
+        if (rowNumber === 1) return;
 
         const aptId = row.getCell(1).text ? row.getCell(1).text.trim() : "";
         const feeType = row.getCell(2).text || "";
@@ -720,12 +743,10 @@ export const AccountPayment = () => {
 
         if (aptId) {
           if (!validApartmentIds.includes(aptId.toLowerCase())) {
-            // Căn hộ KHÔNG tồn tại -> Đẩy vào list lỗi
             errorMessages.push(
               `Dòng ${rowNumber}: Căn hộ "${aptId}" không tồn tại trong hệ thống.`
             );
           } else {
-            // Căn hộ hợp lệ -> Đẩy vào list hợp lệ
             validRows.push({
               id: Date.now() + rowNumber,
               apartment_id: aptId,
@@ -738,10 +759,7 @@ export const AccountPayment = () => {
       });
 
       if (errorMessages.length > 0) {
-        // TRƯỜNG HỢP CÓ LỖI: HIỆN POPUP LỖI
         setModalStatus("failure");
-
-        // Tạo thông báo lỗi + Thông báo về việc sẽ tiếp tục với các dòng hợp lệ
         const displayErrors = errorMessages.slice(0, 5);
         if (errorMessages.length > 5)
           displayErrors.push(`...và ${errorMessages.length - 5} lỗi khác.`);
@@ -766,7 +784,6 @@ export const AccountPayment = () => {
           </div>
         );
 
-        // Lưu tạm các dòng hợp lệ để dùng sau khi đóng modal
         if (validRows.length > 0) {
           setImportedInvoices(validRows);
         } else {
@@ -774,7 +791,6 @@ export const AccountPayment = () => {
         }
         setIsStatusModalOpen(true);
       } else if (validRows.length > 0) {
-        // TRƯỜNG HỢP KHÔNG CÓ LỖI: Mở luôn form
         setImportedInvoices(validRows);
         setFormError("");
         setIsAddModalOpen(true);
@@ -879,15 +895,14 @@ export const AccountPayment = () => {
     }
   };
 
+  // === CÁC HANDLER CHO CHẾ ĐỘ XÓA ===
   const toggleDeleteMode = () => {
     setIsDeleteMode(!isDeleteMode);
+    // Tắt các mode khác nếu đang bật
+    setIsBatchPaymentMode(false);
     setSelectedIds([]);
   };
-  const handleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-    );
-  };
+
   const handleDeleteSelectedClick = () => {
     if (selectedIds.length > 0) setShowConfirmModal(true);
   };
@@ -927,10 +942,60 @@ export const AccountPayment = () => {
     setShowConfirmModal(false);
   };
 
+  // === CÁC HANDLER CHO CHẾ ĐỘ XÁC NHẬN THANH TOÁN (MỚI) ===
+  const toggleBatchPaymentMode = () => {
+    setIsBatchPaymentMode(!isBatchPaymentMode);
+    // Tắt các mode khác
+    setIsDeleteMode(false);
+    setSelectedIds([]);
+  };
+
+  const handleBatchPaymentConfirm = async () => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      const token = getToken();
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch(`${API_BASE_URL}/payments/${id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ state: 1 }), // state 1 = Đã thanh toán
+          }).then((res) => {
+            if (!res.ok) throw new Error(`Cập nhật thất bại ID: ${id}`);
+            return res;
+          })
+        )
+      );
+
+      fetchData();
+      setModalStatus("success");
+      setStatusMessage(
+        `Xác nhận ${selectedIds.length} hoá đơn đã thanh toán thành công!`
+      );
+      setIsStatusModalOpen(true);
+      setIsBatchPaymentMode(false);
+      setSelectedIds([]);
+    } catch (err) {
+      setModalStatus("failure");
+      setStatusMessage(err.message || "Lỗi khi cập nhật trạng thái.");
+      setIsStatusModalOpen(true);
+    }
+  };
+
+  // === HANDLER CHUNG CHO CHECKBOX ===
+  const handleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
 
-    // Nếu vừa đóng popup lỗi import (failure) MÀ vẫn có dữ liệu hợp lệ đang chờ -> Mở form thêm
     if (
       modalStatus === "failure" &&
       importedInvoices &&
@@ -1003,9 +1068,10 @@ export const AccountPayment = () => {
       </div>
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý công nợ</h1>
         <div className="flex space-x-4">
-          {!isDeleteMode ? (
+          {/* ========== CHẾ ĐỘ THƯỜNG ========== */}
+          {!isDeleteMode && !isBatchPaymentMode && (
             <>
               <button
                 onClick={handleImportClick}
@@ -1019,6 +1085,15 @@ export const AccountPayment = () => {
               >
                 <DownloadIcon /> Xuất Excel
               </button>
+
+              {/* NÚT KÍCH HOẠT MODULE XÁC NHẬN THANH TOÁN (MỚI) */}
+              <button
+                onClick={toggleBatchPaymentMode}
+                className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 shadow-md"
+              >
+                Xác nhận hoá đơn đã thanh toán
+              </button>
+
               <button
                 onClick={handleAddClick}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2"
@@ -1032,7 +1107,10 @@ export const AccountPayment = () => {
                 Xóa hóa đơn
               </button>
             </>
-          ) : (
+          )}
+
+          {/* ========== CHẾ ĐỘ XÓA (DELETE MODE) ========== */}
+          {isDeleteMode && (
             <>
               <button
                 onClick={handleDeleteSelectedClick}
@@ -1053,6 +1131,29 @@ export const AccountPayment = () => {
               </button>
             </>
           )}
+
+          {/* ========== CHẾ ĐỘ XÁC NHẬN THANH TOÁN (BATCH PAYMENT MODE) ========== */}
+          {isBatchPaymentMode && (
+            <>
+              <button
+                onClick={handleBatchPaymentConfirm}
+                disabled={selectedIds.length === 0}
+                className={`font-semibold py-2 px-4 rounded-md transition-colors duration-200 ${
+                  selectedIds.length === 0
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-teal-500 hover:bg-teal-600 text-white"
+                }`}
+              >
+                Xác nhận hoá đơn đã thanh toán ({selectedIds.length})
+              </button>
+              <button
+                onClick={toggleBatchPaymentMode}
+                className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200"
+              >
+                Hủy
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1064,12 +1165,12 @@ export const AccountPayment = () => {
               : "Trang này không có dữ liệu."}
           </div>
         ) : (
-          // Thay đổi: Render currentItems thay vì filteredInvoices
           currentItems.map((item) => (
             <InvoiceItem
               key={item.id}
               item={item}
               isDeleteMode={isDeleteMode}
+              isBatchPaymentMode={isBatchPaymentMode} // Truyền prop mới vào
               onEditClick={handleEditClick}
               isSelected={selectedIds.includes(item.id)}
               onToggleSelect={handleSelect}
@@ -1078,10 +1179,9 @@ export const AccountPayment = () => {
         )}
       </div>
 
-      {/* --- PAGINATION CONTROLS (MỚI - ĐƯỢC THÊM VÀO) --- */}
+      {/* --- PAGINATION CONTROLS --- */}
       {filteredInvoices.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-6">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -1098,7 +1198,6 @@ export const AccountPayment = () => {
             />
           </button>
 
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -1107,7 +1206,6 @@ export const AccountPayment = () => {
             <span className="text-lg">/ {totalPages}</span>
           </div>
 
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
