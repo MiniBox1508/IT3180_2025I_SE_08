@@ -117,19 +117,18 @@ export const ResidentNotificationsPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
-  // <<< NEW: State cho Thanh Tìm kiếm >>>
+  // State cho Thanh Tìm kiếm
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- STATE PHÂN TRANG (MỚI) ---
+  // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số lượng ô dữ liệu / 1 trang
+  const itemsPerPage = 10;
 
   // --- HÀM FETCH DỮ LIỆU TỪ API ---
   const fetchNotifications = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Gọi API GET /notifications
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/notifications`, {
         headers: {
@@ -145,23 +144,35 @@ export const ResidentNotificationsPage = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       const residentApartmentId = user?.apartment_id;
 
-      // Sắp xếp giảm dần theo ID hoặc ngày tạo để tin mới nhất lên đầu
+      // Sắp xếp giảm dần theo ID
       const sortedData = data.sort((a, b) => b.id - a.id);
 
-      // --- LOGIC LỌC DỮ LIỆU ĐÃ SỬA ---
-      // Nếu apartment_id = 'all' thì KHÔNG hiển thị (loại bỏ)
-      // Chỉ hiển thị data khớp với residentApartmentId
-      const filteredByResident = sortedData.filter((item) => {
-        const itemApt = String(item.apartment_id).trim().toLowerCase();
+      // --- LOGIC LỌC DỮ LIỆU ĐÃ SỬA THEO YÊU CẦU ---
+      const filteredData = sortedData.filter((item) => {
+        const itemApt = item.apartment_id
+          ? String(item.apartment_id).trim().toLowerCase()
+          : null;
+        const receiverName = item.receiver_name
+          ? String(item.receiver_name).trim()
+          : "";
+        const residentAptLower = residentApartmentId
+          ? String(residentApartmentId).trim().toLowerCase()
+          : "";
 
-        // Nếu là 'all' -> bỏ qua
-        if (itemApt === "all") return false;
+        // 1. Nếu apartment_id khác null và receiver_name = "Tất cả" -> HIỂN THỊ
+        if (item.apartment_id !== null && receiverName === "Tất cả") {
+          return true;
+        }
 
-        // Chỉ lấy thông báo trùng với mã căn hộ của user
-        return itemApt === String(residentApartmentId).trim().toLowerCase();
+        // 2. Nếu khớp với mã căn hộ của cư dân (và không phải từ khóa 'all' hệ thống) -> HIỂN THỊ
+        if (itemApt === residentAptLower && itemApt !== "all") {
+          return true;
+        }
+
+        return false;
       });
 
-      setNotifications(filteredByResident);
+      setNotifications(filteredData);
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);
@@ -179,24 +190,20 @@ export const ResidentNotificationsPage = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- HÀM LỌC DỮ LIỆU ---
+  // --- HÀM LỌC DỮ LIỆU TÌM KIẾM ---
   const filteredNotifications = notifications.filter((item) => {
     if (!searchTerm.trim()) {
       return true;
     }
     const searchLower = searchTerm.trim().toLowerCase();
-
-    // Lọc theo ID
     const idMatch = String(item.id).toLowerCase().includes(searchLower);
-    // Lọc theo Người gửi (sender_name)
     const senderMatch = String(item.sender_name)
       .toLowerCase()
       .includes(searchLower);
-
     return idMatch || senderMatch;
   });
 
-  // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
+  // --- LOGIC PAGINATION ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentNotifications = filteredNotifications.slice(
@@ -205,20 +212,14 @@ export const ResidentNotificationsPage = () => {
   );
   const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
 
-  // --- HANDLER CHUYỂN TRANG ---
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
-
   const goToPrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // --- HÀM XỬ LÝ XÓA (Giữ nguyên logic mock) ---
+  // --- HÀM XỬ LÝ XÓA ---
   const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
   const handleDeleteItemClick = (id) => {
     setItemToDeleteId(id);
@@ -230,7 +231,6 @@ export const ResidentNotificationsPage = () => {
   };
   const handleConfirmDelete = () => {
     setShowConfirmModal(false);
-    // Đây là logic mock xóa thành công trên client-side
     setNotifications(
       notifications.filter((item) => item.id !== itemToDeleteId)
     );
@@ -239,14 +239,13 @@ export const ResidentNotificationsPage = () => {
     setIsStatusModalOpen(true);
     setItemToDeleteId(null);
   };
-  // ----------------------------------------------------------------
 
-  // --- HÀM ĐÓNG/RENDER MODAL STATUS (giữ nguyên) ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
+
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus.includes("Success");
@@ -261,7 +260,6 @@ export const ResidentNotificationsPage = () => {
     );
   };
 
-  // --- RENDER LOADING VÀ ERROR ---
   if (isLoading) {
     return <div className="text-white text-lg p-4">Đang tải thông báo...</div>;
   }
@@ -274,7 +272,6 @@ export const ResidentNotificationsPage = () => {
 
   return (
     <div>
-      {/* <<< Thanh Tìm kiếm Full Width >>> */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -302,14 +299,11 @@ export const ResidentNotificationsPage = () => {
           />
         </div>
       </div>
-      {/* ------------------------------------- */}
 
-      {/* Header và Nút */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
       </div>
 
-      {/* Danh sách thông báo */}
       <div className="space-y-4">
         {currentNotifications.length === 0 ? (
           <div className="bg-white p-6 rounded-lg text-center text-gray-500">
@@ -327,10 +321,8 @@ export const ResidentNotificationsPage = () => {
         )}
       </div>
 
-      {/* --- PAGINATION CONTROLS --- */}
       {filteredNotifications.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -347,7 +339,6 @@ export const ResidentNotificationsPage = () => {
             />
           </button>
 
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -356,7 +347,6 @@ export const ResidentNotificationsPage = () => {
             <span className="text-lg">/ {totalPages}</span>
           </div>
 
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
@@ -375,7 +365,6 @@ export const ResidentNotificationsPage = () => {
         </div>
       )}
 
-      {/* Confirmation Modal (Xóa) - giữ nguyên */}
       <ConfirmationModal
         isOpen={showConfirmModal}
         onClose={handleCancelDelete}
@@ -384,7 +373,6 @@ export const ResidentNotificationsPage = () => {
         message="Bạn có chắc chắn muốn xóa thông báo này không?"
       />
 
-      {/* Status Modal (Thông báo kết quả) - giữ nguyên */}
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
