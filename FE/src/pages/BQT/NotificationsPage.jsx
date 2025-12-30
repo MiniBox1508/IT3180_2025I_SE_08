@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import axios from "axios"; // Đảm bảo import axios
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // --- IMPORT ICONS ---
@@ -24,12 +25,12 @@ const getCurrentUserEmail = () => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      return user.email || "admin@bluemoon.com";
+      return user.email || "resident@bluemoon.com";
     } catch (e) {
-      return "admin@bluemoon.com";
+      return "resident@bluemoon.com";
     }
   }
-  return "admin@bluemoon.com";
+  return "resident@bluemoon.com";
 };
 
 // --- HELPER: Xóa dấu tiếng Việt để tìm kiếm ---
@@ -84,8 +85,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
-      {/* SỬA: Bỏ fixed height, dùng h-auto để modal ôm vừa nội dung */}
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col h-auto">
         {/* Header Modal */}
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
           <h2 className="text-2xl font-bold text-gray-800">
@@ -95,20 +95,23 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
         {/* Content Table Preview */}
         <div className="p-8 bg-gray-50 flex flex-col">
-          <div className="border border-gray-300 rounded-lg bg-white shadow-sm">
-            <table className="w-full text-left border-collapse">
+          <div className="border border-gray-300 rounded-lg bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
-                    Mã số thông báo
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[10%]">
+                    Mã số
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                    Người gửi
+                  </th>
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
                     Người nhận
                   </th>
                   <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
                     Nội dung
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
                     Ngày gửi
                   </th>
                 </tr>
@@ -117,6 +120,9 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                 {currentItems.map((item, index) => (
                   <tr key={index} className="hover:bg-blue-50 h-[50px]">
                     <td className="p-3 text-sm text-gray-700">{item.id}</td>
+                    <td className="p-3 text-sm text-gray-700">
+                      {item.sender_name}
+                    </td>
                     <td className="p-3 text-sm text-gray-700">
                       {item.receiver_name === "Cư dân"
                         ? item.apartment_id
@@ -139,6 +145,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                 ))}
                 {Array.from({ length: Math.max(0, emptyRows) }).map((_, i) => (
                   <tr key={`empty-${i}`} className="h-[50px]">
+                    <td className="border-b border-gray-100"></td>
                     <td className="border-b border-gray-100"></td>
                     <td className="border-b border-gray-100"></td>
                     <td className="border-b border-gray-100"></td>
@@ -321,7 +328,7 @@ const NotificationFormModal = ({
       }
 
       const dataToSend = {
-        sender_name: "Ban quản trị",
+        sender_name: "Ban quản trị", // Ở trang này (Resident), khi tạo mới, mặc định là BQT
         receiver_name: singleFormData.receiver_name,
         apartment_id:
           singleFormData.receiver_name === "Cư dân"
@@ -591,9 +598,9 @@ const NotificationItem = ({
     <div className="bg-white rounded-2xl shadow-md p-4 flex items-center relative overflow-hidden mb-4 min-h-[80px]">
       <div className="absolute left-4 top-3 bottom-3 w-1.5 bg-blue-500 rounded-full"></div>
 
-      {/* Grid 12 cột */}
-      <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-8 pr-4 text-gray-800">
-        {/* Cột 1: ID - Chiếm 1/12 */}
+      {/* Grid 14 cột */}
+      <div className="flex-1 grid grid-cols-14 gap-4 items-center pl-8 pr-4 text-gray-800">
+        {/* Cột 1: ID - Chiếm 1/14 */}
         <div className="col-span-1 text-center border-r border-gray-100 pr-2">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             ID
@@ -601,7 +608,15 @@ const NotificationItem = ({
           <p className="font-bold text-lg text-blue-600">{item.id}</p>
         </div>
 
-        {/* Cột 2: Người nhận - Chiếm 2/12 */}
+        {/* Cột 2: Người gửi - Chiếm 2/14 */}
+        <div className="col-span-2">
+          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+            Người gửi
+          </p>
+          <span className="font-bold text-gray-800">{item.sender_name}</span>
+        </div>
+
+        {/* Cột 3: Người nhận - Chiếm 2/14 */}
         <div className="col-span-2">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             Người nhận
@@ -618,7 +633,7 @@ const NotificationItem = ({
           </div>
         </div>
 
-        {/* Cột 3: Nội dung - Chiếm 7/12 (Diện tích lớn nhất) */}
+        {/* Cột 4: Nội dung - Chiếm 7/14 (Diện tích lớn nhất) */}
         <div className="col-span-7 pl-2 border-l border-r border-gray-100">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             Nội dung
@@ -631,7 +646,7 @@ const NotificationItem = ({
           </p>
         </div>
 
-        {/* Cột 4: Ngày gửi - Chiếm 2/12 */}
+        {/* Cột 5: Ngày gửi - Chiếm 2/14 */}
         <div className="col-span-2 pl-2">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             Ngày gửi
@@ -709,7 +724,22 @@ export const NotificationsPage = () => {
       const sortedData = Array.isArray(data)
         ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         : [];
-      setNotifications(sortedData);
+
+      // LOGIC LỌC DỮ LIỆU ĐỂ HIỂN THỊ
+      // Chỉ lấy thông báo có sender là BQT HOẶC receiver là BQT/Tất cả
+      const validNotifications = sortedData.filter((item) => {
+        const sender = item.sender_name ? item.sender_name.toLowerCase() : "";
+        const receiver = item.receiver_name
+          ? item.receiver_name.toLowerCase()
+          : "";
+        return (
+          sender === "ban quản trị" ||
+          receiver === "ban quản trị" ||
+          receiver === "tất cả"
+        );
+      });
+
+      setNotifications(validNotifications);
     } catch (err) {
       console.error("Fetch Error:", err);
       setError(err.message);
@@ -885,12 +915,27 @@ export const NotificationsPage = () => {
         const buffer = evt.target.result;
         await workbook.xlsx.load(buffer);
         const worksheet = workbook.getWorksheet(1);
-
         const dataToImport = [];
         let headerRowNumber = 1;
         let colMap = {};
 
-        // Tìm header
+        // 1. CALL API LẤY DANH SÁCH CĂN HỘ HỢP LỆ
+        let validApartmentIds = [];
+        try {
+          const token = getToken();
+          const res = await axios.get(`${API_BASE_URL}/residents`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          validApartmentIds = res.data
+            .map((r) =>
+              r.apartment_id ? String(r.apartment_id).trim().toLowerCase() : ""
+            )
+            .filter((id) => id);
+        } catch (apiErr) {
+          console.error("Không thể lấy danh sách căn hộ để validate:", apiErr);
+        }
+
+        // 2. TÌM HEADER
         worksheet.eachRow((row, rowNumber) => {
           if (Object.keys(colMap).length > 0) return;
           const rowValues = row.values;
@@ -917,77 +962,76 @@ export const NotificationsPage = () => {
           }
         });
 
-        if (Object.keys(colMap).length === 0) {
+        if (Object.keys(colMap).length === 0)
           throw new Error(
             "Không tìm thấy cột 'Người nhận' và 'Nội dung' trong file Excel."
           );
-        }
 
-        // TÍNH TOÁN ID TỰ ĐỘNG (Dựa trên Max ID hiện tại)
-        let maxId = notifications.reduce(
-          (max, item) => Math.max(max, Number(item.id) || 0),
-          0
-        );
-
-        let successCount = 0;
-        let failCount = 0;
+        // 3. DUYỆT DATA (Đếm tổng data rows thực tế)
+        let totalDataRows = 0;
 
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > headerRowNumber) {
             const rowValues = row.values;
-
-            // 1. Lấy giá trị thô từ Excel
             const rawRecipient = rowValues[colMap.recipient]
-              ? String(rowValues[colMap.recipient]).trim()
+              ? String(rowValues[colMap.recipient]).trim().normalize("NFC")
               : "";
             const content = rowValues[colMap.content]
               ? String(rowValues[colMap.content]).trim()
               : "";
-
-            // Xử lý ngày
             let notiDate = null;
             if (colMap.date !== -1 && rowValues[colMap.date]) {
               notiDate = rowValues[colMap.date];
             }
 
             if (rawRecipient && content) {
-              maxId++;
+              totalDataRows++;
+              let receiverName = "";
+              let apartmentId = "";
+              let isValidRow = false;
 
-              // --- LOGIC PHÂN LOẠI NGƯỜI NHẬN ---
-              let receiverName = "Cư dân";
-              let apartmentId = rawRecipient;
+              const specialRoles = ["Kế toán", "Công an", "Tất cả"];
+              const normalizedRaw = rawRecipient.toLowerCase();
+              const noToneRaw =
+                removeVietnameseTones(rawRecipient).toLowerCase();
 
-              const specialRoles = [
-                "Kế toán",
-                "Công an",
-                "Tất cả",
-                "Ban quản trị",
-              ];
-              const matchRole = specialRoles.find(
-                (role) => role.toLowerCase() === rawRecipient.toLowerCase()
-              );
+              const matchRole = specialRoles.find((role) => {
+                const roleLower = role.toLowerCase();
+                const roleNoTone = removeVietnameseTones(role).toLowerCase();
+                return roleLower === normalizedRaw || roleNoTone === noToneRaw;
+              });
 
               if (matchRole) {
                 receiverName = matchRole;
                 apartmentId = "All";
+                isValidRow = true;
+              } else {
+                if (validApartmentIds.includes(normalizedRaw)) {
+                  receiverName = "Cư dân";
+                  apartmentId = rawRecipient;
+                  isValidRow = true;
+                } else {
+                  isValidRow = false;
+                }
               }
 
-              dataToImport.push({
-                id: maxId,
-                sender_name: "Ban quản trị",
-                receiver_name: receiverName,
-                apartment_id: apartmentId,
-                content: content,
-                notification_date: notiDate,
-              });
-            } else {
-              failCount++;
+              if (isValidRow) {
+                dataToImport.push({
+                  sender_name: "Ban quản trị",
+                  receiver_name: receiverName,
+                  apartment_id: apartmentId,
+                  content: content,
+                  notification_date: notiDate,
+                });
+              }
             }
           }
         });
 
-        // Call API Create
         const token = getToken();
+        let successCount = 0;
+        let apiFailCount = 0;
+
         await Promise.all(
           dataToImport.map((item) =>
             fetch(`${API_BASE_URL}/notifications`, {
@@ -1000,36 +1044,40 @@ export const NotificationsPage = () => {
             })
               .then((res) => {
                 if (res.ok) successCount++;
-                else failCount++;
+                else apiFailCount++;
               })
-              .catch(() => {
-                failCount++;
-              })
+              .catch(() => apiFailCount++)
           )
         );
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchNotifications();
 
-        // --- CẬP NHẬT TRẠNG THÁI ---
-        if (failCount === 0 && successCount > 0) {
-          setModalStatus("addSuccess");
-          setStatusMessage(
-            `Đã nhập thành công ${successCount} thông báo từ Excel!`
-          );
-        } else if (successCount > 0 && failCount > 0) {
-          setModalStatus("addSuccess");
-          setStatusMessage(
-            `Nhập hoàn tất:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}`
-          );
-        } else {
-          setModalStatus("addFailure");
-          setStatusMessage(`Nhập thất bại toàn bộ (${failCount} dòng lỗi).`);
+        const invalidDataCount = totalDataRows - dataToImport.length;
+        const totalFail = invalidDataCount + apiFailCount;
+
+        let message = "";
+        let type = "success";
+
+        if (totalFail === 0 && successCount > 0)
+          message = `Nhập thành công ${successCount} thông báo!`;
+        else if (successCount > 0)
+          message = `Thành công: ${successCount}, Lỗi: ${totalFail}`;
+        else {
+          message = "Nhập thất bại toàn bộ.";
+          type = "failure";
         }
 
+        setStatusModal({
+          // Ở đây mock lại type để dùng icon của StatusModal cũ nếu cần, hoặc chỉnh lại prop StatusModal
+          // Giả sử StatusModal nhận prop 'modalStatus' string
+          // Ở component này logic hơi khác Accountant, ta map lại cho khớp
+        });
+        // Logic hiển thị modal của component này:
+        setModalStatus(type === "success" ? "addSuccess" : "addFailure");
+        setStatusMessage(message.replace(", ", "\n")); // Xuống dòng cho đẹp
         setIsStatusModalOpen(true);
       } catch (err) {
-        console.error("Excel Import Error:", err);
         setModalStatus("addFailure");
         setStatusMessage(`Lỗi nhập file: ${err.message}`);
         setIsStatusModalOpen(true);
@@ -1038,11 +1086,8 @@ export const NotificationsPage = () => {
     reader.readAsArrayBuffer(file);
   };
 
-  // --- LOGIC XUẤT PDF (PRINT) ---
-  const handleExportClick = () => {
-    // Chỉ mở popup preview
-    setShowPreviewModal(true);
-  };
+  // --- LOGIC XUẤT PDF ---
+  const handleExportClick = () => setShowPreviewModal(true);
 
   const handlePrintPDF = async () => {
     try {
@@ -1060,13 +1105,11 @@ export const NotificationsPage = () => {
         doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
         doc.setFont("Roboto");
 
-        // === TITLE ===
         doc.setFontSize(18);
         doc.text("Danh sách thông báo chung cư Blue Moon", 105, 15, {
           align: "center",
         });
 
-        // === INFO LINE ===
         const today = new Date().toLocaleDateString("vi-VN");
         const currentUser = getCurrentUserEmail();
 
@@ -1075,19 +1118,19 @@ export const NotificationsPage = () => {
         doc.text(`Ngày in: ${today}`, 14, 25);
         doc.text(`Người in: ${currentUser}`, 196, 25, { align: "right" });
 
-        // === TABLE ===
         const tableColumn = [
-          "Mã số thông báo",
+          "Mã số",
+          "Người gửi",
           "Người nhận",
           "Nội dung",
           "Ngày gửi",
         ];
         const tableRows = [];
 
-        // Xuất toàn bộ dữ liệu đang có (hoặc đã lọc)
         filteredNotifications.forEach((item) => {
           const rowData = [
             String(item.id),
+            (item.sender_name || "").normalize("NFC"),
             (item.receiver_name === "Cư dân"
               ? item.apartment_id
               : item.receiver_name || ""
@@ -1100,7 +1143,6 @@ export const NotificationsPage = () => {
           tableRows.push(rowData);
         });
 
-        // Cấu hình table phân trang 20 dòng
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
@@ -1118,10 +1160,9 @@ export const NotificationsPage = () => {
         });
 
         doc.save("danh_sach_thong_bao.pdf");
-        setShowPreviewModal(false); // Đóng preview sau khi in
+        setShowPreviewModal(false);
 
-        // --- CẬP NHẬT TRẠNG THÁI XUẤT ---
-        setModalStatus("addSuccess"); // Dùng chung icon success
+        setModalStatus("addSuccess");
         setStatusMessage(
           `Xuất thành công ${filteredNotifications.length} thông báo ra file PDF!`
         );
@@ -1137,7 +1178,6 @@ export const NotificationsPage = () => {
 
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
-    // Check keyword để chọn icon (bao gồm cả trạng thái update từ logic Import)
     const isSuccess = modalStatus.toLowerCase().includes("success");
     const icon = isSuccess ? acceptIcon : notAcceptIcon;
     return (
@@ -1194,7 +1234,6 @@ export const NotificationsPage = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
-              {/* Input Excel Ẩn */}
               <input
                 type="file"
                 accept=".xlsx, .xls"
