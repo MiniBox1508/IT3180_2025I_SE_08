@@ -3,6 +3,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 
 // --- IMPORT THƯ VIỆN XỬ LÝ FILE (PATTERN) ---
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -320,16 +321,16 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   );
 };
 
-// --- COMPONENT MỚI: FEEDBACK DETAIL MODAL (CHI TIẾT PHẢN ÁNH) ---
-const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
+// --- COMPONENT: MODAL CHI TIẾT PHẢN ÁNH SỰ CỐ (MỚI) ---
+const ReflectionDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
   return (
     <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-3xl w-full max-w-lg p-8 relative shadow-2xl animate-fade-in-up">
+      <div className="bg-white rounded-3xl w-full max-w-2xl p-8 relative shadow-2xl animate-fade-in-up">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">
-            Chi tiết phản ánh dịch vụ
+            Chi tiết phản ánh sự cố
           </h2>
           <button
             onClick={onClose}
@@ -339,38 +340,38 @@ const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
           </button>
         </div>
         <div className="space-y-6">
+          {/* Vấn đề */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
               Vấn đề
             </label>
-            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
+            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 min-h-[48px]">
               {data.problems || "--"}
             </div>
           </div>
+
+          {/* Đánh giá chất lượng */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
               Đánh giá chất lượng
             </label>
-            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
+            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 min-h-[48px]">
               {data.rates || "--"}
             </div>
           </div>
+
+          {/* Chi tiết */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
               Chi tiết
             </label>
-            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 min-h-[60px]">
-              {data.scripts || "--"}
-            </div>
+            <textarea
+              readOnly
+              rows={4}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 resize-none focus:outline-none"
+              value={data.scripts || "--"}
+            />
           </div>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors"
-          >
-            Đóng
-          </button>
         </div>
       </div>
     </div>
@@ -385,14 +386,12 @@ export const SecurityProblem = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
-  // FEEDBACK DETAIL MODAL STATE (MỚI)
-  const [isFeedbackDetailModalOpen, setIsFeedbackDetailModalOpen] =
-    useState(false);
-  const [selectedFeedback, setSelectedFeedback] = useState(null);
-
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+
+  // States cho modal "Chi tiết phản ánh sự cố" (MỚI)
+  const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
+  const [selectedReflection, setSelectedReflection] = useState(null);
 
   // Status Modal
   const [statusModal, setStatusModal] = useState({
@@ -401,7 +400,7 @@ export const SecurityProblem = () => {
     message: "",
   });
 
-  // State Import/Export (MẪU MỚI)
+  // State Import/Export
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -431,12 +430,12 @@ export const SecurityProblem = () => {
               ? dayjs(item.handle_date).format("DD/MM/YYYY")
               : "",
             note: item.note,
-            ben_xu_ly: item.ben_xu_ly,
-            // MAPPING THÊM 3 TRƯỜNG FEEDBACK (MỚI)
+            ben_xu_ly: item.ben_xu_ly, // Lấy trường ben_xu_ly để lọc
+            raw_created_at: item.created_at,
+            // Thêm các trường mới
             problems: item.problems,
             rates: item.rates,
             scripts: item.scripts,
-            raw_created_at: item.created_at,
           }))
         : [];
       setIncidents(mappedData.sort((a, b) => b.id - a.id));
@@ -454,13 +453,7 @@ export const SecurityProblem = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // --- HANDLER FEEDBACK DETAIL (MỚI) ---
-  const handleViewFeedback = (item) => {
-    setSelectedFeedback(item);
-    setIsFeedbackDetailModalOpen(true);
-  };
-
-  // --- LOGIC NHẬP FILE EXCEL (ĐÃ SỬA) ---
+  // --- LOGIC NHẬP FILE EXCEL ---
   const handleImportClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -551,7 +544,6 @@ export const SecurityProblem = () => {
               validSuccessCount++;
             } else {
               // Nếu dòng có dữ liệu nhưng thiếu cột quan trọng -> Tính là lỗi
-              // (Chỉ đếm nếu dòng đó không hoàn toàn rỗng để tránh đếm dòng thừa cuối file)
               if (row.hasValues) {
                 invalidDataCount++;
               }
@@ -581,7 +573,6 @@ export const SecurityProblem = () => {
         fetchIncidents();
 
         // 5. Tổng hợp kết quả
-        // Tổng thất bại = Lỗi dữ liệu file (invalidDataCount) + Lỗi API (apiFailCount)
         const totalFail = invalidDataCount + apiFailCount;
         const totalSuccess = apiSuccessCount;
 
@@ -704,6 +695,12 @@ export const SecurityProblem = () => {
   const handleViewDetail = (item) => {
     setSelectedIncident(item);
     setIsDetailModalOpen(true);
+  };
+
+  // --- HANDLER CHO MODAL MỚI: XEM CHI TIẾT PHẢN ÁNH ---
+  const handleViewReflection = (item) => {
+    setSelectedReflection(item);
+    setIsReflectionModalOpen(true);
   };
 
   // --- SỬA LOGIC: TOGGLE BATCH MODE ---
@@ -918,11 +915,11 @@ export const SecurityProblem = () => {
                   >
                     {item.status}
                   </p>
-                  {/* --- SỬA UI: HIỂN THỊ LINK XEM THÊM CHI TIẾT --- */}
+                  {/* --- HIỂN THỊ LINK XEM CHI TIẾT PHẢN ÁNH --- */}
                   {item.status === "Đã xử lý" && (
                     <button
-                      onClick={() => handleViewFeedback(item)}
-                      className="text-[10px] text-blue-500 font-semibold hover:underline block mt-0.5"
+                      onClick={() => handleViewReflection(item)}
+                      className="text-blue-500 text-xs hover:underline font-bold mt-1 block"
                     >
                       Xem thêm chi tiết
                     </button>
@@ -930,7 +927,6 @@ export const SecurityProblem = () => {
                 </div>
                 <div className="col-span-2 flex justify-end items-center">
                   {isBatchMode ? (
-                    // --- SỬA LOGIC HIỂN THỊ: Nếu đã xử lý thì không cho chọn ---
                     item.status === "Đã xử lý" ? (
                       <div className="flex items-center justify-center h-10 px-2 border border-gray-200 rounded-xl bg-gray-50">
                         <span className="text-gray-400 font-bold text-xs italic">
@@ -1036,10 +1032,10 @@ export const SecurityProblem = () => {
         onClose={() => setIsDetailModalOpen(false)}
         data={selectedIncident}
       />
-      <FeedbackDetailModal
-        isOpen={isFeedbackDetailModalOpen}
-        onClose={() => setIsFeedbackDetailModalOpen(false)}
-        data={selectedFeedback}
+      <ReflectionDetailModal
+        isOpen={isReflectionModalOpen}
+        onClose={() => setIsReflectionModalOpen(false)}
+        data={selectedReflection}
       />
       <PreviewPdfModal
         isOpen={showPreviewModal}
@@ -1068,5 +1064,3 @@ export const SecurityProblem = () => {
     </div>
   );
 };
-
-export const SecurityProblem = React.memo(SecurityProblem);
