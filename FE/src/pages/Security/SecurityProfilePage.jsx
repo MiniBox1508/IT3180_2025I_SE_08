@@ -138,7 +138,7 @@ export const SecurityProfilePage = () => {
           role: data.role || "Công an",
           unit: data.apartment_id || "",
           badgeNumber: data.cccd || "",
-          // --- SỬA TẠI ĐÂY: Format về YYYY-MM-DD để input date hiểu ---
+          // Format về YYYY-MM-DD để input date hiểu
           dob: data.birth_date
             ? dayjs(data.birth_date).format("YYYY-MM-DD")
             : "",
@@ -183,7 +183,6 @@ export const SecurityProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // --- SỬA TẠI ĐÂY: Không cần split nữa vì input type="date" trả về YYYY-MM-DD chuẩn ---
     const formattedDob = formData.dob;
 
     const payload = {
@@ -281,11 +280,12 @@ export const SecurityProfilePage = () => {
               Thông tin cá nhân
             </h3>
             <div className="space-y-5">
+              {/* --- SỬA TẠI ĐÂY: KHÔNG CHO PHÉP CHỈNH SỬA VAI TRÒ --- */}
               <EditableField
                 label="Vai trò"
                 name="role"
                 value={formData.role}
-                isEditing={isEditing}
+                isEditing={false} // Luôn luôn false để không hiện input
                 onChange={handleChange}
               />
               <EditableField
@@ -303,13 +303,13 @@ export const SecurityProfilePage = () => {
                 onChange={handleChange}
               />
 
-              {/* --- SỬA TẠI ĐÂY: Xử lý riêng trường Ngày sinh --- */}
+              {/* Xử lý riêng trường Ngày sinh */}
               <div className="w-full">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Ngày sinh
                 </label>
                 {isEditing ? (
-                  // Mode SỬA: Input type DATE (yêu cầu value chuẩn YYYY-MM-DD)
+                  // Mode SỬA: Input type DATE
                   <input
                     type="date"
                     name="dob"
@@ -326,7 +326,6 @@ export const SecurityProfilePage = () => {
                   </div>
                 )}
               </div>
-              {/* --- KẾT THÚC SỬA --- */}
             </div>
           </div>
 
