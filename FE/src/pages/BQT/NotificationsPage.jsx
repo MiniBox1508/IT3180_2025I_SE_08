@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import axios from "axios"; // Đảm bảo import axios
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // --- IMPORT ICONS ---
-import { FiPlus, FiX, FiUpload, FiPrinter } from "react-icons/fi";
+import {
+  FiPlus,
+  FiX,
+  FiUpload,
+  FiPrinter,
+  FiFilter,
+  FiChevronDown,
+} from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
@@ -53,11 +60,9 @@ const removeVietnameseTones = (str) => {
 // === PREVIEW PDF MODAL (Popup xem trước khi in) ===
 // =========================================================================
 const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
-  // State phân trang cho Popup
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7; // Yêu cầu: Tối đa 7 dòng/trang trong popup
+  const itemsPerPage = 7;
 
-  // Reset về trang 1 khi mở modal hoặc data thay đổi
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(1);
@@ -66,13 +71,11 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 
   if (!isOpen) return null;
 
-  // Logic phân trang
   const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Tính số dòng trống cần bù vào để bảng không bị co lại (giữ height cố định)
   const emptyRows = itemsPerPage - currentItems.length;
 
   const goToNextPage = () => {
@@ -86,14 +89,12 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col h-auto">
-        {/* Header Modal */}
         <div className="p-6 border-b border-gray-200 flex justify-center relative">
           <h2 className="text-2xl font-bold text-gray-800">
             Danh sách thông báo
           </h2>
         </div>
 
-        {/* Content Table Preview */}
         <div className="p-8 bg-gray-50 flex flex-col">
           <div className="border border-gray-300 rounded-lg bg-white shadow-sm overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
@@ -156,7 +157,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
             </table>
           </div>
 
-          {/* Pagination Controls trong Popup */}
           <div className="flex justify-center items-center mt-6 space-x-4">
             <button
               onClick={goToPrevPage}
@@ -190,7 +190,6 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
           </div>
         </div>
 
-        {/* Footer Buttons */}
         <div className="p-6 border-t border-gray-200 flex justify-between items-center bg-white rounded-b-2xl">
           <button
             onClick={onClose}
@@ -211,7 +210,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 };
 
 // =========================================================================
-// === NOTIFICATION FORM MODAL (ADD = TABLE / EDIT = SINGLE FORM) ===
+// === NOTIFICATION FORM MODAL ===
 // =========================================================================
 const NotificationFormModal = ({
   isOpen,
@@ -222,20 +221,16 @@ const NotificationFormModal = ({
   setError,
 }) => {
   const isEditing = !!notificationData;
-
-  const [apartments, setApartments] = useState([]); // State lưu danh sách căn hộ từ API
-
+  const [apartments, setApartments] = useState([]);
   const [singleFormData, setSingleFormData] = useState({
     receiver_name: "Cư dân",
     apartment_id: "",
     content: "",
   });
-
   const [rows, setRows] = useState([
     { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
 
-  // --- CALL API LẤY DANH SÁCH CĂN HỘ ---
   useEffect(() => {
     if (isOpen) {
       const fetchApartments = async () => {
@@ -328,7 +323,7 @@ const NotificationFormModal = ({
       }
 
       const dataToSend = {
-        sender_name: "Ban quản trị", // Ở trang này (Resident), khi tạo mới, mặc định là BQT
+        sender_name: "Ban quản trị",
         receiver_name: singleFormData.receiver_name,
         apartment_id:
           singleFormData.receiver_name === "Cư dân"
@@ -412,7 +407,6 @@ const NotificationFormModal = ({
                       key={row.id}
                       className="hover:bg-blue-50 transition-colors group"
                     >
-                      {/* Cột 1: Loại người nhận */}
                       <td className="p-2 align-top">
                         <select
                           value={row.receiver_name}
@@ -431,8 +425,6 @@ const NotificationFormModal = ({
                           <option value="Tất cả">Tất cả</option>
                         </select>
                       </td>
-
-                      {/* Cột 2: Mã căn hộ (Select Box từ API) */}
                       <td className="p-2 align-top">
                         {row.receiver_name === "Cư dân" ? (
                           <select
@@ -459,8 +451,6 @@ const NotificationFormModal = ({
                           </span>
                         )}
                       </td>
-
-                      {/* Cột 3: Nội dung */}
                       <td className="p-2 align-top">
                         <textarea
                           rows={1}
@@ -478,8 +468,6 @@ const NotificationFormModal = ({
                           }}
                         />
                       </td>
-
-                      {/* Cột 4: Xóa */}
                       <td className="p-2 text-center align-top pt-3">
                         {rows.length > 1 && (
                           <button
@@ -582,13 +570,14 @@ const NotificationFormModal = ({
   );
 };
 
-// --- COMPONENT ITEM THÔNG BÁO (ĐÃ CẬP NHẬT LAYOUT) ---
+// --- COMPONENT ITEM THÔNG BÁO (ĐÃ CẬP NHẬT LAYOUT 14 CỘT) ---
 const NotificationItem = ({
   item,
   isDeleteMode,
   onEditClick,
   isSelected,
   onToggleSelect,
+  filterMode, // Props mới: "received" | "sent"
 }) => {
   const handleEditClick = () => {
     if (!isDeleteMode) onEditClick(item);
@@ -608,33 +597,40 @@ const NotificationItem = ({
           <p className="font-bold text-lg text-blue-600">{item.id}</p>
         </div>
 
-        {/* Cột 2: Người gửi - Chiếm 2/14 */}
-        <div className="col-span-2">
-          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
-            Người gửi
-          </p>
-          <span className="font-bold text-gray-800">{item.sender_name}</span>
-        </div>
-
-        {/* Cột 3: Người nhận - Chiếm 2/14 */}
-        <div className="col-span-2">
-          <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
-            Người nhận
-          </p>
-          <div className="flex flex-col">
-            <span className="font-bold text-gray-800">
-              {item.receiver_name}
-            </span>
-            {item.apartment_id && item.apartment_id !== "All" && (
-              <span className="text-xs text-gray-500">
-                ({item.apartment_id})
+        {/* Cột 2: NGƯỜI LIÊN QUAN - Chiếm 3/14 */}
+        <div className="col-span-3">
+          {filterMode === "received" ? (
+            // Nếu "Đã nhận" -> Hiện Người gửi (Ẩn người nhận)
+            <>
+              <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+                Người gửi
+              </p>
+              <span className="font-bold text-gray-800">
+                {item.sender_name}
               </span>
-            )}
-          </div>
+            </>
+          ) : (
+            // Nếu "Đã gửi" -> Hiện Người nhận (Ẩn người gửi)
+            <>
+              <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
+                Người nhận
+              </p>
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-800">
+                  {item.receiver_name}
+                </span>
+                {item.apartment_id && item.apartment_id !== "All" && (
+                  <span className="text-xs text-gray-500">
+                    ({item.apartment_id})
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Cột 4: Nội dung - Chiếm 7/14 (Diện tích lớn nhất) */}
-        <div className="col-span-7 pl-2 border-l border-r border-gray-100">
+        {/* Cột 3: Nội dung - Chiếm 8/14 (LỚN NHẤT) */}
+        <div className="col-span-8 pl-2 border-l border-r border-gray-100">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             Nội dung
           </p>
@@ -646,7 +642,7 @@ const NotificationItem = ({
           </p>
         </div>
 
-        {/* Cột 5: Ngày gửi - Chiếm 2/14 */}
+        {/* Cột 4: Ngày gửi - Chiếm 2/14 */}
         <div className="col-span-2 pl-2">
           <p className="text-[10px] text-gray-400 mb-1 uppercase font-bold tracking-wider">
             Ngày gửi
@@ -701,6 +697,10 @@ export const NotificationsPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // --- FILTER STATE ---
+  const [filterMode, setFilterMode] = useState("received"); // "received" | "sent"
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false); // Dropdown toggle state
+
   // --- PREVIEW PDF STATE ---
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -725,8 +725,7 @@ export const NotificationsPage = () => {
         ? data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         : [];
 
-      // LOGIC LỌC DỮ LIỆU ĐỂ HIỂN THỊ
-      // Chỉ lấy thông báo có sender là BQT HOẶC receiver là BQT/Tất cả
+      // Logic cơ bản: Lấy hết dữ liệu liên quan đến BQT để về Client lọc tiếp
       const validNotifications = sortedData.filter((item) => {
         const sender = item.sender_name ? item.sender_name.toLowerCase() : "";
         const receiver = item.receiver_name
@@ -754,16 +753,35 @@ export const NotificationsPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, filterMode]);
 
+  // --- LOGIC LỌC DỮ LIỆU HIỂN THỊ ---
   const filteredNotifications = notifications.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const term = removeVietnameseTones(searchTerm.trim());
-    const idMatch = String(item.id).toLowerCase().includes(term);
-    const recipientMatch = removeVietnameseTones(
-      item.apartment_id || item.recipient || ""
-    ).includes(term);
-    return idMatch || recipientMatch;
+    // 1. Lọc theo Search Term
+    let matchesSearch = true;
+    if (searchTerm.trim()) {
+      const term = removeVietnameseTones(searchTerm.trim());
+      const idMatch = String(item.id).toLowerCase().includes(term);
+      const recipientMatch = removeVietnameseTones(
+        item.apartment_id || item.receiver_name || ""
+      ).includes(term);
+      matchesSearch = idMatch || recipientMatch;
+    }
+
+    // 2. Lọc theo Filter Mode (Đã nhận / Đã gửi)
+    let matchesMode = false;
+    const sender = item.sender_name ? item.sender_name.toLowerCase() : "";
+    const receiver = item.receiver_name ? item.receiver_name.toLowerCase() : "";
+
+    if (filterMode === "received") {
+      // "Đã nhận": Receiver là "Ban quản trị" hoặc "Tất cả"
+      matchesMode = receiver === "ban quản trị" || receiver === "tất cả";
+    } else {
+      // "Đã gửi": Sender là "Ban quản trị"
+      matchesMode = sender === "ban quản trị";
+    }
+
+    return matchesSearch && matchesMode;
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -967,7 +985,7 @@ export const NotificationsPage = () => {
             "Không tìm thấy cột 'Người nhận' và 'Nội dung' trong file Excel."
           );
 
-        // 3. DUYỆT DATA (Đếm tổng data rows thực tế)
+        // 3. DUYỆT DATA
         let totalDataRows = 0;
 
         worksheet.eachRow((row, rowNumber) => {
@@ -1068,14 +1086,8 @@ export const NotificationsPage = () => {
           type = "failure";
         }
 
-        setStatusModal({
-          // Ở đây mock lại type để dùng icon của StatusModal cũ nếu cần, hoặc chỉnh lại prop StatusModal
-          // Giả sử StatusModal nhận prop 'modalStatus' string
-          // Ở component này logic hơi khác Accountant, ta map lại cho khớp
-        });
-        // Logic hiển thị modal của component này:
         setModalStatus(type === "success" ? "addSuccess" : "addFailure");
-        setStatusMessage(message.replace(", ", "\n")); // Xuống dòng cho đẹp
+        setStatusMessage(message.replace(", ", "\n"));
         setIsStatusModalOpen(true);
       } catch (err) {
         setModalStatus("addFailure");
@@ -1199,8 +1211,9 @@ export const NotificationsPage = () => {
 
   return (
     <div>
-      {/* Search Bar */}
-      <div className="flex justify-start items-center mb-6">
+      {/* Search Bar & Filter Dropdown */}
+      <div className="flex justify-start items-center mb-6 space-x-4">
+        {/* Search Input */}
         <div className="relative w-full max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg
@@ -1225,6 +1238,54 @@ export const NotificationsPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
           />
+        </div>
+
+        {/* Filter Dropdown (Purple Button) */}
+        <div className="relative">
+          <button
+            onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all"
+          >
+            <FiFilter size={18} />
+            <span>{filterMode === "received" ? "Đã nhận" : "Đã gửi"}</span>
+            <FiChevronDown
+              size={18}
+              className={`transition-transform ${
+                isFilterDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isFilterDropdownOpen && (
+            <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-xl w-40 overflow-hidden z-20">
+              <button
+                onClick={() => {
+                  setFilterMode("received");
+                  setIsFilterDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                  filterMode === "received"
+                    ? "text-purple-700 font-bold bg-purple-50"
+                    : "text-gray-700"
+                }`}
+              >
+                Đã nhận
+              </button>
+              <button
+                onClick={() => {
+                  setFilterMode("sent");
+                  setIsFilterDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                  filterMode === "sent"
+                    ? "text-purple-700 font-bold bg-purple-50"
+                    : "text-gray-700"
+                }`}
+              >
+                Đã gửi
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1310,6 +1371,7 @@ export const NotificationsPage = () => {
               onEditClick={handleEditClick}
               isSelected={selectedIds.includes(item.id)}
               onToggleSelect={handleSelect}
+              filterMode={filterMode} // Truyền mode xuống để hiển thị cột tương ứng
             />
           ))
         )}
