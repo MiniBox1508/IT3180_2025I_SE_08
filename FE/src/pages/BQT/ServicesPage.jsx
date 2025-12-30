@@ -344,7 +344,7 @@ const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
               Vấn đề
             </label>
             <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
-              {data.problems || "--"}
+              {data.problems || "Chưa có phản ánh từ cư dân"}
             </div>
           </div>
           <div>
@@ -352,7 +352,7 @@ const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
               Đánh giá chất lượng
             </label>
             <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
-              {data.rates || "--"}
+              {data.rates || "Chưa có đánh giá từ cư dân"}
             </div>
           </div>
           <div>
@@ -360,7 +360,7 @@ const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
               Chi tiết
             </label>
             <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 min-h-[60px]">
-              {data.scripts || "--"}
+              {data.scripts || "Chưa hoặc không có vấn đề từ cư dân"}
             </div>
           </div>
         </div>
