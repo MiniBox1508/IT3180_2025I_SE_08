@@ -55,9 +55,9 @@ const EditableField = ({ label, value, isEditing, onChange, name }) => (
 
 // --- Dữ liệu mẫu ban đầu (giữ nguyên) ---
 const initialUserData = {
-  name: "Trị Quan Ban",
+  name: "Trị Quan Ban",
   residentId: "0002",
-  role: "Ban quản trị",
+  role: "Ban quản trị",
   apartment: "Tầng 7 - Phòng 713",
   cccd: "077204000123",
   dob: "30/10/1999",
@@ -113,40 +113,71 @@ export const ProfilePage = () => {
     }));
   };
 
-  // --- 3. CẬP NHẬT handleSubmit ---
   // --- HÀM LẤY TOKEN TỪ LOCALSTORAGE ---
   const getToken = () => {
     return localStorage.getItem("token");
   };
 
-  // --- CẬP NHẬT handleSubmit GỌI API VÀ GỬI TOKEN ---
+  // --- 3. CẬP NHẬT handleSubmit (SỬA LỖI TẠI ĐÂY) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Dữ liệu gửi đi:", formData);
 
     try {
       const token = getToken();
-      // Gọi API cập nhật thông tin cá nhân
-      const response = await fetch(`${API_BASE_URL}/residents/${apiId}`, {
+      const userId = user?.id;
+
+      if (!userId) {
+        throw new Error("Không tìm thấy ID người dùng");
+      }
+
+      // --- CHUẨN HÓA DỮ LIỆU TRƯỚC KHI GỬI (MAPPING) ---
+      // Backend mong đợi: full_name, apartment_id, birth_date, residency_status
+      // Frontend đang có: name, apartment, dob, status
+      const payload = {
+        full_name: formData.name, // Map 'name' -> 'full_name'
+        apartment_id: formData.apartment, // Map 'apartment' -> 'apartment_id'
+        birth_date: formData.dob, // Map 'dob' -> 'birth_date'
+        residency_status: formData.status, // Map 'status' -> 'residency_status'
+        cccd: formData.cccd,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+      };
+
+      console.log("Dữ liệu gửi đi:", payload);
+
+      // Gọi API cập nhật thông tin cá nhân với ID cụ thể
+      const response = await fetch(`${API_BASE_URL}/residents/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
+
       if (response.ok) {
         // Thành công
         setModalStatus("success");
         setStatusMessage("Đã sửa thông tin cá nhân thành công!");
         setIsEditing(false);
         setOriginalData(formData);
+
+        // Cập nhật lại localStorage để đồng bộ dữ liệu mới
+        const updatedUser = { ...user, ...payload };
+        // Map ngược lại để khớp với format lưu trong localStorage nếu cần
+        updatedUser.full_name = payload.full_name;
+        updatedUser.apartment_id = payload.apartment_id;
+        updatedUser.birth_date = payload.birth_date;
+        updatedUser.residency_status = payload.residency_status;
+        localStorage.setItem("user", JSON.stringify(updatedUser));
       } else {
         // Thất bại
         setModalStatus("failure");
         setStatusMessage("Sửa thông tin cá nhân không thành công!");
       }
     } catch (err) {
+      console.error("Lỗi submit:", err);
       setModalStatus("failure");
       setStatusMessage("Sửa thông tin cá nhân không thành công!");
     }
@@ -178,7 +209,6 @@ export const ProfilePage = () => {
   return (
     <>
       <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full max-w-6xl mx-auto">
-        {/* ... (phần header và avatar giữ nguyên) ... */}
         {/* Card Header: Title + Edit Button */}
         <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -187,7 +217,7 @@ export const ProfilePage = () => {
           {/* --- ẨN NÚT EDIT KHI ĐANG Ở CHẾ ĐỘ CHỈNH SỬA --- */}
           {!isEditing && (
             <button
-              onClick={handleEditClick} // Thêm onClick handler
+              onClick={handleEditClick}
               className="p-1 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Chỉnh sửa thông tin"
             >
@@ -202,7 +232,6 @@ export const ProfilePage = () => {
             <UserIcon />
           </div>
           <div>
-            {/* --- SỬ DỤNG DỮ LIỆU TỪ STATE --- */}
             <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
             <p className="text-sm text-gray-600">
               ID Quản lý: {formData.residentId}
@@ -211,19 +240,18 @@ export const ProfilePage = () => {
         </div>
 
         <form className="space-y-8" onSubmit={handleSubmit}>
-          {/* ... (các section thông tin giữ nguyên) ... */}
           {/* Section 1: Thông tin cá nhân */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Thông tin cá nhân
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              {/* --- THAY THẾ InfoField BẰNG EditableField --- */}
+              {/* --- SỬA TẠI ĐÂY: KHÔNG CHO PHÉP CHỈNH SỬA VAI TRÒ --- */}
               <EditableField
                 label="Vai trò"
                 name="role"
                 value={formData.role}
-                isEditing={isEditing}
+                isEditing={false} // Luôn luôn false để không hiện input
                 onChange={handleChange}
               />
               <EditableField
@@ -240,13 +268,25 @@ export const ProfilePage = () => {
                 isEditing={isEditing}
                 onChange={handleChange}
               />
-              <EditableField
-                label="Ngày sinh"
-                name="dob"
-                value={formData.dob}
-                isEditing={isEditing}
-                onChange={handleChange}
-              />
+              {/* Xử lý riêng trường Ngày sinh */}
+              <div className="w-full">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Ngày sinh
+                </label>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    className="w-full bg-white rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                ) : (
+                  <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-500 min-h-[48px] flex items-center">
+                    {formData.dob || "Chưa cập nhật"}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -288,7 +328,7 @@ export const ProfilePage = () => {
               />
             </div>
           </div>
-          {/* Nút Hủy và Confirm (giữ nguyên layout responsive) */}
+          {/* Nút Hủy và Confirm */}
           {isEditing && (
             <div className="flex flex-col sm:flex-row justify-end items-center pt-4 border-t border-gray-200 space-y-3 sm:space-y-0 sm:space-x-4">
               <button
@@ -308,11 +348,9 @@ export const ProfilePage = () => {
           )}
         </form>
 
-        {/* --- 4. THÊM STATUS MODAL --- */}
         <StatusModal
           isOpen={isStatusModalOpen}
           onClose={handleCloseStatusModal}
-          // Bỏ title đi để nút X tự căn giữa phải
         >
           {renderStatusModalContent()}
         </StatusModal>
