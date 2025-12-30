@@ -6,6 +6,7 @@ import acceptIcon from "../../images/accept_icon.png"; // Icon thành công
 // ...existing code...
 import notAcceptIcon from "../../images/not_accept_icon.png"; // Icon thất bại
 
+const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 // --- Icons ---
 const UserIcon = () => (
   // ... (SVG code giữ nguyên)
@@ -126,7 +127,7 @@ export const ProfilePage = () => {
     try {
       const token = getToken();
       // Gọi API cập nhật thông tin cá nhân
-      const response = await fetch("/api/residents", {
+      const response = await fetch(`${API_BASE_URL}/residents`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
