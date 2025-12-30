@@ -1696,10 +1696,12 @@ const ResidentService = () => {
                           const token = getToken();
                           const id = feedbackModal.service?.id;
                           if (!id) return;
-                          let problems = feedbackModal.problem || "Ko vấn đề";
+                          let problems =
+                            feedbackModal.problem ||
+                            "Chưa có phản ánh từ cư dân";
                           if (problems === "Không vấn đề")
                             problems = "Ko vấn đề";
-                          let rates = "Chất lượng ổn";
+                          let rates = "Chưa có đánh giá từ cư dân";
                           if (feedbackModal.rating === "Rất hài lòng")
                             rates = "Chất lượng cao";
                           else if (feedbackModal.rating === "Hài lòng")
