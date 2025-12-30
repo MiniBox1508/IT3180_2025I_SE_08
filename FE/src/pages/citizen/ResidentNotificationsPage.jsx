@@ -10,7 +10,7 @@ import notAcceptIcon from "../../images/not_accept_icon.png";
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
-// --- Component hiển thị một mục thông báo (ĐÃ CẬP NHẬT LAYOUT) ---
+// --- Component hiển thị một mục thông báo (ĐÃ CẬP NHẬT LOGIC NGƯỜI GỬI) ---
 function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
   // Định dạng ngày tháng
   const formattedDate = item.notification_date
@@ -31,16 +31,16 @@ function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
           <p className="font-bold text-lg text-blue-600">{item.id}</p>
         </div>
 
-        {/* Cột 2: Người nhận - Chiếm 2/12 */}
+        {/* Cột 2: Người gửi - Chiếm 2/12 (ĐÃ SỬA: Hiển thị sender_name) */}
         <div className="col-span-2">
           <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">
-            Người nhận
+            Người gửi
           </p>
           <p
             className="font-medium text-gray-900 truncate"
-            title={item.apartment_id}
+            title={item.sender_name}
           >
-            {item.apartment_id}
+            {item.sender_name}
           </p>
         </div>
 
@@ -181,12 +181,12 @@ export const ResidentNotificationsPage = () => {
 
     // Lọc theo ID
     const idMatch = String(item.id).toLowerCase().includes(searchLower);
-    // Lọc theo Người nhận (apartment_id)
-    const apartmentMatch = String(item.apartment_id)
+    // Lọc theo Người gửi (sender_name)
+    const senderMatch = String(item.sender_name)
       .toLowerCase()
       .includes(searchLower);
 
-    return idMatch || apartmentMatch;
+    return idMatch || senderMatch;
   });
 
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
@@ -288,7 +288,7 @@ export const ResidentNotificationsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID thông báo hoặc Căn hộ..."
+            placeholder="Tìm theo ID thông báo hoặc Người gửi..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500"
