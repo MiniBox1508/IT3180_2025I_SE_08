@@ -127,7 +127,7 @@ export const ProfilePage = () => {
     try {
       const token = getToken();
       // Gọi API cập nhật thông tin cá nhân
-      const response = await fetch(`${API_BASE_URL}/residents/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/residents/${apiId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
