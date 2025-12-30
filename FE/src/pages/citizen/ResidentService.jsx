@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import ExcelJS from "exceljs";
 
 // --- IMPORT HÌNH ẢNH MŨI TÊN (Thêm vào để làm phân trang) ---
-import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png"; 
+import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- FEEDBACK DROPDOWN & SUBMODAL ---
@@ -1556,12 +1556,16 @@ const ResidentService = () => {
                       >
                         Xem thêm chi tiết
                       </button>
-                    ) : (
+                    ) : item.servicestatus === "Đã xử lý" ? (
                       <span
                         className="ml-auto text-green-600 underline cursor-pointer font-bold"
                         onClick={() => handleOpenFeedbackModal(item)}
                       >
                         Phản ánh dịch vụ
+                      </span>
+                    ) : (
+                      <span className="ml-auto text-gray-400 text-xs italic font-semibold">
+                        Đang được xử lý
                       </span>
                     )
                   ) : (
@@ -1766,10 +1770,16 @@ const ResidentService = () => {
             onClick={goToPrevPage}
             disabled={currentPage === 1}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === 1 ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === 1
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowLeft} alt="Previous" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowLeft}
+              alt="Previous"
+              className="w-6 h-6 object-contain"
+            />
           </button>
 
           {/* Thanh hiển thị số trang */}
@@ -1786,10 +1796,16 @@ const ResidentService = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`w-12 h-12 rounded-full border-2 border-black flex items-center justify-center transition-transform hover:scale-105 ${
-              currentPage === totalPages ? "opacity-50 cursor-not-allowed bg-gray-200" : "cursor-pointer bg-white"
+              currentPage === totalPages
+                ? "opacity-50 cursor-not-allowed bg-gray-200"
+                : "cursor-pointer bg-white"
             }`}
           >
-            <img src={arrowRight} alt="Next" className="w-6 h-6 object-contain" />
+            <img
+              src={arrowRight}
+              alt="Next"
+              className="w-6 h-6 object-contain"
+            />
           </button>
         </div>
       )}
