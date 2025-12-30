@@ -3,7 +3,6 @@ import axios from "axios";
 import dayjs from "dayjs";
 
 // --- IMPORT THƯ VIỆN XỬ LÝ FILE (PATTERN) ---
-import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -231,7 +230,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
   );
 };
 
-// --- COMPONENT: MODAL CHI TIẾT ---
+// --- COMPONENT: MODAL CHI TIẾT SỰ CỐ ---
 const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   if (!isOpen || !data) return null;
 
@@ -321,6 +320,63 @@ const IncidentDetailModal = ({ isOpen, onClose, data }) => {
   );
 };
 
+// --- COMPONENT MỚI: FEEDBACK DETAIL MODAL (CHI TIẾT PHẢN ÁNH) ---
+const FeedbackDetailModal = ({ isOpen, onClose, data }) => {
+  if (!isOpen || !data) return null;
+
+  return (
+    <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-3xl w-full max-w-lg p-8 relative shadow-2xl animate-fade-in-up">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Chi tiết phản ánh dịch vụ
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+              Vấn đề
+            </label>
+            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
+              {data.problems || "--"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+              Đánh giá chất lượng
+            </label>
+            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50">
+              {data.rates || "--"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+              Chi tiết
+            </label>
+            <div className="w-full border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50 min-h-[60px]">
+              {data.scripts || "--"}
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN PAGE ---
 export const SecurityProblem = () => {
   const getToken = () => localStorage.getItem("token");
@@ -329,6 +385,12 @@ export const SecurityProblem = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // FEEDBACK DETAIL MODAL STATE (MỚI)
+  const [isFeedbackDetailModalOpen, setIsFeedbackDetailModalOpen] =
+    useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
@@ -369,8 +431,12 @@ export const SecurityProblem = () => {
               ? dayjs(item.handle_date).format("DD/MM/YYYY")
               : "",
             note: item.note,
-            ben_xu_ly: item.ben_xu_ly, // Lấy trường ben_xu_ly để lọc
-            raw_created_at: item.created_at, // Giữ lại để xử lý export nếu cần
+            ben_xu_ly: item.ben_xu_ly,
+            // MAPPING THÊM 3 TRƯỜNG FEEDBACK (MỚI)
+            problems: item.problems,
+            rates: item.rates,
+            scripts: item.scripts,
+            raw_created_at: item.created_at,
           }))
         : [];
       setIncidents(mappedData.sort((a, b) => b.id - a.id));
@@ -387,6 +453,12 @@ export const SecurityProblem = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
+
+  // --- HANDLER FEEDBACK DETAIL (MỚI) ---
+  const handleViewFeedback = (item) => {
+    setSelectedFeedback(item);
+    setIsFeedbackDetailModalOpen(true);
+  };
 
   // --- LOGIC NHẬP FILE EXCEL (ĐÃ SỬA) ---
   const handleImportClick = () => {
@@ -846,6 +918,15 @@ export const SecurityProblem = () => {
                   >
                     {item.status}
                   </p>
+                  {/* --- SỬA UI: HIỂN THỊ LINK XEM THÊM CHI TIẾT --- */}
+                  {item.status === "Đã xử lý" && (
+                    <button
+                      onClick={() => handleViewFeedback(item)}
+                      className="text-[10px] text-blue-500 font-semibold hover:underline block mt-0.5"
+                    >
+                      Xem thêm chi tiết
+                    </button>
+                  )}
                 </div>
                 <div className="col-span-2 flex justify-end items-center">
                   {isBatchMode ? (
@@ -909,7 +990,6 @@ export const SecurityProblem = () => {
       {/* Pagination */}
       {filteredList.length > 0 && (
         <div className="flex justify-center items-center mt-6 space-x-6 pb-8">
-          {/* Nút Prev */}
           <button
             onClick={goToPrevPage}
             disabled={currentPage === 1}
@@ -925,8 +1005,6 @@ export const SecurityProblem = () => {
               className="w-6 h-6 object-contain"
             />
           </button>
-
-          {/* Thanh hiển thị số trang */}
           <div className="bg-gray-400/80 backdrop-blur-sm text-white font-bold py-3 px-8 rounded-full flex items-center space-x-4 shadow-lg">
             <span className="text-lg">Trang</span>
             <div className="bg-gray-500/60 rounded-lg px-4 py-1 text-xl shadow-inner">
@@ -934,8 +1012,6 @@ export const SecurityProblem = () => {
             </div>
             <span className="text-lg">/ {totalPages}</span>
           </div>
-
-          {/* Nút Next */}
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
@@ -959,6 +1035,11 @@ export const SecurityProblem = () => {
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         data={selectedIncident}
+      />
+      <FeedbackDetailModal
+        isOpen={isFeedbackDetailModalOpen}
+        onClose={() => setIsFeedbackDetailModalOpen(false)}
+        data={selectedFeedback}
       />
       <PreviewPdfModal
         isOpen={showPreviewModal}
@@ -987,3 +1068,5 @@ export const SecurityProblem = () => {
     </div>
   );
 };
+
+export const SecurityProblem = React.memo(SecurityProblem);
