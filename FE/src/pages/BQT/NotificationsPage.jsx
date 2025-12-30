@@ -1211,9 +1211,8 @@ export const NotificationsPage = () => {
 
   return (
     <div>
-      {/* Search Bar & Filter Dropdown */}
-      <div className="flex justify-start items-center mb-6 space-x-4">
-        {/* Search Input */}
+      {/* Search Bar */}
+      <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg
@@ -1239,54 +1238,6 @@ export const NotificationsPage = () => {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
           />
         </div>
-
-        {/* Filter Dropdown (Purple Button) */}
-        <div className="relative">
-          <button
-            onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all"
-          >
-            <FiFilter size={18} />
-            <span>{filterMode === "received" ? "Đã nhận" : "Đã gửi"}</span>
-            <FiChevronDown
-              size={18}
-              className={`transition-transform ${
-                isFilterDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {isFilterDropdownOpen && (
-            <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-xl w-40 overflow-hidden z-20">
-              <button
-                onClick={() => {
-                  setFilterMode("received");
-                  setIsFilterDropdownOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
-                  filterMode === "received"
-                    ? "text-purple-700 font-bold bg-purple-50"
-                    : "text-gray-700"
-                }`}
-              >
-                Đã nhận
-              </button>
-              <button
-                onClick={() => {
-                  setFilterMode("sent");
-                  setIsFilterDropdownOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
-                  filterMode === "sent"
-                    ? "text-purple-700 font-bold bg-purple-50"
-                    : "text-gray-700"
-                }`}
-              >
-                Đã gửi
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Header và Nút */}
@@ -1295,6 +1246,56 @@ export const NotificationsPage = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
+              {/* Filter Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md shadow-md flex items-center gap-2 transition-all"
+                >
+                  <FiFilter size={18} />
+                  <span>
+                    {filterMode === "received" ? "Đã nhận" : "Đã gửi"}
+                  </span>
+                  <FiChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      isFilterDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isFilterDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-xl w-40 overflow-hidden z-20">
+                    <button
+                      onClick={() => {
+                        setFilterMode("received");
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                        filterMode === "received"
+                          ? "text-purple-700 font-bold bg-purple-50"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Đã nhận
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFilterMode("sent");
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                        filterMode === "sent"
+                          ? "text-purple-700 font-bold bg-purple-50"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Đã gửi
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <input
                 type="file"
                 accept=".xlsx, .xls"
