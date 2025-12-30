@@ -806,12 +806,12 @@ export const SecurityProblem = () => {
           {/* Nút Import/Export MỚI */}
           {!isBatchMode && (
             <>
-              <button
+              {/* <button
                 onClick={handleImportClick}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-colors"
               >
                 <FiUpload size={18} /> <span>Nhập Excel</span>
-              </button>
+              </button> */}
               <button
                 onClick={handleExportClick}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-colors"
