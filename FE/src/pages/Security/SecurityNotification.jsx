@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 // --- IMPORT ICONS ---
-import { FiPlus, FiX, FiUpload, FiPrinter } from "react-icons/fi";
+import {
+  FiPlus,
+  FiX,
+  FiUpload,
+  FiPrinter,
+  FiFilter,
+  FiChevronDown,
+} from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 
@@ -53,7 +60,7 @@ const removeVietnameseTones = (str) => {
 // =========================================================================
 // === PREVIEW PDF MODAL (Popup xem trước khi in) ===
 // =========================================================================
-const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
+const PreviewPdfModal = ({ isOpen, onClose, data, onPrint, filterMode }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
 
@@ -92,11 +99,12 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[15%]">
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[10%]">
                     Mã số
                   </th>
-                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[20%]">
-                    Người nhận
+                  {/* Dynamic Header */}
+                  <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[25%]">
+                    {filterMode === "received" ? "Người gửi" : "Người nhận"}
                   </th>
                   <th className="p-3 text-sm font-bold text-gray-700 border-b border-gray-300 w-[45%]">
                     Nội dung
@@ -111,10 +119,17 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
                   <tr key={index} className="hover:bg-blue-50 h-[50px]">
                     <td className="p-3 text-sm text-gray-700">{item.id}</td>
                     <td className="p-3 text-sm text-gray-700">
-                      {/* Logic hiển thị: Cư dân -> Mã căn hộ, Khác -> Tên Role */}
-                      {item.receiver_name === "Cư dân"
-                        ? item.apartment_id
-                        : item.receiver_name}
+                      {filterMode === "received" ? (
+                        <span className="font-semibold">
+                          {item.sender_name}
+                        </span>
+                      ) : (
+                        <>
+                          {item.receiver_name === "Cư dân"
+                            ? item.apartment_id
+                            : item.receiver_name}
+                        </>
+                      )}
                     </td>
                     <td
                       className="p-3 text-sm text-gray-700 truncate max-w-xs"
@@ -198,7 +213,7 @@ const PreviewPdfModal = ({ isOpen, onClose, data, onPrint }) => {
 // =========================================================================
 const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const isEditing = !!initialData;
-  const [apartments, setApartments] = useState([]); // State lưu danh sách căn hộ từ API
+  const [apartments, setApartments] = useState([]);
 
   const [formData, setFormData] = useState({
     receiver_name: "Cư dân",
@@ -209,7 +224,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     { id: Date.now(), receiver_name: "Cư dân", apartment_id: "", content: "" },
   ]);
 
-  // --- CALL API LẤY DANH SÁCH CĂN HỘ ---
   useEffect(() => {
     if (isOpen) {
       const fetchApartments = async () => {
@@ -220,7 +234,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           });
           if (response.ok) {
             const data = await response.json();
-            // Lọc lấy danh sách mã căn hộ duy nhất và sắp xếp
             const uniqueApts = [
               ...new Set(data.map((r) => r.apartment_id).filter((id) => id)),
             ].sort();
@@ -279,7 +292,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
   const handleSubmit = () => {
     if (isEditing) {
       const dataToSend = {
-        sender_name: "Công an", // Người gửi cố định là Công an
+        sender_name: "Công an",
         receiver_name: formData.receiver_name,
         apartment_id:
           formData.receiver_name === "Cư dân" ? formData.apartment_id : "All",
@@ -289,7 +302,7 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     } else {
       const validRows = rows.map(
         ({ receiver_name, apartment_id, content }) => ({
-          sender_name: "Công an", // Người gửi cố định là Công an
+          sender_name: "Công an",
           receiver_name,
           apartment_id: receiver_name === "Cư dân" ? apartment_id : "All",
           content,
@@ -394,7 +407,6 @@ const NotificationFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    {/* Layout cột: Người nhận 20%, Mã căn hộ 20%, Nội dung 50%, Action 10% */}
                     <th className="p-3 text-sm font-bold text-gray-600 uppercase border-b w-[20%]">
                       Người nhận
                     </th>
@@ -570,6 +582,10 @@ export const SecurityNotification = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
+  // --- STATE FILTER MỚI ---
+  const [filterMode, setFilterMode] = useState("received"); // 'received' | 'sent'
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
   // State Status Modal
   const [statusModal, setStatusModal] = useState({
     open: false,
@@ -577,7 +593,7 @@ export const SecurityNotification = () => {
     message: "",
   });
 
-  // State Import/Export (MỚI)
+  // State Import/Export
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -609,9 +625,11 @@ export const SecurityNotification = () => {
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  // Reset trang khi đổi filter
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, filterMode]);
 
   // --- LOGIC NHẬP FILE EXCEL ---
   const handleImportClick = () => {
@@ -634,7 +652,7 @@ export const SecurityNotification = () => {
         let headerRowNumber = 1;
         let colMap = {};
 
-        // 1. CALL API LẤY DANH SÁCH CĂN HỘ HỢP LỆ (Để validate)
+        // 1. CALL API LẤY DANH SÁCH CĂN HỘ HỢP LỆ
         let validApartmentIds = [];
         try {
           const token = localStorage.getItem("token");
@@ -678,7 +696,7 @@ export const SecurityNotification = () => {
             "Không tìm thấy cột 'Người nhận/Mã căn hộ' và 'Nội dung'."
           );
 
-        // 3. DUYỆT DATA (Đếm tổng data rows thực tế)
+        // 3. DUYỆT DATA
         let totalDataRows = 0;
 
         worksheet.eachRow((row, rowNumber) => {
@@ -691,12 +709,10 @@ export const SecurityNotification = () => {
               ? String(rowValues[colMap.content]).trim()
               : "";
 
-            // Chỉ xử lý nếu có dữ liệu
             if (rawRecipient || content) {
               totalDataRows++;
 
               if (rawRecipient && content) {
-                // --- LOGIC PHÂN LOẠI & VALIDATE ---
                 let receiverName = "";
                 let apartmentId = "";
                 let isValidRow = false;
@@ -706,7 +722,6 @@ export const SecurityNotification = () => {
                 const noToneRaw =
                   removeVietnameseTones(rawRecipient).toLowerCase();
 
-                // Check 1: Role đặc biệt
                 const matchRole = specialRoles.find((role) => {
                   const roleLower = role.toLowerCase();
                   const roleNoTone = removeVietnameseTones(role).toLowerCase();
@@ -720,13 +735,11 @@ export const SecurityNotification = () => {
                   apartmentId = "All";
                   isValidRow = true;
                 } else {
-                  // Check 2: Mã căn hộ hợp lệ
                   if (validApartmentIds.includes(normalizedRaw)) {
                     receiverName = "Cư dân";
                     apartmentId = rawRecipient;
                     isValidRow = true;
                   } else {
-                    // Data lỗi (Role lạ / Căn hộ ko tồn tại) -> Không import
                     isValidRow = false;
                   }
                 }
@@ -763,7 +776,7 @@ export const SecurityNotification = () => {
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchNotifications();
 
-        // 5. TÍNH TOÁN KẾT QUẢ & HIỂN THỊ
+        // 5. TÍNH TOÁN KẾT QUẢ
         const invalidDataCount = totalDataRows - dataToImport.length;
         const totalFail = invalidDataCount + apiFailCount;
 
@@ -823,16 +836,27 @@ export const SecurityNotification = () => {
           align: "right",
         });
 
-        const tableColumn = ["Mã ID", "Người nhận", "Nội dung", "Ngày gửi"];
+        // Column Header dựa trên filterMode
+        const col2Header =
+          filterMode === "received" ? "Người gửi" : "Người nhận";
+        const tableColumn = ["Mã ID", col2Header, "Nội dung", "Ngày gửi"];
         const tableRows = [];
 
         filteredList.forEach((item) => {
+          let col2Value = "";
+          if (filterMode === "received") {
+            col2Value = (item.sender_name || "").normalize("NFC");
+          } else {
+            col2Value = (
+              item.receiver_name === "Cư dân"
+                ? item.apartment_id
+                : item.receiver_name || ""
+            ).normalize("NFC");
+          }
+
           const rowData = [
             String(item.id),
-            (item.receiver_name === "Cư dân"
-              ? item.apartment_id
-              : item.receiver_name || ""
-            ).normalize("NFC"),
+            col2Value,
             (item.content || "").normalize("NFC"),
             item.sent_date
               ? dayjs(item.sent_date).format("DD/MM/YYYY")
@@ -965,12 +989,31 @@ export const SecurityNotification = () => {
 
   // --- FILTER & PAGINATION ---
   const filteredList = notifications.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const term = removeVietnameseTones(searchTerm.trim());
-    return (
-      String(item.id).toLowerCase().includes(term) ||
-      removeVietnameseTones(item.content || "").includes(term)
-    );
+    // 1. Search Logic
+    let matchesSearch = true;
+    if (searchTerm.trim()) {
+      const term = removeVietnameseTones(searchTerm.trim());
+      const idMatch = String(item.id).toLowerCase().includes(term);
+      const contentMatch = removeVietnameseTones(item.content || "").includes(
+        term
+      );
+      matchesSearch = idMatch || contentMatch;
+    }
+
+    // 2. Filter Mode Logic
+    let matchesMode = false;
+    const receiver = item.receiver_name ? item.receiver_name.toLowerCase() : "";
+    const sender = item.sender_name ? item.sender_name.toLowerCase() : "";
+
+    if (filterMode === "received") {
+      // Đã nhận: Receiver là Công an hoặc Tất cả
+      matchesMode = receiver === "công an" || receiver === "tất cả";
+    } else {
+      // Đã gửi: Sender là Công an
+      matchesMode = sender === "công an";
+    }
+
+    return matchesSearch && matchesMode;
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -995,7 +1038,7 @@ export const SecurityNotification = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Loại thông báo..."
+            placeholder="Tìm theo ID hoặc Nội dung..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 text-gray-700 focus:outline-none h-12"
@@ -1009,6 +1052,55 @@ export const SecurityNotification = () => {
         <div className="flex space-x-4">
           {!isDeleteMode ? (
             <>
+              {/* --- Filter Dropdown Button --- */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-colors"
+                >
+                  <FiFilter size={18} />
+                  <span>
+                    {filterMode === "received" ? "Đã nhận" : "Đã gửi"}
+                  </span>
+                  <FiChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      showFilterDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {showFilterDropdown && (
+                  <div className="absolute top-full mt-2 left-0 w-40 bg-white rounded-lg shadow-xl overflow-hidden z-20 border border-gray-100">
+                    <button
+                      onClick={() => {
+                        setFilterMode("received");
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                        filterMode === "received"
+                          ? "text-purple-700 font-bold bg-purple-50"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Đã nhận
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFilterMode("sent");
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors ${
+                        filterMode === "sent"
+                          ? "text-purple-700 font-bold bg-purple-50"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Đã gửi
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Input Excel Ẩn */}
               <input
                 type="file"
@@ -1083,29 +1175,42 @@ export const SecurityNotification = () => {
               <div className="absolute left-6 top-4 bottom-4 w-1 bg-blue-500 rounded-full"></div>
 
               <div className="flex-1 grid grid-cols-12 gap-4 items-center pl-10">
-                {/* ID - 2/12 */}
-                <div className="col-span-2">
+                {/* ID - 1/12 */}
+                <div className="col-span-1">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                    Thông báo ID
+                    ID
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none">
+                  <p className="text-xl font-bold text-gray-900 leading-none">
                     {item.id}
                   </p>
                 </div>
 
-                {/* Người nhận - 2/12 */}
-                <div className="col-span-2">
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
-                    Người nhận
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {item.receiver_name === "Cư dân"
-                      ? item.apartment_id
-                      : item.receiver_name}
-                  </p>
+                {/* Sender/Receiver - 3/12 */}
+                <div className="col-span-3">
+                  {filterMode === "received" ? (
+                    <>
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                        Người gửi
+                      </p>
+                      <p className="text-sm font-bold text-gray-900">
+                        {item.sender_name}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
+                        Người nhận
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {item.receiver_name === "Cư dân"
+                          ? item.apartment_id
+                          : item.receiver_name}
+                      </p>
+                    </>
+                  )}
                 </div>
 
-                {/* Nội dung - 6/12 */}
+                {/* Nội dung - 6/12 (Lớn nhất) */}
                 <div className="col-span-6">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">
                     Nội dung
@@ -1235,6 +1340,7 @@ export const SecurityNotification = () => {
         onClose={() => setShowPreviewModal(false)}
         data={filteredList}
         onPrint={handlePrintPDF}
+        filterMode={filterMode}
       />
 
       <StatusModal
