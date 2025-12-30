@@ -9,6 +9,7 @@ import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- FEEDBACK DROPDOWN & SUBMODAL ---
 const PROBLEM_OPTIONS = [
+  "Chưa có phản ánh từ cư dân",
   "Không vấn đề",
   "Chi phí đắt",
   "Phản hồi chậm",
