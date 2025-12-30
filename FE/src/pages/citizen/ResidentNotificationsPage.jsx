@@ -11,13 +11,7 @@ import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
 
 // --- Component hiển thị một mục thông báo ---
-function ResidentNotificationItem({
-  item,
-  isDeleteMode,
-  onDeleteClick,
-  isSelected,
-  onToggleSelect,
-}) {
+function ResidentNotificationItem({ item, isDeleteMode, onDeleteClick }) {
   // Định dạng ngày tháng
   const formattedDate = item.notification_date
     ? new Date(item.notification_date).toLocaleDateString("vi-VN")
@@ -79,16 +73,9 @@ function ResidentNotificationItem({
         </div>
       </div>
 
-      {/* Cột hành động: Checkbox (nếu DeleteMode) hoặc Thùng rác (nếu Normal) */}
-      <div className="ml-2 flex-shrink-0 w-10 flex justify-center">
-        {isDeleteMode ? (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-          />
-        ) : (
+      {/* Cột hành động (nếu có chế độ xóa) */}
+      {isDeleteMode && (
+        <div className="ml-2 flex-shrink-0">
           <button
             onClick={() => onDeleteClick(item.id)}
             className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
@@ -108,8 +95,8 @@ function ResidentNotificationItem({
               />
             </svg>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -127,9 +114,8 @@ export const ResidentNotificationsPage = () => {
 
   // State cho chế độ xóa & modal xác nhận
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]); // Array lưu các ID được chọn
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState(null); // Dùng cho xóa đơn lẻ
+  const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
   // <<< NEW: State cho Thanh Tìm kiếm >>>
   const [searchTerm, setSearchTerm] = useState("");
@@ -162,12 +148,19 @@ export const ResidentNotificationsPage = () => {
       // Sắp xếp giảm dần theo ID hoặc ngày tạo để tin mới nhất lên đầu
       const sortedData = data.sort((a, b) => b.id - a.id);
 
-      const filteredByResident = sortedData.filter(
-        (item) =>
-          String(item.apartment_id).trim().toLowerCase() === "all" ||
-          String(item.apartment_id).trim().toLowerCase() ===
-            String(residentApartmentId).trim().toLowerCase()
-      );
+      // --- LOGIC LỌC DỮ LIỆU ĐÃ SỬA ---
+      // Nếu apartment_id = 'all' thì KHÔNG hiển thị (loại bỏ)
+      // Chỉ hiển thị data khớp với residentApartmentId
+      const filteredByResident = sortedData.filter((item) => {
+        const itemApt = String(item.apartment_id).trim().toLowerCase();
+
+        // Nếu là 'all' -> bỏ qua
+        if (itemApt === "all") return false;
+
+        // Chỉ lấy thông báo trùng với mã căn hộ của user
+        return itemApt === String(residentApartmentId).trim().toLowerCase();
+      });
+
       setNotifications(filteredByResident);
     } catch (err) {
       console.error("Fetch Error:", err);
@@ -225,101 +218,35 @@ export const ResidentNotificationsPage = () => {
     }
   };
 
-  // --- LOGIC XÓA (SINGLE & BULK) ---
-
-  // 1. Toggle chế độ xóa
-  const handleToggleDeleteMode = () => {
-    setIsDeleteMode(true);
-    setSelectedIds([]); // Reset selection
-  };
-
-  const handleCancelDeleteMode = () => {
-    setIsDeleteMode(false);
-    setSelectedIds([]); // Clear selection
-  };
-
-  // 2. Xử lý tích chọn Checkbox
-  const handleToggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-    );
-  };
-
-  // 3. Click nút xóa đơn lẻ (Icon thùng rác)
+  // --- HÀM XỬ LÝ XÓA (Giữ nguyên logic mock) ---
+  const toggleDeleteMode = () => setIsDeleteMode(!isDeleteMode);
   const handleDeleteItemClick = (id) => {
     setItemToDeleteId(id);
     setShowConfirmModal(true);
   };
-
-  // 4. Click nút xóa nhiều (Button "Xóa n thông báo")
-  const handleBulkDeleteClick = () => {
-    if (selectedIds.length > 0) {
-      setItemToDeleteId(null); // Null nghĩa là đang xóa bulk
-      setShowConfirmModal(true);
-    }
-  };
-
-  // 5. Cancel trong Modal
-  const handleCancelModal = () => {
+  const handleCancelDelete = () => {
     setShowConfirmModal(false);
     setItemToDeleteId(null);
-    // Không reset isDeleteMode hay selectedIds ở đây để user có thể thao tác tiếp
   };
-
-  // 6. Confirm trong Modal (Xử lý xóa thật)
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     setShowConfirmModal(false);
-    const token = localStorage.getItem("token");
-
-    // Xác định danh sách ID cần xóa (1 cái hoặc nhiều cái)
-    const idsToDelete = itemToDeleteId ? [itemToDeleteId] : selectedIds;
-    const count = idsToDelete.length;
-
-    try {
-      await Promise.all(
-        idsToDelete.map((id) =>
-          fetch(`${API_BASE_URL}/notifications/${id}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }).then((res) => {
-            if (!res.ok) throw new Error(`Xóa thất bại ID: ${id}`);
-            return res;
-          })
-        )
-      );
-
-      // Xóa thành công -> Cập nhật UI
-      setNotifications((prev) =>
-        prev.filter((item) => !idsToDelete.includes(item.id))
-      );
-      setModalStatus("deleteSuccess");
-      setStatusMessage(`Đã xoá ${count} thông báo thành công!`);
-
-      // Sau khi xóa thành công, reset chế độ và selection
-      if (!itemToDeleteId) {
-        // Nếu là bulk delete
-        setSelectedIds([]);
-        setIsDeleteMode(false);
-      }
-      setItemToDeleteId(null);
-    } catch (err) {
-      console.error("Delete Error:", err);
-      setModalStatus("deleteFailure");
-      setStatusMessage(`Xoá ${count} thông báo không thành công!`);
-    } finally {
-      setIsStatusModalOpen(true);
-    }
+    // Đây là logic mock xóa thành công trên client-side
+    setNotifications(
+      notifications.filter((item) => item.id !== itemToDeleteId)
+    );
+    setModalStatus("deleteSuccess");
+    setStatusMessage("Đã xóa thông báo thành công! (Mocked)");
+    setIsStatusModalOpen(true);
+    setItemToDeleteId(null);
   };
+  // ----------------------------------------------------------------
 
-  // --- HÀM ĐÓNG/RENDER MODAL STATUS ---
+  // --- HÀM ĐÓNG/RENDER MODAL STATUS (giữ nguyên) ---
   const handleCloseStatusModal = () => {
     setIsStatusModalOpen(false);
     setModalStatus(null);
     setStatusMessage("");
   };
-
   const renderStatusModalContent = () => {
     if (!modalStatus) return null;
     const isSuccess = modalStatus.includes("Success");
@@ -375,40 +302,11 @@ export const ResidentNotificationsPage = () => {
           />
         </div>
       </div>
+      {/* ------------------------------------- */}
 
       {/* Header và Nút */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Thông Báo</h1>
-        <div className="flex space-x-3">
-          {!isDeleteMode ? (
-            <button
-              onClick={handleToggleDeleteMode}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md"
-            >
-              Xoá thông báo
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleBulkDeleteClick}
-                disabled={selectedIds.length === 0}
-                className={`font-bold py-2 px-6 rounded-lg transition-colors shadow-md text-white ${
-                  selectedIds.length > 0
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                Xoá {selectedIds.length} thông báo
-              </button>
-              <button
-                onClick={handleCancelDeleteMode}
-                className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md"
-              >
-                Huỷ
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Danh sách thông báo */}
@@ -423,8 +321,6 @@ export const ResidentNotificationsPage = () => {
               key={item.id}
               item={item}
               isDeleteMode={isDeleteMode}
-              isSelected={selectedIds.includes(item.id)}
-              onToggleSelect={handleToggleSelect}
               onDeleteClick={handleDeleteItemClick}
             />
           ))
@@ -479,24 +375,16 @@ export const ResidentNotificationsPage = () => {
         </div>
       )}
 
-      {/* Confirmation Modal (Xóa) */}
+      {/* Confirmation Modal (Xóa) - giữ nguyên */}
       <ConfirmationModal
         isOpen={showConfirmModal}
-        onClose={handleCancelModal}
+        onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title={
-          itemToDeleteId
-            ? "Chú ý: Xóa thông báo!!!"
-            : `Xác nhận xoá ${selectedIds.length} thông báo`
-        }
-        message={
-          itemToDeleteId
-            ? "Bạn có chắc chắn muốn xóa thông báo này không?"
-            : `Bạn có chắc chắn muốn xóa ${selectedIds.length} thông báo đã chọn không?`
-        }
+        title="Chú ý: Xóa thông báo!!!"
+        message="Bạn có chắc chắn muốn xóa thông báo này không?"
       />
 
-      {/* Status Modal (Thông báo kết quả) */}
+      {/* Status Modal (Thông báo kết quả) - giữ nguyên */}
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
