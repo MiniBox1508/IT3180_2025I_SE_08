@@ -409,6 +409,11 @@ export const AccountRevenue = () => {
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
+  // --- STATE CHO CHỨC NĂNG XÓA ---
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   const fileInputRef = useRef(null);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -477,6 +482,54 @@ export const AccountRevenue = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
+  // --- HANDLERS CHO CHỨC NĂNG XÓA ---
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+    setSelectedIds([]);
+  };
+
+  const handleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelectedClick = () => {
+    if (selectedIds.length > 0) setShowConfirmModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowConfirmModal(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowConfirmModal(false);
+    if (selectedIds.length === 0) return;
+
+    try {
+      const token = getToken();
+      await Promise.all(
+        selectedIds.map((id) =>
+          axios.delete(`${API_BASE_URL}/payments/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
+
+      fetchData();
+      setModalStatus("success");
+      setStatusMessage(`Đã xóa ${selectedIds.length} khoản thu thành công!`);
+      setIsStatusModalOpen(true);
+      setIsDeleteMode(false);
+      setSelectedIds([]);
+    } catch (err) {
+      setModalStatus("failure");
+      setStatusMessage(err.message || "Lỗi khi xóa khoản thu.");
+      setIsStatusModalOpen(true);
+    }
+  };
+
+  // --- HANDLER SAVE BATCH ---
   const handleSaveBatch = async (data) => {
     setIsModalOpen(false);
     const token = getToken();
@@ -535,7 +588,7 @@ export const AccountRevenue = () => {
     }
   };
 
-  // --- LOGIC NHẬP EXCEL (IMPORT) ---
+  // --- IMPORT EXCEL ---
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -550,14 +603,11 @@ export const AccountRevenue = () => {
       const worksheet = workbook.getWorksheet(1);
       const dataToImport = [];
 
-      // Giả định file excel có 4 cột: Mã căn hộ, Loại dịch vụ, Số lượng, Đơn giá
-      // Row 1 là header
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
 
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber > 1) {
-          // Bỏ qua header
           const aptId = row.getCell(1).text ? row.getCell(1).text.trim() : "";
           const type = row.getCell(2).text ? row.getCell(2).text.trim() : "";
           const qty = row.getCell(3).value
@@ -582,7 +632,7 @@ export const AccountRevenue = () => {
       });
 
       if (dataToImport.length > 0) {
-        handleSaveBatch(dataToImport); // Tái sử dụng hàm save
+        handleSaveBatch(dataToImport);
       } else {
         setModalStatus("failure");
         setStatusMessage("File không có dữ liệu hợp lệ hoặc sai định dạng.");
@@ -594,11 +644,11 @@ export const AccountRevenue = () => {
       setStatusMessage("Lỗi đọc file Excel.");
       setIsStatusModalOpen(true);
     } finally {
-      e.target.value = null; // Reset input
+      e.target.value = null;
     }
   };
 
-  // --- LOGIC XUẤT EXCEL (EXPORT) ---
+  // --- EXPORT EXCEL ---
   const handleExportExcel = async () => {
     if (filteredList.length === 0) {
       setModalStatus("failure");
@@ -618,7 +668,6 @@ export const AccountRevenue = () => {
       { header: "Trạng thái", key: "status", width: 20 },
     ];
 
-    // Style header
     worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
     worksheet.getRow(1).fill = {
       type: "pattern",
@@ -702,25 +751,55 @@ export const AccountRevenue = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Quản lý khoản thu</h1>
         <div className="flex space-x-4">
-          <button
-            onClick={handleImportClick}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
-          >
-            <FiUpload size={18} /> <span>Nhập khoản thu</span>
-          </button>
-          <button
-            onClick={handleExportExcel}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
-          >
-            <FiPrinter size={18} /> <span>Xuất khoản thu</span>
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
-          >
-            <FiPlus size={20} />
-            <span>Tạo khoản thu mới</span>
-          </button>
+          {!isDeleteMode ? (
+            <>
+              <button
+                onClick={handleImportClick}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
+              >
+                <FiUpload size={18} /> <span>Nhập khoản thu</span>
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
+              >
+                <FiPrinter size={18} /> <span>Xuất khoản thu</span>
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
+              >
+                <FiPlus size={20} />
+                <span>Tạo khoản thu mới</span>
+              </button>
+              <button
+                onClick={toggleDeleteMode}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 shadow-md"
+              >
+                Xóa khoản thu
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleDeleteSelectedClick}
+                disabled={selectedIds.length === 0}
+                className={`font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200 ${
+                  selectedIds.length === 0
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-red-500 hover:bg-red-600 text-white"
+                }`}
+              >
+                Xóa các mục đã chọn ({selectedIds.length})
+              </button>
+              <button
+                onClick={toggleDeleteMode}
+                className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200"
+              >
+                Hủy
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -780,6 +859,20 @@ export const AccountRevenue = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* CHECKBOX XÓA (HIỆN KHI Ở CHẾ ĐỘ XÓA) */}
+                {isDeleteMode && (
+                  <div className="ml-auto flex-shrink-0 pr-2 w-12 flex justify-end">
+                    <div className="flex items-center justify-center h-full">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => handleSelect(item.id)}
+                        className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -839,9 +932,18 @@ export const AccountRevenue = () => {
         setError={setFormError}
       />
 
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Chú ý: Xóa khoản thu!!!"
+        message={`Bạn có chắc chắn muốn xóa ${selectedIds.length} khoản thu đã chọn không?`}
+      />
+
       <StatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal}>
         {renderStatusModalContent()}
       </StatusModal>
     </div>
   );
 };
+git;
