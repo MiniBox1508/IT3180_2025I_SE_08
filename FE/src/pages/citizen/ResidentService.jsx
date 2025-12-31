@@ -16,6 +16,7 @@ const PROBLEM_OPTIONS = [
   "Thiếu chuyên nghiệp",
 ];
 
+// Hiển thị danh sách các vấn đề (PROBLEM_OPTIONS) để cư dân chọn
 const CustomDropdown = ({ value, onChange }) => {
   const [open, setOpen] = useState(false);
   return (
@@ -70,6 +71,7 @@ const RATING_OPTIONS = [
   { value: "Không hài lòng", desc: "Cần cải thiện nhiều" },
 ];
 
+// Giao diện chọn mức độ hài lòng
 const QualitySubModal = ({ value, onConfirm, onCancel }) => {
   const [selected, setSelected] = useState(value);
   return (
@@ -1340,6 +1342,7 @@ const ResidentService = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  // --- FEEDBACK MODAL HANDLERS (C)---
   const handleOpenFeedbackModal = (service) => {
     setFeedbackModal({
       isOpen: true,
