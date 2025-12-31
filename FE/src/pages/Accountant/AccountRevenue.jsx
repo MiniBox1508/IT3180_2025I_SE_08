@@ -187,7 +187,7 @@ const RevenueBatchModal = ({
         apartment_id: row.apartment_id,
         feetype: feetype,
         amount: row.total,
-        // Các trường phụ trợ để lưu nếu cần (hiện tại backend chỉ lưu amount/feetype)
+        // Các trường phụ trợ
         quantity: row.quantity,
         unit_price: row.unit_price,
       });
@@ -303,6 +303,10 @@ const RevenueBatchModal = ({
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       >
                         <option value="">-- Chọn --</option>
+                        {/* THÊM TÙY CHỌN TẤT CẢ */}
+                        <option value="ALL" className="font-bold text-blue-600">
+                          -- Tất cả căn hộ --
+                        </option>
                         {uniqueApartments.map((apt) => (
                           <option key={apt} value={apt}>
                             {apt}
@@ -483,37 +487,51 @@ export const AccountRevenue = () => {
     setIsModalOpen(false);
     const token = getToken();
     let successCount = 0;
-    let failCount = 0;
 
     try {
-      // Vì API POST /payments tạo từng cái, ta dùng Promise.all
+      // --- LOGIC MỚI: Xử lý "Tất cả căn hộ" ---
+      const expandedData = [];
+
+      // Lấy danh sách apartment_id duy nhất từ residents (active)
+      const activeResidents = residents.filter(
+        (r) => r.state === "active" && r.apartment_id
+      );
+      const allApartments = [
+        ...new Set(activeResidents.map((r) => r.apartment_id)),
+      ];
+
+      data.forEach((item) => {
+        if (item.apartment_id === "ALL") {
+          // Nhân bản item cho tất cả căn hộ
+          allApartments.forEach((aptId) => {
+            expandedData.push({ ...item, apartment_id: aptId });
+          });
+        } else {
+          expandedData.push(item);
+        }
+      });
+
+      // API POST call song song
       await Promise.all(
-        data.map(async (item) => {
-          // Cần tìm resident_id dựa trên apartment_id
-          // Logic: Lấy người đầu tiên tìm thấy trong căn hộ đó (thường là chủ hộ nếu DB sắp xếp, hoặc bất kỳ ai)
-          // Tốt nhất nên lọc lấy Chủ hộ, nếu không có lấy người đầu tiên.
+        expandedData.map(async (item) => {
+          // Logic tìm resident và call API
           const resident = residents.find(
             (r) => r.apartment_id === item.apartment_id && r.state === "active"
           );
 
-          if (!resident) {
-            throw new Error(
-              `Không tìm thấy cư dân active tại căn hộ ${item.apartment_id}`
-            );
+          if (resident) {
+            const payload = {
+              resident_id: resident.id,
+              amount: item.amount,
+              feetype: item.feetype,
+              payment_form: "Chuyển khoản/Tiền mặt",
+            };
+
+            const res = await axios.post(`${API_BASE_URL}/payments`, payload, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.status === 201) successCount++;
           }
-
-          const payload = {
-            resident_id: resident.id,
-            amount: item.amount,
-            feetype: item.feetype,
-            payment_form: "Chuyển khoản/Tiền mặt", // Mặc định
-            // Các trường quantity, unit_price nếu backend chưa hỗ trợ lưu thì tạm thời chỉ lưu amount
-          };
-
-          const res = await axios.post(`${API_BASE_URL}/payments`, payload, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.status === 201) successCount++;
         })
       );
 
@@ -568,7 +586,9 @@ export const AccountRevenue = () => {
 
       {/* HEADER TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý khoản thu</h1>
+        <h1 className="text-3xl font-bold text-white">
+          Quản lý thu Dịch vụ (Điện/Nước/Xe)
+        </h1>
         <div className="flex space-x-4">
           <button
             onClick={() => setIsModalOpen(true)}
