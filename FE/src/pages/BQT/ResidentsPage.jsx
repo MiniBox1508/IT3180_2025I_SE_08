@@ -443,7 +443,12 @@ export const ResidentsPage = () => {
     const nameMatch = removeVietnameseTones(resident.full_name || "").includes(
       term
     );
-    return idMatch || nameMatch;
+    // Logic mới: Tìm kiếm theo mã căn hộ
+    const apartmentMatch = removeVietnameseTones(
+      resident.apartment_id || ""
+    ).includes(term);
+
+    return idMatch || nameMatch || apartmentMatch;
   });
 
   // --- LOGIC CẮT DỮ LIỆU ĐỂ HIỂN THỊ (PAGINATION) ---
@@ -772,7 +777,7 @@ export const ResidentsPage = () => {
           </span>
           <input
             type="search"
-            placeholder="Tìm theo ID hoặc Họ tên..."
+            placeholder="Tìm theo ID, Họ tên hoặc Mã căn hộ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none"
@@ -890,8 +895,8 @@ export const ResidentsPage = () => {
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs mb-1">ID</span>
-                  <span className="font-semibold">{resident.id}</span>
+                  <span className="text-gray-500 text-xs mb-1">Mã căn hộ</span>
+                  <span className="font-semibold">{resident.apartment_id}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs mb-1">Ngày sinh</span>
