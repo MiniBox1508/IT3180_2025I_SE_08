@@ -568,9 +568,7 @@ export const AccountRevenue = () => {
 
       {/* HEADER TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">
-          Quản lý thu Dịch vụ (Điện/Nước/Xe)
-        </h1>
+        <h1 className="text-3xl font-bold text-white">Quản lý khoản thu</h1>
         <div className="flex space-x-4">
           <button
             onClick={() => setIsModalOpen(true)}
