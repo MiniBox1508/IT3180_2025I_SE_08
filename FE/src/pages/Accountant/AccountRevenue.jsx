@@ -1,14 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios"; // Đảm bảo đã cài axios
+import axios from "axios";
 import { StatusModal } from "../../layouts/StatusModal";
 import { ConfirmationModal } from "../../layouts/ConfirmationModal";
 
 // --- IMPORT ICONS ---
-import { FiPlus, FiX, FiTrash2, FiSave } from "react-icons/fi";
+import {
+  FiPlus,
+  FiX,
+  FiTrash2,
+  FiSave,
+  FiUpload,
+  FiPrinter,
+} from "react-icons/fi";
 import acceptIcon from "../../images/accept_icon.png";
 import notAcceptIcon from "../../images/not_accept_icon.png";
 import arrowLeft from "../../images/Arrow_Left_Mini_Circle.png";
 import arrowRight from "../../images/Arrow_Right_Mini_Circle.png";
+
+// --- IMPORT LIB ---
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const API_BASE_URL = "https://testingdeploymentbe-2.vercel.app";
 
@@ -77,14 +88,13 @@ const RevenueBatchModal = ({
     return [...new Set(apartments)].sort();
   }, [residents]);
 
-  // State quản lý các dòng nhập liệu
   const [rows, setRows] = useState([
     {
       id: Date.now(),
       apartment_id: "",
-      type: "Tiền điện", // Mặc định
+      type: "Tiền điện",
       quantity: 0,
-      unit_price: 3500, // Giá mặc định điện
+      unit_price: 3500,
       total: 0,
       note: "",
     },
@@ -93,7 +103,6 @@ const RevenueBatchModal = ({
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
-  // Reset form khi mở modal
   useEffect(() => {
     if (isOpen) {
       setRows([
@@ -111,14 +120,12 @@ const RevenueBatchModal = ({
     }
   }, [isOpen, setError]);
 
-  // Handler thay đổi giá trị dòng
   const handleRowChange = (id, field, value) => {
     setRows((prevRows) =>
       prevRows.map((row) => {
         if (row.id === id) {
           const updatedRow = { ...row, [field]: value };
 
-          // Tự động tính tổng tiền khi số lượng hoặc đơn giá thay đổi
           if (field === "quantity" || field === "unit_price") {
             const qty = field === "quantity" ? parseFloat(value) : row.quantity;
             const price =
@@ -127,13 +134,10 @@ const RevenueBatchModal = ({
               (isNaN(qty) ? 0 : qty) * (isNaN(price) ? 0 : price);
           }
 
-          // Cập nhật giá gợi ý khi đổi loại dịch vụ
           if (field === "type") {
             if (value === "Tiền điện") updatedRow.unit_price = 3500;
             else if (value === "Tiền nước") updatedRow.unit_price = 6000;
             else if (value === "Phí gửi xe") updatedRow.unit_price = 100000;
-
-            // Tính lại tổng sau khi đổi giá
             updatedRow.total = updatedRow.quantity * updatedRow.unit_price;
           }
 
@@ -180,14 +184,12 @@ const RevenueBatchModal = ({
         return;
       }
 
-      // Tạo nội dung Fee Type dựa trên tháng/năm
       const feetype = `${row.type} - T${month}/${year}`;
 
       validRows.push({
         apartment_id: row.apartment_id,
         feetype: feetype,
         amount: row.total,
-        // Các trường phụ trợ
         quantity: row.quantity,
         unit_price: row.unit_price,
       });
@@ -216,7 +218,6 @@ const RevenueBatchModal = ({
           </button>
         </div>
 
-        {/* Global Filters for Batch Creation */}
         <div className="flex space-x-4 mb-4 items-center bg-blue-50 p-3 rounded-lg">
           <div className="flex items-center space-x-2">
             <label className="text-sm font-semibold text-gray-700">
@@ -266,7 +267,7 @@ const RevenueBatchModal = ({
                     Loại dịch vụ
                   </th>
                   <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[15%]">
-                    Số lượng (kWh/m³/Xe)
+                    Số lượng
                   </th>
                   <th className="p-3 text-xs font-bold text-gray-600 uppercase border-b w-[20%]">
                     Đơn giá (VNĐ)
@@ -303,7 +304,6 @@ const RevenueBatchModal = ({
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       >
                         <option value="">-- Chọn --</option>
-                        {/* THÊM TÙY CHỌN TẤT CẢ */}
                         <option value="ALL" className="font-bold text-blue-600">
                           -- Tất cả căn hộ --
                         </option>
@@ -397,22 +397,20 @@ const RevenueBatchModal = ({
 // === MAIN PAGE COMPONENT ===
 // =========================================================================
 export const AccountRevenue = () => {
-  const [invoices, setInvoices] = useState([]); // Sử dụng lại data hóa đơn nhưng filter loại phí
+  const [invoices, setInvoices] = useState([]);
   const [residents, setResidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // Status Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
-  // Pagination
+  const fileInputRef = useRef(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -430,7 +428,6 @@ export const AccountRevenue = () => {
         }),
       ]);
 
-      // Lọc chỉ lấy các hóa đơn liên quan đến Điện/Nước/Xe để hiển thị ở trang này
       const allPayments = paymentsRes.data;
       const revenuePayments = allPayments.filter((p) => {
         const type = p.feetype ? p.feetype.toLowerCase() : "";
@@ -457,7 +454,6 @@ export const AccountRevenue = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Logic Search
   const filteredList = invoices.filter((item) => {
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.trim().toLowerCase();
@@ -469,7 +465,6 @@ export const AccountRevenue = () => {
     );
   });
 
-  // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem);
@@ -482,17 +477,13 @@ export const AccountRevenue = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // Handler Save Batch Data
   const handleSaveBatch = async (data) => {
     setIsModalOpen(false);
     const token = getToken();
     let successCount = 0;
 
     try {
-      // --- LOGIC MỚI: Xử lý "Tất cả căn hộ" ---
       const expandedData = [];
-
-      // Lấy danh sách apartment_id duy nhất từ residents (active)
       const activeResidents = residents.filter(
         (r) => r.state === "active" && r.apartment_id
       );
@@ -502,7 +493,6 @@ export const AccountRevenue = () => {
 
       data.forEach((item) => {
         if (item.apartment_id === "ALL") {
-          // Nhân bản item cho tất cả căn hộ
           allApartments.forEach((aptId) => {
             expandedData.push({ ...item, apartment_id: aptId });
           });
@@ -511,10 +501,8 @@ export const AccountRevenue = () => {
         }
       });
 
-      // API POST call song song
       await Promise.all(
         expandedData.map(async (item) => {
-          // Logic tìm resident và call API
           const resident = residents.find(
             (r) => r.apartment_id === item.apartment_id && r.state === "active"
           );
@@ -537,7 +525,7 @@ export const AccountRevenue = () => {
 
       setModalStatus("success");
       setStatusMessage(`Đã tạo thành công ${successCount} khoản thu!`);
-      fetchData(); // Reload data
+      fetchData();
     } catch (err) {
       console.error(err);
       setModalStatus("failure");
@@ -545,6 +533,123 @@ export const AccountRevenue = () => {
     } finally {
       setIsStatusModalOpen(true);
     }
+  };
+
+  // --- LOGIC NHẬP EXCEL (IMPORT) ---
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(file);
+      const worksheet = workbook.getWorksheet(1);
+      const dataToImport = [];
+
+      // Giả định file excel có 4 cột: Mã căn hộ, Loại dịch vụ, Số lượng, Đơn giá
+      // Row 1 là header
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) {
+          // Bỏ qua header
+          const aptId = row.getCell(1).text ? row.getCell(1).text.trim() : "";
+          const type = row.getCell(2).text ? row.getCell(2).text.trim() : "";
+          const qty = row.getCell(3).value
+            ? parseFloat(row.getCell(3).value)
+            : 0;
+          const price = row.getCell(4).value
+            ? parseFloat(row.getCell(4).value)
+            : 0;
+
+          if (aptId && type && qty >= 0 && price >= 0) {
+            const total = qty * price;
+            const feetype = `${type} - T${currentMonth}/${currentYear}`;
+            dataToImport.push({
+              apartment_id: aptId,
+              feetype: feetype,
+              amount: total,
+              quantity: qty,
+              unit_price: price,
+            });
+          }
+        }
+      });
+
+      if (dataToImport.length > 0) {
+        handleSaveBatch(dataToImport); // Tái sử dụng hàm save
+      } else {
+        setModalStatus("failure");
+        setStatusMessage("File không có dữ liệu hợp lệ hoặc sai định dạng.");
+        setIsStatusModalOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setModalStatus("failure");
+      setStatusMessage("Lỗi đọc file Excel.");
+      setIsStatusModalOpen(true);
+    } finally {
+      e.target.value = null; // Reset input
+    }
+  };
+
+  // --- LOGIC XUẤT EXCEL (EXPORT) ---
+  const handleExportExcel = async () => {
+    if (filteredList.length === 0) {
+      setModalStatus("failure");
+      setStatusMessage("Không có dữ liệu để xuất.");
+      setIsStatusModalOpen(true);
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Danh sách khoản thu");
+
+    worksheet.columns = [
+      { header: "ID", key: "id", width: 10 },
+      { header: "Căn hộ", key: "apartment_id", width: 15 },
+      { header: "Nội dung thu", key: "feetype", width: 30 },
+      { header: "Tổng tiền (VNĐ)", key: "amount", width: 20 },
+      { header: "Trạng thái", key: "status", width: 20 },
+    ];
+
+    // Style header
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    worksheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4F81BD" },
+    };
+
+    filteredList.forEach((item) => {
+      worksheet.addRow({
+        id: item.id,
+        apartment_id: item.apartment_id,
+        feetype: item.feetype,
+        amount: item.amount,
+        status: item.state === 1 ? "Đã thanh toán" : "Chưa thanh toán",
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(
+      blob,
+      `Danh_Sach_Khoan_Thu_${new Date()
+        .toLocaleDateString("vi-VN")
+        .replace(/\//g, "-")}.xlsx`
+    );
+
+    setModalStatus("success");
+    setStatusMessage(`Đã xuất ${filteredList.length} dòng ra file Excel.`);
+    setIsStatusModalOpen(true);
   };
 
   const handleCloseStatusModal = () => {
@@ -568,6 +673,15 @@ export const AccountRevenue = () => {
 
   return (
     <div>
+      {/* Input File Ẩn */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".xlsx, .xls"
+        className="hidden"
+      />
+
       {/* HEADER SEARCH */}
       <div className="flex justify-start items-center mb-6">
         <div className="relative w-full max-w-full">
@@ -586,8 +700,22 @@ export const AccountRevenue = () => {
 
       {/* HEADER TITLE & BUTTONS */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Quản lý khoản thu</h1>
+        <h1 className="text-3xl font-bold text-white">
+          Quản lý thu Dịch vụ (Điện/Nước/Xe)
+        </h1>
         <div className="flex space-x-4">
+          <button
+            onClick={handleImportClick}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
+          >
+            <FiUpload size={18} /> <span>Nhập khoản thu</span>
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
+          >
+            <FiPrinter size={18} /> <span>Xuất khoản thu</span>
+          </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2 shadow-md"
